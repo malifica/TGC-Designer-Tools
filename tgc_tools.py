@@ -358,6 +358,9 @@ def shift_features(course_json, easting_shift, northing_shift, course_version):
     crowd_tag = tgc_definitions.version_tags[course_version]['crowd']    
     spline_tag = tgc_definitions.version_tags[course_version]['splines']
     surface_tag = tgc_definitions.version_tags[course_version]['surfaces']
+    if course_version == 25 and surface_tag not in course_json:
+        surface_tag += '2'
+
     oob_tag = tgc_definitions.version_tags[course_version]['oob']
     obj_tag = tgc_definitions.version_tags[course_version]['objects']
 
@@ -441,6 +444,9 @@ def rotate_course(course_json, rotation_angle_radians, course_version):
     crowd_tag = tgc_definitions.version_tags[course_version]['crowd']    
     spline_tag = tgc_definitions.version_tags[course_version]['splines']
     surface_tag = tgc_definitions.version_tags[course_version]['surfaces']
+    if course_version == 25 and surface_tag not in course_json:
+        surface_tag += '2'
+        
     oob_tag = tgc_definitions.version_tags[course_version]['oob']
     obj_tag = tgc_definitions.version_tags[course_version]['objects']
 

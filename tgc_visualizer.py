@@ -163,6 +163,9 @@ def drawCourseAsImage(course_json, course_version):
     crowd_tag = tgc_definitions.version_tags[course_version]['crowd']    
     spline_tag = tgc_definitions.version_tags[course_version]['splines']
     surface_tag = tgc_definitions.version_tags[course_version]['surfaces']
+    if surface_tag not in course_json:
+        surface_tag += '2'
+    
     oob_tag = tgc_definitions.version_tags[course_version]['oob']
     obj_tag = tgc_definitions.version_tags[course_version]['objects']
 
