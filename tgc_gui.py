@@ -21,7 +21,7 @@ import tgc_image_terrain
 from tgc_visualizer import drawCourseAsImage
 import OSMTGC
 
-TGC_GUI_VERSION = "0.4.0-local-osm"
+TGC_GUI_VERSION = "v0.5.0-2k25-beta1"
 
 image_width = 500
 image_height = 500
@@ -573,9 +573,9 @@ def runLidar(scale_entry, epsg_entry, printf):
             local_osm_file = ""
 
         if local_osm_file:
-            printf("Process Lidar will use local OSM for preview/mask: " + local_osm_file)
+            printf("Process LiDAR / DEM will use local OSM for preview/mask: " + local_osm_file)
         else:
-            printf("Process Lidar local OSM is blank; using online Overpass for preview/mask")
+            printf("Process LiDAR / DEM local OSM is blank; using online Overpass for preview/mask")
 
         lidar_map_api.generate_lidar_previews(
             lidar_dir_path,
@@ -805,7 +805,7 @@ style.theme_create( "TabStyle", parent="alt", settings={
 
 style.theme_use("TabStyle")
 
-root.title("TGC Golf Tools " + TGC_GUI_VERSION)
+root.title("TGC Designer Tools 2K25 - " + TGC_GUI_VERSION)
 
 header_frame = Frame(root)
 output = Label(header_frame, background="lightgrey", width=75, height=1)
@@ -825,7 +825,7 @@ course = ttk.Frame(nb, style='new.TFrame')
 scorecard = ttk.Frame(nb, style='new.TFrame')
 nb.pack(fill=BOTH, expand=1)
 nb.add(tools, text='Course Tools')
-nb.add(lidar, text='Process Lidar')
+nb.add(lidar, text='Process LiDAR / DEM')
 nb.add(course, text='Import Terrain and Features')
 nb.add(scorecard, text="Scorecard")
 
@@ -1113,3 +1113,5 @@ courseControlFrame.pack(side=LEFT, padx=5, pady=5, fill=tk.BOTH, expand=True)
 courseConsoleOutput.pack(side=LEFT, padx=5, pady=5, fill=tk.BOTH, expand=True)
 
 root.mainloop()
+
+
