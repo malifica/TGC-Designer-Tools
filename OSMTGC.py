@@ -414,6 +414,14 @@ def getOSMData(bottom_lat, left_lon, top_lat, right_lon, printf=print):
         printf("OpenStreetMap servers are too busy right now.  Try running this tool later.")
         return None
 
+def parseOSMData(xml_data, printf=print):
+    try:
+        op = overpy.Overpass()
+        return op.parse_xml(xml_data)
+    except Exception as exc:
+        printf("Could not parse local OpenStreetMap file: " + str(exc))
+        return None
+
 def clearFeatures(course_json, course_version):
     if course_version not in tgc_definitions.version_tags:
         print("invalid version")
@@ -429,7 +437,7 @@ def clearFeatures(course_json, course_version):
     course_json[hole_tag] = []
     return course_json
 
-def addOSMToTGC(course_json, geopointcloud, osm_result, x_offset=0.0, y_offset=0.0, options_dict={}, spline_configuration_json=None, printf=print, course_version=-1):
+def addOSMToTGC(course_json, geopointcloud, osm_result, x_offset=0.0, y_offset=0.0, options_dict={}, spline_configuration_json=None, printf=print, course_version=-1, resolve_missing_nodes=True):
     global spline_configuration
 
     if course_version not in tgc_definitions.version_tags:
@@ -487,10 +495,10 @@ def addOSMToTGC(course_json, geopointcloud, osm_result, x_offset=0.0, y_offset=0
         # Get the shape of this way
         nds = []
         try:
-            for node in way.get_nodes(resolve_missing=True): # Allow automatically resolving missing nodes, but this is VERY slow with the API requests, try to request beforehand
+            for node in way.get_nodes(resolve_missing=resolve_missing_nodes): # Allow automatically resolving missing nodes, but this is VERY slow with the API requests, try to request beforehand
                 nds.append(geopointcloud.latlonToTGC(node.lat, node.lon, x_offset, y_offset))
         except overpy.exception.OverPyException:
-            printf("OpenStreetMap servers are too busy right now.  Try running this tool later.")
+            printf("OpenStreetMap servers are too busy right now.  Try running this tool later." if resolve_missing_nodes else "Local OSM file is incomplete: a way/relation references nodes that are not present in the file.")
             return []
         # Check this shapes bounding box against the limits of the terrain, don't draw outside this bounds
         # Left, Top, Right, Bottom
@@ -586,10 +594,10 @@ def addOSMToTGC(course_json, geopointcloud, osm_result, x_offset=0.0, y_offset=0
 
                     nds = []
                     try:
-                        for node in wayref.get_nodes(resolve_missing=True): # Allow automatically resolving missing nodes, but this is VERY slow with the API requests, try to request beforehand
+                        for node in wayref.get_nodes(resolve_missing=resolve_missing_nodes): # Allow automatically resolving missing nodes, but this is VERY slow with the API requests, try to request beforehand
                             nds.append(geopointcloud.latlonToTGC(node.lat, node.lon, x_offset, y_offset))
                     except overpy.exception.OverPyException:
-                        printf("OpenStreetMap servers are too busy right now.  Try running this tool later.")
+                        printf("OpenStreetMap servers are too busy right now.  Try running this tool later." if resolve_missing_nodes else "Local OSM file is incomplete: a way/relation references nodes that are not present in the file.")
                         return []
 
                     # Check this shapes bounding box against the limits of the terrain, don't draw outside this bounds
@@ -608,10 +616,10 @@ def addOSMToTGC(course_json, geopointcloud, osm_result, x_offset=0.0, y_offset=0
 
                     nds = []
                     try:
-                        for node in wayref.get_nodes(resolve_missing=True): # Allow automatically resolving missing nodes, but this is VERY slow with the API requests, try to request beforehand
+                        for node in wayref.get_nodes(resolve_missing=resolve_missing_nodes): # Allow automatically resolving missing nodes, but this is VERY slow with the API requests, try to request beforehand
                             nds.append(geopointcloud.latlonToTGC(node.lat, node.lon, x_offset, y_offset))
                     except overpy.exception.OverPyException:
-                        printf("OpenStreetMap servers are too busy right now.  Try running this tool later.")
+                        printf("OpenStreetMap servers are too busy right now.  Try running this tool later." if resolve_missing_nodes else "Local OSM file is incomplete: a way/relation references nodes that are not present in the file.")
                         return []
 
                     # Check this shapes bounding box against the limits of the terrain, don't draw outside this bounds
@@ -697,12 +705,42 @@ def drawWayOnImage(way, color, im, pc, image_scale, thickness=-1, x_offset=0.0, 
         # Need to draw again since fillPoly has no line thickness options that I've found
         cv2.polylines(im, nds, True, color, thickness, lineType=cv2.LINE_AA)
 
+def drawWayLineOnImage(way, color, im, pc, image_scale, thickness=1, closed=False, x_offset=0.0, y_offset=0.0):
+    # Draw ONLY the outline/polyline of this way, without fill.
+    nds = []
+    for node in way.get_nodes(resolve_missing=True):
+        nds.append(pc.latlonToCV2(node.lat, node.lon, image_scale, x_offset, y_offset))
+
+    if len(nds) < 2:
+        return
+
+    nds = np.array(nds)
+    nds[:, [0, 1]] = nds[:, [1, 0]]
+    nds = np.int32([nds])
+
+    try:
+        thickness = max(1, int(thickness))
+    except Exception:
+        thickness = 1
+
+    cv2.polylines(im, nds, closed, color, thickness, lineType=cv2.LINE_AA)
+
 def addOSMToImage(ways, im, pc, image_scale, x_offset=0.0, y_offset=0.0, printf=print):
+    water_feature_count = 0
+    waterway_feature_count = 0
+
     for way in ways:
         golf_type = way.tags.get("golf", None)
+        natural_type = way.tags.get("natural", None)
+        waterway_type = way.tags.get("waterway", None)
+        area_tag = way.tags.get("area", None)
+
         thickness = -1
+        color = None
+        render_mode = "fill"
+
         if golf_type is not None:
-            # Default to green
+            # Default to fairway-like green
             color = (0, 0.75, 0.2)
             if golf_type == "green":
                 color = (0, 1.0, 0.2)
@@ -710,12 +748,43 @@ def addOSMToImage(ways, im, pc, image_scale, x_offset=0.0, y_offset=0.0, printf=
                 color = (0, 0.8, 0)
             elif golf_type == "water_hazard" or golf_type == "lateral_water_hazard":
                 color = (0, 0, 1.0)
+                render_mode = "fill"
+                water_feature_count += 1
             elif golf_type == "fairway":
                 color = color
             else:
-                continue
+                color = None
 
-            drawWayOnImage(way, color, im, pc, image_scale, thickness, x_offset, y_offset)
+        # Also paint standard OSM water features into the same bright-blue mask.
+        if color is None:
+            if natural_type == "water":
+                color = (0, 0, 1.0)
+                render_mode = "fill"
+                water_feature_count += 1
+            elif waterway_type is not None:
+                color = (0, 0, 1.0)
+                waterway_feature_count += 1
+                if area_tag == "yes":
+                    render_mode = "fill"
+                    thickness = -1
+                else:
+                    render_mode = "line"
+                    # Waterways are often linear ways instead of closed areas.
+                    # Give them a modest stroke so they survive rasterization.
+                    try:
+                        thickness = max(3, int(round(6.0 / max(float(image_scale), 0.001))))
+                    except Exception:
+                        thickness = 3
+
+        if color is not None:
+            if render_mode == "line":
+                drawWayLineOnImage(
+                    way, color, im, pc, image_scale,
+                    thickness=thickness, closed=False,
+                    x_offset=x_offset, y_offset=y_offset
+                )
+            else:
+                drawWayOnImage(way, color, im, pc, image_scale, thickness, x_offset, y_offset)
 
     # Draw bunkers last on top of all other layers as a hack until proper layer order is established here
     # Needed for things like bunkers in greens...  :\
@@ -723,6 +792,76 @@ def addOSMToImage(ways, im, pc, image_scale, x_offset=0.0, y_offset=0.0, printf=
         golf_type = way.tags.get("golf", None)
         if golf_type == "bunker":
             color = (0.85, 0.85, 0.7)
-            drawWayOnImage(way, color, im, pc, image_scale, x_offset, y_offset)
+            drawWayOnImage(way, color, im, pc, image_scale, x_offset=x_offset, y_offset=y_offset)
+
+    # FINAL PURE-BLUE WATER MASK PASS
+    #
+    # Repaint water after every other OSM feature (including bunkers) so the
+    # saved mask always contains unmistakable pure blue wherever water exists.
+    # The image at this stage is RGB float data in the range 0..1, therefore
+    # (0, 0, 1.0) becomes RGB (0, 0, 255) in mask.png.
+    pure_blue = (0, 0, 1.0)
+    final_water_areas = 0
+    final_waterways = 0
+
+    for way in ways:
+        golf_type = way.tags.get("golf", None)
+        natural_type = way.tags.get("natural", None)
+        waterway_type = way.tags.get("waterway", None)
+        area_tag = way.tags.get("area", None)
+
+        # Closed/area water: fill solid pure blue.
+        if (golf_type == "water_hazard" or
+            golf_type == "lateral_water_hazard" or
+            natural_type == "water"):
+            drawWayOnImage(
+                way, pure_blue, im, pc, image_scale,
+                -1, x_offset, y_offset
+            )
+            final_water_areas += 1
+            continue
+
+        # waterway=* is commonly a line. Draw open waterways as polylines only.
+        if waterway_type is not None:
+            if area_tag == "yes":
+                drawWayOnImage(
+                    way, pure_blue, im, pc, image_scale,
+                    -1, x_offset, y_offset
+                )
+            else:
+                try:
+                    waterway_thickness = max(
+                        3,
+                        int(round(6.0 / max(float(image_scale), 0.001)))
+                    )
+                except Exception:
+                    waterway_thickness = 3
+
+                try:
+                    drawWayLineOnImage(
+                        way, pure_blue, im, pc, image_scale,
+                        thickness=waterway_thickness, closed=False,
+                        x_offset=x_offset, y_offset=y_offset
+                    )
+                except Exception as exc:
+                    printf(
+                        "Warning: could not draw waterway " +
+                        str(getattr(way, "id", "?")) +
+                        " into blue mask: " + str(exc)
+                    )
+
+            final_waterways += 1
+
+    if water_feature_count or waterway_feature_count:
+        printf("OSM preview/mask water rendering: " +
+               str(water_feature_count) + " area/hazard water features, " +
+               str(waterway_feature_count) + " waterway features")
+
+    if final_water_areas or final_waterways:
+        printf(
+            "FINAL PURE-BLUE mask pass: " +
+            str(final_water_areas) + " water areas/hazards, " +
+            str(final_waterways) + " waterways -> RGB 0,0,255"
+        )
 
     return im

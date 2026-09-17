@@ -35,13 +35,21 @@ def get_object_item(x_pos, z_pos, rotation_degrees):
     return output
 
 def get_placed_object(course_version=-1):
+    # TGC_LIDAR_TREE_2K25_FIX_V2
     key = '{"category":0,"type":0,"theme":true}'
+
+    if course_version >= 25:
+        # Native 2K25 / placedObjects4 structure.
+        return json.loads(
+            '{"Key":{"path":""},'
+            '"Value":{"items":[],"clusters":[],"splines":[],"objectPaths2":[],"IsEmpty":false}}'
+        )
+
     if course_version >= 23:
         key = '{"path":""}'
 
-    output = json.loads('{"Key":'+key+',"Value":{"items":[],"clusters":[]}}')
-    
-    return output
+    return json.loads('{"Key":'+key+',"Value":{"items":[],"clusters":[]}}')
+
 
 def get_trees(theme, tree_variety, trees, course_version=-1):
     # Get possible trees for this theme.  User can't easily change theme after this
@@ -49,11 +57,20 @@ def get_trees(theme, tree_variety, trees, course_version=-1):
     # Default to the default tree 0 if empty or not found
     if course_version >= 23:
         normal_tree_ids = tgc_definitions.normal_trees_2k.get(theme, [0])
+        if len(normal_tree_ids) == 0:
+            normal_tree_ids = [0]
+
+        # 2K tree ids index a GLOBAL asset-path list.
+        # With variety off, use the first tree from this theme's palette,
+        # not global asset index 0.
+        if not tree_variety:
+            normal_tree_ids = [normal_tree_ids[0]]
     else:
         normal_tree_ids = tgc_definitions.normal_trees.get(theme, [0])
+        # Legacy numeric type 0 remains theme-relative.
+        if (not tree_variety) or len(normal_tree_ids) == 0:
+            normal_tree_ids = [0]
 
-    if (not tree_variety) or len(normal_tree_ids) == 0:
-        normal_tree_ids = [0]
     # Default to the normal trees if empty or not found
     if course_version >= 23:
         skinny_tree_ids = tgc_definitions.skinny_trees_2k.get(theme, normal_tree_ids)
@@ -136,6 +153,13 @@ def get_lidar_trees(theme, tree_variety, lidar_trees, pc, mask, mask_pc, image_s
         easting, northing, r, h = tree
         # Use mask to only add trees on desired areas
         row, column = mask_pc.projToCV2(easting, northing, image_scale)
+        row = int(row)
+        column = int(column)
+
+        # Edge rounding can put candidates one pixel outside the cropped mask.
+        if row < 0 or column < 0 or row >= mask.shape[0] or column >= mask.shape[1]:
+            continue
+
         mask_color = mask[(row, column)]
         # Color order is BGR, support both MS Paint Red Colors
         if not (mask_color[0] < 40 and mask_color[1] < 40 and mask_color[2] > 130):
@@ -269,23 +293,67 @@ def generate_course(course_json, heightmap_dir_path, options_dict={}, printf=pri
 
         x, y, z = pc.enuToTGC(i[0], i[1], 0.0) # Don't transform y, it's inverted from elevation
 
-        smoothing = options_dict.get('smoothing', 0)
-        if smoothing == 0:
-            layer_json["height"].append(get_pixel(x, z, i[2], image_scale))
-        elif smoothing == 1:
-            layer_json["height"].append(get_pixel(x, z, i[2], 4*image_scale, brush_type=15))
-        elif smoothing == 2:
-            layer_json["height"].append(get_pixel(x, z, i[2], 3*image_scale, brush_type=9))
-        elif smoothing == 3:
-            layer_json["height"].append(get_pixel(x, z, i[2], 3*image_scale, brush_type=10))
+        try:
+            terrain_brush_type = int(options_dict.get('brush_type', 72))
+        except:
+            terrain_brush_type = 72
 
-    if options_dict.get('lidar_trees', False) and len(read_dictionary.get('trees', [])) > 0:
-        printf("Adding trees from lidar data")
-        # Need separate mask geopointcloud because pc is cropped
-        mask_pc = GeoPointCloud()
-        mask_pc.addFromImage(im, image_scale, read_dictionary['origin'], read_dictionary['projection'])
-        for o in get_lidar_trees(course_json['theme'], options_dict.get('tree_variety', False), read_dictionary['trees'], pc, mask, mask_pc, image_scale, course_version):
-            course_json[obj_tag].append(o)
+        if terrain_brush_type not in (72, 9, 10, 15):
+            printf("Invalid terrain brush type " + str(terrain_brush_type) + "; using 72.")
+            terrain_brush_type = 72
+
+        configured_sizes = [1.0, 2.0, 3.0, 4.0, 6.0]
+        try:
+            requested_brush_scale = float(options_dict.get('brush_scale', image_scale))
+        except:
+            requested_brush_scale = image_scale
+
+        valid_sizes = [v for v in configured_sizes if v + 1e-6 >= image_scale]
+        if not valid_sizes:
+            printf("ERROR: Lidar sample spacing " + str(image_scale) +
+                   " m exceeds the maximum configured 6 m brush footprint.")
+            return course_json
+
+        if requested_brush_scale not in configured_sizes or requested_brush_scale + 1e-6 < image_scale:
+            requested_brush_scale = valid_sizes[0]
+
+        layer_json["height"].append(
+            get_pixel(x, z, i[2], requested_brush_scale, brush_type=terrain_brush_type)
+        )
+
+    if options_dict.get('lidar_trees', False):
+        lidar_tree_candidates = read_dictionary.get('trees', [])
+        printf("LiDAR tree candidates stored in heightmap: " + str(len(lidar_tree_candidates)))
+
+        if len(lidar_tree_candidates) > 0:
+            printf("Adding trees from lidar data")
+
+            mask_pc = GeoPointCloud()
+            mask_pc.addFromImage(im, image_scale, read_dictionary['origin'], read_dictionary['projection'])
+
+            lidar_tree_groups = get_lidar_trees(
+                course_json['theme'],
+                options_dict.get('tree_variety', False),
+                lidar_tree_candidates,
+                pc,
+                mask,
+                mask_pc,
+                image_scale,
+                course_version
+            )
+
+            lidar_tree_items = sum(
+                len(group.get("Value", {}).get("items", []))
+                for group in lidar_tree_groups
+            )
+
+            printf("LiDAR trees surviving mask: " + str(lidar_tree_items))
+            printf("LiDAR tree object groups written to " + str(obj_tag) + ": " + str(len(lidar_tree_groups)))
+
+            for group in lidar_tree_groups:
+                course_json[obj_tag].append(group)
+        else:
+            printf("No LiDAR tree candidates were detected during heightmap generation.")
 
     # Download OpenStreetMaps Data for this smaller area
     if options_dict.get('use_osm', True):
@@ -294,15 +362,40 @@ def generate_course(course_json, heightmap_dir_path, options_dict={}, printf=pri
         # Get spline configuration file, if present
         spline_json = tgc_tools.get_spline_configuration_json(heightmap_dir_path)
 
-        # Use this data to create playable courses automatically
-        upper_left_enu = pc.ulENU()
-        lower_right_enu = pc.lrENU()
-        upper_left_latlon = pc.enuToLatLon(*upper_left_enu)
-        lower_right_latlon = pc.enuToLatLon(*lower_right_enu)
-        # Order is South, West, North, East
-        result = OSMTGC.getOSMData(lower_right_latlon[0], upper_left_latlon[1], upper_left_latlon[0], lower_right_latlon[1], printf=printf)
-        osm_trees = OSMTGC.addOSMToTGC(course_json, pc, result, x_offset=float(options_dict.get('adjust_ew', 0.0)), y_offset=float(options_dict.get('adjust_ns', 0.0)), \
-                                                         options_dict=options_dict, spline_configuration_json=spline_json, printf=printf, course_version=course_version)
+        local_osm_file = str(options_dict.get('local_osm_file', '') or '').strip()
+        local_osm_mode = bool(local_osm_file)
+        result = None
+
+        if local_osm_mode:
+            printf("Local OSM mode: " + local_osm_file)
+            try:
+                with open(local_osm_file, 'r', encoding='utf-8-sig') as osm_input:
+                    result = OSMTGC.parseOSMData(osm_input.read(), printf=printf)
+            except OSError as exc:
+                printf("Could not open local OpenStreetMap file: " + str(exc))
+        else:
+            upper_left_enu = pc.ulENU()
+            lower_right_enu = pc.lrENU()
+            upper_left_latlon = pc.enuToLatLon(*upper_left_enu)
+            lower_right_latlon = pc.enuToLatLon(*lower_right_enu)
+            result = OSMTGC.getOSMData(lower_right_latlon[0], upper_left_latlon[1], upper_left_latlon[0], lower_right_latlon[1], printf=printf)
+
+        if result is None:
+            printf("No OpenStreetMap data available; skipping OSM feature import.")
+            osm_trees = []
+        else:
+            osm_trees = OSMTGC.addOSMToTGC(
+                course_json,
+                pc,
+                result,
+                x_offset=float(options_dict.get('adjust_ew', 0.0)),
+                y_offset=float(options_dict.get('adjust_ns', 0.0)),
+                options_dict=options_dict,
+                spline_configuration_json=spline_json,
+                printf=printf,
+                course_version=course_version,
+                resolve_missing_nodes=not local_osm_mode
+            )
 
         if len(osm_trees) > 0:
             printf("Adding trees from OpenStreetMap")

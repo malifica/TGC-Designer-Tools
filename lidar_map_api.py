@@ -12,6 +12,7 @@ import json
 import math
 import numpy as np
 import os
+import overpy
 import scipy
 import sys
 import time
@@ -229,7 +230,7 @@ def request_course_outline(course_image, sat_image=None, bundle=None, printf=pri
     popup.mainloop()
 
 
-def generate_lidar_previews(lidar_dir_path, sample_scale, output_dir_path, force_epsg=None, force_unit=None, printf=print):
+def generate_lidar_previews(lidar_dir_path, sample_scale, output_dir_path, force_epsg=None, force_unit=None, printf=print, local_osm_file=None):
     # Create directory for intermediate files
     tgc_tools.create_directory(output_dir_path)
 
@@ -281,11 +282,72 @@ def generate_lidar_previews(lidar_dir_path, sample_scale, output_dir_path, force
     upper_left_latlon = pc.enuToLatLon(*upper_left_enu)
     lower_right_latlon = pc.enuToLatLon(*lower_right_enu)
     # Order is South, West, North, East
-    result = OSMTGC.getOSMData(lower_right_latlon[0], upper_left_latlon[1], upper_left_latlon[0], lower_right_latlon[1], printf=printf)
+    if local_osm_file:
+        result = None
+        try:
+            printf("Loading LOCAL OpenStreetMap data for LiDAR preview/mask: " + str(local_osm_file))
+            with open(local_osm_file, "r", encoding="utf-8") as osm_file:
+                local_osm_xml = osm_file.read()
+
+            osm_parser = overpy.Overpass()
+            result = osm_parser.parse_xml(local_osm_xml)
+
+            # Fail closed in local mode. Validate every way without allowing
+            # overpy to resolve missing nodes through Overpass.
+            incomplete_ways = []
+            for way in result.ways:
+                try:
+                    way.get_nodes(resolve_missing=False)
+                except overpy.exception.DataIncomplete:
+                    incomplete_ways.append(way.id)
+
+            if incomplete_ways:
+                preview = ", ".join(str(x) for x in incomplete_ways[:10])
+                if len(incomplete_ways) > 10:
+                    preview += ", ..."
+                raise RuntimeError(
+                    "Local OSM contains " + str(len(incomplete_ways)) +
+                    " incomplete ways with missing node references: " + preview
+                )
+
+            golf_water_count = 0
+            other_water_count = 0
+            for way in result.ways:
+                golf_type = way.tags.get("golf", None)
+                natural_type = way.tags.get("natural", None)
+                waterway_type = way.tags.get("waterway", None)
+                if golf_type in ("water_hazard", "lateral_water_hazard"):
+                    golf_water_count += 1
+                elif natural_type == "water" or waterway_type is not None:
+                    other_water_count += 1
+
+            printf(
+                "Local OSM parsed for mask: " + str(len(result.ways)) +
+                " ways; golf water polygons=" + str(golf_water_count) +
+                "; other water-tagged ways=" + str(other_water_count)
+            )
+        except Exception as exc:
+            printf("ERROR loading local OSM for LiDAR preview/mask: " + str(exc))
+            printf("Local OSM mode will NOT fall back to online Overpass.")
+            result = None
+    else:
+        result = OSMTGC.getOSMData(
+            lower_right_latlon[0],
+            upper_left_latlon[1],
+            upper_left_latlon[0],
+            lower_right_latlon[1],
+            printf=printf
+        )
+
     if result:
         im = OSMTGC.addOSMToImage(result.ways, im, pc, sample_scale, printf=printf)
+        if local_osm_file:
+            printf("Local OSM features rendered into LiDAR preview/mask source image")
     else:
-        printf("OpenStreetMap download failed.  You won't see helpful OSM outlines or drawings on your preview or mask.")
+        if local_osm_file:
+            printf("No local OSM overlay was rendered into the preview/mask.")
+        else:
+            printf("OpenStreetMap download failed.  You won't see helpful OSM outlines or drawings on your preview or mask.")
 
     # This is where MapQuest sat image was retrieved before the API switched to paid only
     origin_projected_coordinates = pc.origin

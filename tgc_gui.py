@@ -16,11 +16,12 @@ import string
 import tgc_definitions
 import tgc_tools
 import lidar_map_api
+import dem_map_api
 import tgc_image_terrain
 from tgc_visualizer import drawCourseAsImage
 import OSMTGC
 
-TGC_GUI_VERSION = "0.4.0"
+TGC_GUI_VERSION = "0.4.0-local-osm"
 
 image_width = 500
 image_height = 500
@@ -37,6 +38,7 @@ course_json = None
 scorecard = None
 inner_frame = None # Scorecard inner frame
 course_version = -1
+brush_scale_combo = None
 
 def drawPlaceholder():
     global root
@@ -552,12 +554,105 @@ def runLidar(scale_entry, epsg_entry, printf):
 
     lidar_dir_path = tk.filedialog.askdirectory(initialdir=root.filename, title="Select las/laz files directory")
     if lidar_dir_path:
-        lidar_map_api.generate_lidar_previews(lidar_dir_path, sample_scale, root.filename, force_epsg=force_epsg, printf=printf)
+        # Reuse the Local OSM File selected on the Import Terrain and Features tab.
+        # Do not depend on the exact option-dictionary key so this remains compatible
+        # with the existing Local OSM patch.
+        local_osm_file = ""
+        try:
+            for key, entry in options_entries_dict.items():
+                try:
+                    value = entry.get()
+                except Exception:
+                    continue
+                if isinstance(value, str):
+                    candidate = value.strip()
+                    if candidate.lower().endswith((".osm", ".xml")):
+                        local_osm_file = candidate
+                        break
+        except Exception:
+            local_osm_file = ""
+
+        if local_osm_file:
+            printf("Process Lidar will use local OSM for preview/mask: " + local_osm_file)
+        else:
+            printf("Process Lidar local OSM is blank; using online Overpass for preview/mask")
+
+        lidar_map_api.generate_lidar_previews(
+            lidar_dir_path,
+            sample_scale,
+            root.filename,
+            force_epsg=force_epsg,
+            printf=printf,
+            local_osm_file=local_osm_file
+        )
+
+def runDEM(scale_entry, printf):
+    global root
+
+    if not root or not hasattr(root, 'filename'):
+        alert("Select a course directory before processing DEM files")
+        return
+
+    try:
+        dem_sample_scale = float(scale_entry.get())
+        if dem_sample_scale <= 0.0:
+            raise ValueError("Map Scale must be greater than zero")
+    except Exception:
+        alert("No action taken: Could not get valid DEM Map Scale")
+        return
+
+    printf("Requested DEM output Map Scale: " + str(dem_sample_scale) + " meters")
+
+    dem_files = tk.filedialog.askopenfilenames(
+        initialdir=root.filename,
+        title="Select one or more georeferenced DEM GeoTIFF files",
+        filetypes=[
+            ("GeoTIFF DEM Files", "*.tif *.tiff"),
+            ("TIFF Files", "*.tif *.tiff"),
+            ("All files", "*"),
+        ]
+    )
+    if not dem_files:
+        return
+
+    local_osm_file = ""
+    try:
+        for key, entry in options_entries_dict.items():
+            try:
+                value = entry.get()
+            except Exception:
+                continue
+            if isinstance(value, str):
+                candidate = value.strip()
+                if candidate.lower().endswith((".osm", ".xml")):
+                    local_osm_file = candidate
+                    break
+    except Exception:
+        local_osm_file = ""
+
+    if local_osm_file:
+        printf("DEM will use local OSM for preview/mask: " + local_osm_file)
+    else:
+        printf("DEM local OSM is blank; online Overpass will be used for preview/mask")
+
+    try:
+        dem_map_api.generate_dem_previews(
+            list(dem_files),
+            root.filename,
+            local_osm_file=local_osm_file,
+            sample_scale=dem_sample_scale,
+            printf=printf
+        )
+    except Exception as exc:
+        printf("DEM processing failed: " + str(exc))
+        raise
+
 
 def generateCourseFromLidar(options_entries_dict, printf):
     global root
     global course_json
     global course_version
+    global brush_scale_combo
 
     if not root or not hasattr(root, 'filename'):
         alert("Select a course directory before processing heightmap file")
@@ -567,31 +662,79 @@ def generateCourseFromLidar(options_entries_dict, printf):
         alert("Make sure to import a .course file")
         return
 
-    # There may be many options for this in the future (which splines to add, clear splines?, flatten fairways/greens, etc) so store efficiently
-    options_dict = {}
+    heightmap_dir_path = tk.filedialog.askdirectory(initialdir=root.filename, title="Select heightmap and mask files directory")
+    if not heightmap_dir_path:
+        return
 
-    # Snapshot the current values of the entries dictionary into the options_dict
-    # We are reusing the same keys, so try not to change them often
-    # All values in the entries_dict must support the get() function
+    allowed_scales = [1, 2, 3, 4, 6]
+    detected_scale = None
+    try:
+        scale_info = np.load(heightmap_dir_path + '/heightmap.npy', allow_pickle=True).item()
+        detected_scale = float(scale_info['image_scale'])
+        allowed_scales = [v for v in allowed_scales if float(v) + 1e-6 >= detected_scale]
+
+        if not allowed_scales:
+            alert("The detected Lidar spacing is " + str(detected_scale) +
+                  " m, which is larger than the largest configured 6 m brush size.")
+            return
+
+        if brush_scale_combo is not None:
+            brush_scale_combo['values'] = tuple(str(v) for v in allowed_scales)
+
+        current_scale = None
+        try:
+            current_scale = float(options_entries_dict["brush_scale"].get())
+        except:
+            pass
+
+        if current_scale is None or current_scale + 1e-6 < detected_scale or current_scale not in [float(v) for v in allowed_scales]:
+            new_scale = allowed_scales[0]
+            options_entries_dict["brush_scale"].set(str(new_scale))
+            printf("Detected Lidar spacing: " + str(detected_scale) +
+                   " m. Brush sizes below the source spacing are locked out; using " +
+                   str(new_scale) + " m.")
+        else:
+            printf("Detected Lidar spacing: " + str(detected_scale) +
+                   " m. Allowed brush sizes: " +
+                   ", ".join(str(v) + " m" for v in allowed_scales))
+    except Exception as exc:
+        printf("Warning: could not pre-read heightmap resolution for brush-size lockout: " + str(exc))
+
+    options_dict = {}
     for key, entry in options_entries_dict.items():
         options_dict[key] = entry.get()
 
-    heightmap_dir_path = tk.filedialog.askdirectory(initialdir=root.filename, title="Select heightmap and mask files directory")
-    if heightmap_dir_path:
-        drawPlaceholder()
-        course_json = tgc_image_terrain.generate_course(course_json, heightmap_dir_path, options_dict=options_dict, 
-                printf=printf, course_version=course_version) 
-        if course_json is not None:
-            drawCourse(course_json)
-            printf("Done Rendering Course Preview")
-        else:
-            printf("failed to generate course")
-            print(course_version)
+    drawPlaceholder()
+    course_json = tgc_image_terrain.generate_course(course_json, heightmap_dir_path, options_dict=options_dict,
+            printf=printf, course_version=course_version)
+    if course_json is not None:
+        drawCourse(course_json)
+        printf("Done Rendering Course Preview")
+    else:
+        printf("failed to generate course")
+        print(course_version)
 
 osm_types = [
     ('Open Street Map Exports', '*.osm'), 
     ('All files', '*'), 
 ]
+
+def selectLocalOSMFile(path_var):
+    global root
+
+    initial_dir = "."
+    if root and hasattr(root, 'filename'):
+        initial_dir = root.filename
+
+    osm_file = tk.filedialog.askopenfilename(
+        title='Select Local OpenStreetMap Export',
+        defaultextension='osm',
+        initialdir=initial_dir,
+        filetypes=osm_types
+    )
+    if osm_file:
+        path_var.set(osm_file)
+
 def importOSMFile(options_entries_dict, printf):
     global root
     global course_json
@@ -625,8 +768,35 @@ def importOSMFile(options_entries_dict, printf):
             drawCourse(course_json)
             printf("Done Rendering Course Preview")
 
+def setStartupWindowSize(window):
+    # Use a large default while respecting the actual desktop resolution.
+    # Leave a margin for the taskbar/window chrome and center the window.
+    try:
+        screen_w = int(window.winfo_screenwidth())
+        screen_h = int(window.winfo_screenheight())
+
+        target_w = min(1400, max(1100, screen_w - 120))
+        target_h = min(900, max(750, screen_h - 140))
+
+        # Never request a window larger than the usable screen estimate.
+        target_w = min(target_w, max(900, screen_w - 40))
+        target_h = min(target_h, max(650, screen_h - 80))
+
+        x = max(0, int((screen_w - target_w) / 2))
+        y = max(0, int((screen_h - target_h) / 2))
+
+        window.geometry(
+            str(target_w) + "x" + str(target_h) +
+            "+" + str(x) + "+" + str(y)
+        )
+        window.minsize(min(1050, target_w), min(700, target_h))
+    except Exception:
+        # Safe fallback for unusual display configurations.
+        window.geometry("1200x800")
+
+
 root = tk.Tk()
-root.geometry("800x600")
+setStartupWindowSize(root)
 
 style = ttk.Style()
 style.theme_create( "TabStyle", parent="alt", settings={
@@ -764,12 +934,14 @@ epsg_label = Label(lidarControlFrame, text="Force Lidar EPSG Projection", fg=tex
 epsg_entry = tk.Entry(lidarControlFrame, width=8, justify='center')
 epsg_entry.insert(END, "")
 lidarbutton = Button(lidarControlFrame, text="Select Lidar and Generate Heightmap", command=partial(runLidar, scale_entry, epsg_entry, lidarPrintf))
+dembutton = Button(lidarControlFrame, text="Select DEM GeoTIFF(s)", command=partial(runDEM, scale_entry, lidarPrintf))
 
 scale_label.pack(side=LEFT, padx=5)
 scale_entry.pack(side=LEFT, padx=5)
 epsg_label.pack(side=LEFT, padx=5)
 epsg_entry.pack(side=LEFT, padx=5)
 lidarbutton.pack(side=LEFT, padx=5, pady=5)
+dembutton.pack(side=LEFT, padx=5, pady=5)
 
 lidarControlFrame.pack(pady=5)
 lidarConsoleOutput.pack(padx=10, pady=5, fill=tk.BOTH, expand=True)
@@ -840,6 +1012,12 @@ buildingCheck.select()
 options_entries_dict["tree"] = tk.BooleanVar()
 treeCheck = Checkbutton(osmSubFrame, text="Import Mapped Woods/Trees", variable=options_entries_dict["tree"], fg=check_fg, bg=check_bg)
 treeCheck.deselect()
+
+local_osm_var = tk.StringVar()
+options_entries_dict["local_osm_file"] = local_osm_var
+local_osm_entry = tk.Entry(osmSubFrame, width=32, textvariable=local_osm_var)
+local_osm_browse = Button(osmSubFrame, text="Browse...", command=partial(selectLocalOSMFile, local_osm_var))
+
 osmbutton = Button(osmSubFrame, text="Make Flat Course From OSM File", command=partial(importOSMFile, options_entries_dict, coursePrintf))
 
 osmew.grid(row=0, column=1, padx=5)
@@ -858,7 +1036,10 @@ Label(osmSubFrame, text="Match Hole Names", fg=check_fg, bg=check_bg).grid(row=1
 osm_hole_filter.grid(row=12, column=1, padx=5)
 buildingCheck.grid(row=13, columnspan=2, sticky=W, padx=5)
 treeCheck.grid(row=14, columnspan=2, sticky=W, padx=5)
-osmbutton.grid(row=15, columnspan=2)
+Label(osmSubFrame, text="Local OSM File (blank = online)", fg=check_fg, bg=check_bg).grid(row=15, column=0, sticky=W, padx=5)
+local_osm_entry.grid(row=15, column=1, sticky=W, padx=5)
+local_osm_browse.grid(row=15, column=2, sticky=W, padx=5)
+osmbutton.grid(row=16, columnspan=3)
 
 useOSMCheck.pack(padx=10, pady=10)
 osmSubFrame.pack(padx=5, pady=5)
@@ -894,13 +1075,19 @@ options_entries_dict["purge_water"] = tk.BooleanVar()
 purgeWaterCheck = Checkbutton(courseSubFrame, text="Remove All Terrain Under Blue Mask", variable=options_entries_dict["purge_water"], fg=check_fg, bg=check_bg)
 purgeWaterCheck.deselect()
 
-options_entries_dict["smoothing"] = tk.IntVar()
-options_entries_dict["smoothing"].set(0)
+brush_type_var = tk.StringVar()
+brush_type_var.set("72")
+options_entries_dict["brush_type"] = brush_type_var
+brush_type_combo = ttk.Combobox(courseSubFrame, width=8, justify='center',
+                                textvariable=brush_type_var, state='readonly',
+                                values=("72", "9", "10", "15"))
 
-smoothing0 = tk.Radiobutton(courseSubFrame, text="No Smoothing", variable=options_entries_dict["smoothing"], value=0, fg=check_fg, bg=check_bg)
-smoothing1 = tk.Radiobutton(courseSubFrame, text="Light", variable=options_entries_dict["smoothing"], value=1, fg=check_fg, bg=check_bg)
-smoothing2 = tk.Radiobutton(courseSubFrame, text="Medium", variable=options_entries_dict["smoothing"], value=2, fg=check_fg, bg=check_bg)
-smoothing3 = tk.Radiobutton(courseSubFrame, text="Heavy", variable=options_entries_dict["smoothing"], value=3, fg=check_fg, bg=check_bg)
+brush_scale_var = tk.StringVar()
+brush_scale_var.set("2")
+options_entries_dict["brush_scale"] = brush_scale_var
+brush_scale_combo = ttk.Combobox(courseSubFrame, width=8, justify='center',
+                                 textvariable=brush_scale_var, state='readonly',
+                                 values=("1", "2", "3", "4", "6"))
 
 # Pack the osmControlFrame
 courseSubFrame.pack(padx=5, pady=5, fill=X, expand=True)
@@ -911,11 +1098,11 @@ lidarTreeCheck.grid(row=2, columnspan=2, sticky=W, padx=5)
 treeVarietyCheck.grid(row=3, columnspan=2, sticky=W, padx=5)
 fillWaterCheck.grid(row=4, columnspan=2, sticky=W, padx=5)
 purgeWaterCheck.grid(row=5, columnspan=2, sticky=W, padx=5)
-Label(courseSubFrame, text="Terrain Smoothing", fg=check_fg, bg=check_bg).grid(row=6, column=0, pady=10)
-smoothing0.grid(row=7, columnspan=2, sticky=W, padx=5)
-smoothing1.grid(row=8, columnspan=2, sticky=W, padx=5)
-smoothing2.grid(row=9, columnspan=2, sticky=W, padx=5)
-smoothing3.grid(row=10, columnspan=2, sticky=W, padx=5)
+Label(courseSubFrame, text="Terrain Brush", fg=check_fg, bg=check_bg).grid(row=6, column=0, pady=(10,3), sticky=W, padx=5)
+brush_type_combo.grid(row=6, column=1, pady=(10,3), sticky=W, padx=5)
+Label(courseSubFrame, text="Brush Size (meters)", fg=check_fg, bg=check_bg).grid(row=7, column=0, pady=3, sticky=W, padx=5)
+brush_scale_combo.grid(row=7, column=1, pady=3, sticky=W, padx=5)
+Label(courseSubFrame, text="Brushes: 72 / 9 / 10 / 15", fg=check_fg, bg=check_bg).grid(row=8, columnspan=2, sticky=W, padx=5)
 
 # Pack the two option frames side by side
 osmControlFrame.pack(side=LEFT, anchor=N, padx=5)
