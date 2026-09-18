@@ -22,7 +22,7 @@ if errorlevel 1 goto :fail
 
 echo.
 echo === Syntax check ===
-python -m py_compile dem_map_api.py tgc_gui.py lidar_map_api.py tgc_image_terrain.py OSMTGC.py infill_image.py usgs_lidar_parser.py
+python -m py_compile adaptive_terrain.py dem_map_api.py tgc_gui.py lidar_map_api.py tgc_image_terrain.py OSMTGC.py infill_image.py usgs_lidar_parser.py
 if errorlevel 1 goto :fail
 
 echo.
