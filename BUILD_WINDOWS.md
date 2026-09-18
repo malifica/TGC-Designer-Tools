@@ -117,7 +117,7 @@ python -m PyInstaller ^
 Expected output:
 
 ```text
-C:\TGC-Designer-Tools\dist\tgc_gui_2k25_LOCAL_OSM_DEM.exe
+C:\TGC-Designer-Tools\dist\tgc_gui_2k25_beta2.exe
 ```
 
 ## Why Rasterio has custom PyInstaller files
@@ -155,7 +155,7 @@ Before publishing a binary:
 Create a checksum for the release EXE:
 
 ```bat
-powershell -NoProfile -Command "(Get-FileHash 'dist\tgc_gui_2k25_LOCAL_OSM_DEM.exe' -Algorithm SHA256).Hash | Out-File 'dist\tgc_gui_2k25_LOCAL_OSM_DEM.exe.sha256.txt' -Encoding ascii"
+powershell -NoProfile -Command "(Get-FileHash 'dist\tgc_gui_2k25_beta2.exe' -Algorithm SHA256).Hash | Out-File 'dist\tgc_gui_2k25_beta2.exe.sha256.txt' -Encoding ascii"
 ```
 
 ## Suggested release package
@@ -163,8 +163,8 @@ powershell -NoProfile -Command "(Get-FileHash 'dist\tgc_gui_2k25_LOCAL_OSM_DEM.e
 Create:
 
 ```text
-TGC-Designer-Tools-2K25-v0.5.0-beta1-Windows-x64\
-    tgc_gui_2k25_LOCAL_OSM_DEM.exe
+TGC-Designer-Tools-2K25-v0.5.0-2k25-beta2-Windows-x64\
+    tgc_gui_2k25_beta2.exe
     LICENSE
     README.md
     CHANGELOG.md

@@ -4,6 +4,67 @@ All notable fork-specific changes to `malifica/TGC-Designer-Tools` are documente
 
 The fork is based on work from `HiCamino/TGC-Designer-Tools`.
 
+
+## [0.5.0-2k25-beta2] - Terrain, CRS, OSM, and workflow beta
+
+### Added
+
+- Integrated `Adaptive - Aggressive` terrain generation mode.
+- Automatic purple `terrainHeight` background landscape generated from source LiDAR/DEM relief.
+- User-editable Purple Background Detail Spacing control.
+- Modern LAS/LAZ CRS parsing through `laspy.header.parse_crs()`.
+- Compound LiDAR CRS splitting into horizontal and vertical components.
+- Independent LiDAR XY and Z unit conversion.
+- OSM bunker multipolygon conversion for `golf=bunker` outer + `golf=rough` inner islands.
+- Narrow lollipop/neck generation so inner rough islands become physical holes in the 2K25 bunker fill.
+
+### Changed
+
+- Public Terrain Generation choices simplified to:
+  - Dense / Original
+  - Adaptive - Aggressive
+- Purple background default detail spacing set to 48 m.
+- Purple background Brush-10 footprint uses `2.0 × spacing`.
+- Purple background smoothing uses `0.35 × spacing`.
+- Purple Background spacing remains editable; values such as 24 m are supported for higher-detail mountainous surroundings.
+- LiDAR force-EPSG label changed to `Force LiDAR Horizontal EPSG (blank = auto)`.
+- Bunker inner rough member ways are consumed during lollipop conversion; no redundant rough spline is written.
+
+### Fixed
+
+- Older LiDAR CRS detection could lose a successfully parsed CRS when a later unrelated VLR raised an exception.
+- Compound LAS/LAZ CRS metadata could be reported as one unresolved CRS instead of separate horizontal/vertical components.
+- LiDAR Z values could be forced through the same unit assumptions as XY.
+- A flat global background landscape was unsuitable for courses with large elevation changes.
+- Coarse background stamps could bridge over significant terrain changes on rolling/mountainous sites.
+- 2K25 could not display a rough island over a filled bunker spline.
+
+### Removed / Deferred
+
+- Experimental automatic `Carve Blue Mask Banks` / deep-floor water sculpting is not included in Beta 2.
+- Experimental Adaptive Standard, Hybrid, Brush-72-only, and Auto-Mask terrain profiles are not exposed in the Beta 2 GUI.
+
+### Water
+
+Beta 2 retains:
+
+- Fill Holes Under Blue Mask
+- Remove All Terrain Under Blue Mask
+- pure-blue final water mask
+- OSM/local-OSM water spline import
+- `natural=water`
+- `waterway=*`
+- open-waterway polyline handling
+
+### Build
+
+- Windows target: Python 3.11.x 64-bit.
+- PyInstaller 6.x.
+- Rasterio 1.4.4.
+- `laszip-cli.exe` bundled for LAZ support.
+- Release executable: `dist\tgc_gui_2k25_beta2.exe`.
+
+
 ## [0.5.0-2k25-beta1] - Initial fork release
 
 Upstream baseline:

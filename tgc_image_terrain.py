@@ -3,10 +3,13 @@ import itertools
 import json
 import math
 import numpy as np
+from scipy import ndimage
 from pathlib import Path
 import random
 import sys
 import time
+
+import adaptive_terrain
 
 from GeoPointCloud import GeoPointCloud
 from infill_image import infill_image_scipy
@@ -26,6 +29,182 @@ def get_pixel(x_pos, z_pos, height, scale, brush_type=72):
     output['scale']['x'] = scale
     output['scale']['z'] = scale
     return output
+
+def _normalize_background_heightmap(heightmap):
+    arr = np.asarray(heightmap, dtype=np.float32)
+    if arr.ndim > 2:
+        arr = np.squeeze(arr)
+    if arr.ndim != 2:
+        raise ValueError(
+            "Auto Background Landscape expected a 2-D heightmap; got " +
+            str(arr.shape)
+        )
+    return arr
+
+
+def _nearest_fill_invalid(arr):
+    """Fill NaN/Inf holes with the nearest valid elevation for coarse background use."""
+    valid = np.isfinite(arr)
+    if not np.any(valid):
+        return None
+
+    if np.all(valid):
+        return arr.astype(np.float32, copy=True)
+
+    invalid = ~valid
+    # For every invalid pixel, return indices of nearest valid pixel.
+    _, indices = ndimage.distance_transform_edt(
+        invalid,
+        return_distances=True,
+        return_indices=True,
+    )
+    filled = arr.copy()
+    filled[invalid] = arr[tuple(indices[:, invalid])]
+    return filled.astype(np.float32, copy=False)
+
+
+def _sample_bilinear_2d(arr, row, col):
+    h, w = arr.shape
+    row = min(max(float(row), 0.0), h - 1.0)
+    col = min(max(float(col), 0.0), w - 1.0)
+
+    r0 = int(math.floor(row))
+    c0 = int(math.floor(col))
+    r1 = min(r0 + 1, h - 1)
+    c1 = min(c0 + 1, w - 1)
+
+    fr = row - r0
+    fc = col - c0
+
+    return float(
+        arr[r0, c0] * (1.0 - fr) * (1.0 - fc) +
+        arr[r0, c1] * (1.0 - fr) * fc +
+        arr[r1, c0] * fr * (1.0 - fc) +
+        arr[r1, c1] * fr * fc
+    )
+
+
+def generate_coarse_outside_landscape(
+    heightmap,
+    pc,
+    image_scale,
+    resolution_m=48.0,
+    world_half_extent_m=1000.0,
+    printf=print,
+):
+    """
+    Build a low-resolution purple terrainHeight layer ONLY outside the
+    detailed imported terrain rectangle.
+
+    The coarse surface follows the DEM/LiDAR's large-scale relief.  Outside
+    the source rectangle, each sample uses the nearest point on the source
+    edge, so a site with 50+ m of relief keeps the correct low/high sides
+    instead of being forced to one global elevation.
+    """
+    arr = _normalize_background_heightmap(heightmap)
+    filled = _nearest_fill_invalid(arr)
+    if filled is None:
+        printf("Auto Background Landscape: no valid source elevations")
+        return []
+
+    try:
+        resolution_m = float(resolution_m)
+    except Exception:
+        resolution_m = 48.0
+
+    resolution_m = max(16.0, min(256.0, resolution_m))
+
+    # Smooth at roughly half the requested coarse spacing.  This keeps the
+    # purple layer broad and avoids reproducing small DEM bumps underneath.
+    # Preserve more medium-scale relief than the original background pass.
+    # The old 0.5x smoothing could wash out rolling/hilly terrain before the
+    # purple landscape was stamped.
+    sigma_px = max(
+        0.75,
+        (0.35 * resolution_m) / max(float(image_scale), 1e-6),
+    )
+    smoothed = ndimage.gaussian_filter(
+        filled,
+        sigma=sigma_px,
+        mode="nearest",
+    ).astype(np.float32)
+
+    # Use a smaller Brush-10 footprint so the purple background tracks local
+    # relief more faithfully and does not bridge across broad terrain changes.
+    # 2.0x spacing still gives deliberate overlap with the soft Brush 10.
+    brush_scale_m = 2.0 * resolution_m
+
+    half_w = 0.5 * float(pc.width)
+    half_h = 0.5 * float(pc.height)
+
+    # Leave centers that are inside the detailed rectangle out of terrainHeight.
+    # The soft outside stamps can overlap the edge slightly, and the detailed
+    # sculpt layer is written separately above it.
+    x_start = -float(world_half_extent_m) + 0.5 * resolution_m
+    x_stop = float(world_half_extent_m) - 0.5 * resolution_m
+    z_start = -float(world_half_extent_m) + 0.5 * resolution_m
+    z_stop = float(world_half_extent_m) - 0.5 * resolution_m
+
+    xs = np.arange(x_start, x_stop + 1e-6, resolution_m, dtype=np.float64)
+    zs = np.arange(z_start, z_stop + 1e-6, resolution_m, dtype=np.float64)
+
+    stamps = []
+    min_value = float("inf")
+    max_value = float("-inf")
+
+    for z in zs:
+        for x in xs:
+            if (-half_w <= x <= half_w) and (-half_h <= z <= half_h):
+                continue
+
+            # Clamp the TGC position to the nearest point on the detailed
+            # rectangle, then sample the smoothed source height there.
+            edge_x = min(max(float(x), -half_w), half_w)
+            edge_z = min(max(float(z), -half_h), half_h)
+
+            enu_x = edge_x + half_w
+            enu_y = edge_z + half_h
+
+            col = enu_x / float(image_scale) - 0.5
+            row = enu_y / float(image_scale) - 0.5
+
+            value = _sample_bilinear_2d(smoothed, row, col)
+
+            stamp = get_pixel(
+                float(x),
+                float(z),
+                value,
+                brush_scale_m,
+                brush_type=10,
+            )
+            stamp["tool"] = 0
+            stamp["rotation"]["y"] = 0.0
+            stamps.append(stamp)
+
+            min_value = min(min_value, value)
+            max_value = max(max_value, value)
+
+    printf(
+        "Auto Background Landscape: generated " + str(len(stamps)) +
+        " purple terrainHeight stamps; spacing=" +
+        str(round(resolution_m, 2)) + " m, Brush10 scale=" +
+        str(round(brush_scale_m, 2)) + " m"
+    )
+
+    if stamps:
+        printf(
+            "Auto Background Landscape: coarse elevation range " +
+            str(round(min_value, 2)) + " .. " +
+            str(round(max_value, 2)) + " m; source rectangle " +
+            str(round(pc.width, 1)) + " x " +
+            str(round(pc.height, 1)) + " m"
+        )
+
+    return stamps
+
+
+
+
 
 def get_object_item(x_pos, z_pos, rotation_degrees):
     output = json.loads('{"position":{"x":0.0,"y":"-Infinity","z":0.0},"rotation":{"x":0.0,"y":0.0,"z":0.0},"scale":{"x":1.0,"y":1.0,"z":1.0}}')
@@ -283,19 +462,32 @@ def generate_course(course_json, heightmap_dir_path, options_dict={}, printf=pri
             # Using 10 - the very soft circles means we need to scale 2.5x more to fill and smooth the terrain
             layer_json["height"].append(get_pixel(x, z, i[2], 2.5*background_scale, brush_type=10))
 
-    # Convert the pointcloud into height elements
-    num_points = len(pc.points())
-    last_print_time = time.time()
-    for n, i in enumerate(pc.points()):
-        if time.time() > last_print_time + status_print_duration:
-            last_print_time = time.time()
-            printf(str(round(100.0*float(n) / num_points, 2)) + "% through heightmap")
+    # Convert the pointcloud into height elements.
+    # Adaptive modes operate directly from the source height field instead of
+    # first generating a dense terrain lattice and then re-reading the .course.
+    terrain_mode = str(options_dict.get('terrain_mode', 'Dense / Original') or 'Dense / Original').strip().lower()
 
-        x, y, z = pc.enuToTGC(i[0], i[1], 0.0) # Don't transform y, it's inverted from elevation
+    if terrain_mode in ('adaptive - aggressive', 'adaptive aggressive', 'aggressive'):
+        printf("Generating terrain with integrated Adaptive Aggressive stamping")
+        adaptive_stamps, adaptive_report = adaptive_terrain.generate_adaptive_stamps(
+            heightmap,
+            mask,
+            pc,
+            image_scale,
+            mode='aggressive',
+            get_pixel=get_pixel,
+            printf=printf,
+        )
+        layer_json["height"].extend(adaptive_stamps)
+
+    else:
+        printf("Generating terrain with original dense stamping")
+        num_points = len(pc.points())
+        last_print_time = time.time()
 
         try:
             terrain_brush_type = int(options_dict.get('brush_type', 72))
-        except:
+        except Exception:
             terrain_brush_type = 72
 
         if terrain_brush_type not in (72, 9, 10, 15):
@@ -305,21 +497,58 @@ def generate_course(course_json, heightmap_dir_path, options_dict={}, printf=pri
         configured_sizes = [1.0, 2.0, 3.0, 4.0, 6.0]
         try:
             requested_brush_scale = float(options_dict.get('brush_scale', image_scale))
-        except:
+        except Exception:
             requested_brush_scale = image_scale
 
         valid_sizes = [v for v in configured_sizes if v + 1e-6 >= image_scale]
         if not valid_sizes:
-            printf("ERROR: Lidar sample spacing " + str(image_scale) +
+            printf("ERROR: Lidar/DEM sample spacing " + str(image_scale) +
                    " m exceeds the maximum configured 6 m brush footprint.")
             return course_json
 
         if requested_brush_scale not in configured_sizes or requested_brush_scale + 1e-6 < image_scale:
             requested_brush_scale = valid_sizes[0]
 
-        layer_json["height"].append(
-            get_pixel(x, z, i[2], requested_brush_scale, brush_type=terrain_brush_type)
+        for n, i in enumerate(pc.points()):
+            if time.time() > last_print_time + status_print_duration:
+                last_print_time = time.time()
+                printf(str(round(100.0*float(n) / num_points, 2)) + "% through heightmap")
+
+            x, y, z = pc.enuToTGC(i[0], i[1], 0.0)
+            layer_json["height"].append(
+                get_pixel(x, z, i[2], requested_brush_scale, brush_type=terrain_brush_type)
+            )
+
+    # Optional QOL: after blue-mask terrain has been purged, lay a sparse,
+    # a rounded bank instead of an abrupt vertical/no-terrain edge.
+
+    # QOL: create a coarse DEM-following purple landscape outside the imported
+    # detailed terrain instead of using one flat global elevation.
+    if options_dict.get('auto_background_landscape', False):
+        try:
+            outside_background_resolution = float(
+                options_dict.get('outside_background_resolution', 48.0)
+            )
+        except Exception:
+            outside_background_resolution = 64.0
+
+        layer_json["terrainHeight"] = generate_coarse_outside_landscape(
+            heightmap,
+            pc,
+            image_scale,
+            resolution_m=outside_background_resolution,
+            world_half_extent_m=1000.0,
+            printf=printf,
         )
+
+    # Adaptive terrain is designed around 2K25 high-resolution bunker behavior.
+    # Preserve current-format bunker settings and enable high-res stamping when present.
+    if course_version >= 25:
+        try:
+            if "bunkerSettings2" in course_json and isinstance(course_json["bunkerSettings2"], dict):
+                course_json["bunkerSettings2"]["highResStamping"] = True
+        except Exception as exc:
+            printf("Warning: could not force high-resolution bunker stamping: " + str(exc))
 
     if options_dict.get('lidar_trees', False):
         lidar_tree_candidates = read_dictionary.get('trees', [])

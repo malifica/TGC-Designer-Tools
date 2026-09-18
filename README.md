@@ -250,17 +250,20 @@ See **[BUILD_WINDOWS.md](BUILD_WINDOWS.md)** for the complete build process.
 The current packaged executable name is:
 
 ```text
-tgc_gui_2k25_LOCAL_OSM_DEM.exe
+tgc_gui_2k25_beta2.exe
 ```
 
 ---
 
 ## Release status
 
-The LiDAR/local-OSM workflow is the more established part of this fork. DEM support is newer and should be treated as **beta** while more GeoTIFF sources and terrain profiles are validated.
+**v0.5.0-2k25-beta2** is the current fork release.
 
-See **[CHANGELOG.md](CHANGELOG.md)** and the current release notes for details.
+Beta 2 adds Adaptive - Aggressive terrain generation, automatic purple background landscape generation with user-controlled detail spacing, modern compound LiDAR CRS handling, and 2K25-compatible OSM bunker inner-island conversion.
 
+The experimental automatic **Carve Blue Mask Banks** feature is intentionally not part of Beta 2. The established `Fill Holes Under Blue Mask` and `Remove All Terrain Under Blue Mask` controls remain available.
+
+See **[CHANGELOG.md](CHANGELOG.md)** and **[RELEASE_NOTES_v0.5.0-2k25-beta2.md](RELEASE_NOTES_v0.5.0-2k25-beta2.md)** for details.
 ---
 
 ## Credits

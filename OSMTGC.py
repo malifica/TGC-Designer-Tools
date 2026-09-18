@@ -233,6 +233,381 @@ def newRough(points, course_version):
     rh["surface"] = tgc_definitions.featuresToSurfaces["rough"]
     return rh
 
+
+# -------------------------------------------------------------------------
+# 2K25 BUNKER INNER-ROUGH / "LOLLIPOP" SUPPORT
+#
+# OSM multipolygon:
+#   relation golf=bunker, type=multipolygon
+#     outer -> bunker boundary
+#     inner -> golf=rough island
+#
+# PGA TOUR 2K25 will not render rough over a filled bunker. Convert the
+# bunker polygon into a narrow-neck/lollipop polygon so the rough island is
+# a physical hole in the bunker.
+# -------------------------------------------------------------------------
+
+def _strip_closed_ring(points):
+    points = list(points)
+    if len(points) > 1:
+        a = points[0]
+        b = points[-1]
+        try:
+            if math.hypot(float(a[0]) - float(b[0]), float(a[2]) - float(b[2])) < 0.0001:
+                points = points[:-1]
+        except Exception:
+            pass
+    return points
+
+
+def _ring_signed_area_xz(points):
+    points = _strip_closed_ring(points)
+    if len(points) < 3:
+        return 0.0
+
+    area2 = 0.0
+    for i in range(len(points)):
+        p = points[i]
+        q = points[(i + 1) % len(points)]
+        area2 += float(p[0]) * float(q[2]) - float(q[0]) * float(p[2])
+    return 0.5 * area2
+
+
+def _point_in_ring_xz(point, ring):
+    ring = _strip_closed_ring(ring)
+    if len(ring) < 3:
+        return False
+
+    x = float(point[0])
+    z = float(point[2])
+    inside = False
+    j = len(ring) - 1
+
+    for i in range(len(ring)):
+        xi = float(ring[i][0])
+        zi = float(ring[i][2])
+        xj = float(ring[j][0])
+        zj = float(ring[j][2])
+
+        crosses = ((zi > z) != (zj > z))
+        if crosses:
+            denom = zj - zi
+            if abs(denom) < 1.0e-12:
+                denom = 1.0e-12
+            x_intersect = (xj - xi) * (z - zi) / denom + xi
+            if x < x_intersect:
+                inside = not inside
+        j = i
+
+    return inside
+
+
+def _ring_centroid_average(points):
+    points = _strip_closed_ring(points)
+    if not points:
+        return (0.0, 0.0, 0.0)
+
+    return (
+        sum(float(p[0]) for p in points) / len(points),
+        sum(float(p[1]) for p in points) / len(points),
+        sum(float(p[2]) for p in points) / len(points),
+    )
+
+
+def _nearest_ring_vertex_pair(outer, inner):
+    best_distance2 = None
+    best_outer_index = 0
+    best_inner_index = 0
+
+    for oi, op in enumerate(outer):
+        ox = float(op[0])
+        oz = float(op[2])
+        for ii, ip in enumerate(inner):
+            dx = float(ip[0]) - ox
+            dz = float(ip[2]) - oz
+            d2 = dx * dx + dz * dz
+
+            if best_distance2 is None or d2 < best_distance2:
+                best_distance2 = d2
+                best_outer_index = oi
+                best_inner_index = ii
+
+    return best_outer_index, best_inner_index, math.sqrt(max(0.0, best_distance2 or 0.0))
+
+
+def _offset_point_xz(point, px, pz, amount):
+    return (
+        float(point[0]) + float(px) * float(amount),
+        float(point[1]),
+        float(point[2]) + float(pz) * float(amount),
+    )
+
+
+def _make_bunker_hole_excursion(outer, inner, bridge_width=0.18):
+    outer = _strip_closed_ring(outer)
+    inner = _strip_closed_ring(inner)
+
+    if len(outer) < 3 or len(inner) < 3:
+        return None
+
+    # Hole must run opposite the bunker outer winding.
+    if _ring_signed_area_xz(outer) * _ring_signed_area_xz(inner) > 0.0:
+        inner = list(reversed(inner))
+
+    oi, ii, bridge_length = _nearest_ring_vertex_pair(outer, inner)
+
+    op = outer[oi]
+    ip = inner[ii]
+
+    dx = float(ip[0]) - float(op[0])
+    dz = float(ip[2]) - float(op[2])
+    length = math.hypot(dx, dz)
+
+    if length < 0.001:
+        prevp = outer[oi - 1]
+        nextp = outer[(oi + 1) % len(outer)]
+        dx = float(nextp[0]) - float(prevp[0])
+        dz = float(nextp[2]) - float(prevp[2])
+        length = max(math.hypot(dx, dz), 0.001)
+
+    # Narrow bridge sides perpendicular to the outer->inner direction.
+    px = -dz / length
+    pz = dx / length
+    half = max(0.02, float(bridge_width) * 0.5)
+
+    outer_a = _offset_point_xz(op, px, pz, half)
+    outer_b = _offset_point_xz(op, px, pz, -half)
+    inner_a = _offset_point_xz(ip, px, pz, half)
+    inner_b = _offset_point_xz(ip, px, pz, -half)
+
+    inner_walk = []
+    j = (ii + 1) % len(inner)
+    while j != ii:
+        inner_walk.append(inner[j])
+        j = (j + 1) % len(inner)
+
+    path = [outer_a, inner_a] + inner_walk + [inner_b, outer_b]
+
+    return {
+        "outer_index": oi,
+        "path": path,
+        "local_bridge_indices": [0, 1, len(path) - 2, len(path) - 1],
+        "bridge_length": bridge_length,
+    }
+
+
+def _build_lollipop_bunker_ring(outer, inner_rings, bridge_width=0.18):
+    outer = _strip_closed_ring(outer)
+    if len(outer) < 3:
+        return outer, []
+
+    excursions_by_outer_index = {}
+
+    for inner in inner_rings:
+        excursion = _make_bunker_hole_excursion(
+            outer,
+            inner,
+            bridge_width=bridge_width
+        )
+        if excursion is None:
+            continue
+        excursions_by_outer_index.setdefault(
+            excursion["outer_index"], []
+        ).append(excursion)
+
+    merged = []
+    bridge_indices = []
+
+    for oi, point in enumerate(outer):
+        excursions = excursions_by_outer_index.get(oi, [])
+
+        if not excursions:
+            merged.append(point)
+            continue
+
+        for excursion in excursions:
+            base_index = len(merged)
+            merged.extend(excursion["path"])
+            bridge_indices.extend(
+                base_index + i
+                for i in excursion["local_bridge_indices"]
+            )
+
+    return merged, bridge_indices
+
+
+def _clamp_spline_handles(spline, waypoint_indices, course_version):
+    dim2 = "z" if course_version == 25 else "y"
+    waypoints = spline.get("waypoints", [])
+
+    for index in waypoint_indices:
+        if index < 0 or index >= len(waypoints):
+            continue
+
+        wp = waypoints[index]
+        x = wp["waypoint"]["x"]
+        d2 = wp["waypoint"][dim2]
+
+        wp["pointOne"]["x"] = x
+        wp["pointOne"][dim2] = d2
+        wp["pointTwo"]["x"] = x
+        wp["pointTwo"][dim2] = d2
+
+
+def _way_to_tgc_points(way, geopointcloud, x_offset, y_offset, resolve_missing_nodes):
+    points = []
+    for node in way.get_nodes(resolve_missing=resolve_missing_nodes):
+        points.append(
+            geopointcloud.latlonToTGC(
+                node.lat,
+                node.lon,
+                x_offset,
+                y_offset
+            )
+        )
+    return _strip_closed_ring(points)
+
+
+def _relation_is_bunker_with_rough_inner(rel, way_lookup):
+    outer_members = []
+    rough_inner_members = []
+
+    for member in rel.members:
+        if not isinstance(member, overpy.RelationWay):
+            continue
+
+        way = way_lookup.get(member.ref)
+        if way is None:
+            continue
+
+        role = str(member.role or "").lower()
+        golf_type = way.tags.get("golf", None)
+
+        if role == "outer":
+            outer_members.append(member)
+        elif role == "inner" and golf_type == "rough":
+            rough_inner_members.append(member)
+
+    relation_is_bunker = rel.tags.get("golf", None) == "bunker"
+
+    if not relation_is_bunker:
+        for member in outer_members:
+            way = way_lookup.get(member.ref)
+            if way is not None and way.tags.get("golf", None) == "bunker":
+                relation_is_bunker = True
+                break
+
+    return relation_is_bunker and outer_members and rough_inner_members
+
+
+def _build_bunker_rough_multipolygon_splines(
+    rel,
+    way_lookup,
+    geopointcloud,
+    x_offset,
+    y_offset,
+    resolve_missing_nodes,
+    course_version,
+    printf=print,
+):
+    outer_rings = []
+    rough_inner_rings = []
+
+    for member in rel.members:
+        if not isinstance(member, overpy.RelationWay):
+            continue
+
+        way = way_lookup.get(member.ref)
+        if way is None:
+            continue
+
+        role = str(member.role or "").lower()
+
+        if role == "outer":
+            points = _way_to_tgc_points(
+                way, geopointcloud, x_offset, y_offset, resolve_missing_nodes
+            )
+            if len(points) >= 3:
+                outer_rings.append((member.ref, points))
+
+        elif role == "inner" and way.tags.get("golf", None) == "rough":
+            points = _way_to_tgc_points(
+                way, geopointcloud, x_offset, y_offset, resolve_missing_nodes
+            )
+            if len(points) >= 3:
+                rough_inner_rings.append((member.ref, points))
+
+    if not outer_rings or not rough_inner_rings:
+        return [], [], set()
+
+    # Assign rough islands to containing outer bunker ring.
+    assigned = {outer_id: [] for outer_id, _ in outer_rings}
+
+    for inner_id, inner_ring in rough_inner_rings:
+        center = _ring_centroid_average(inner_ring)
+        containing_outer = None
+
+        for outer_id, outer_ring in outer_rings:
+            if _point_in_ring_xz(center, outer_ring):
+                containing_outer = outer_id
+                break
+
+        if containing_outer is None:
+            best = None
+            for outer_id, outer_ring in outer_rings:
+                _, _, distance = _nearest_ring_vertex_pair(outer_ring, inner_ring)
+                if best is None or distance < best[0]:
+                    best = (distance, outer_id)
+            if best is not None:
+                containing_outer = best[1]
+
+        if containing_outer is not None:
+            assigned[containing_outer].append((inner_id, inner_ring))
+
+    bunker_splines = []
+    rough_splines = []
+    consumed_way_ids = set()
+
+    for outer_id, outer_ring in outer_rings:
+        inner_entries = assigned.get(outer_id, [])
+        inner_rings = [ring for _, ring in inner_entries]
+
+        if inner_rings:
+            merged_ring, bridge_indices = _build_lollipop_bunker_ring(
+                outer_ring,
+                inner_rings,
+                bridge_width=0.18,
+            )
+
+            bunker = newBunker(merged_ring, course_version)
+
+            # Normal bunker handles are ~1 m and would balloon a 0.18 m neck.
+            # Clamp the four neck points to zero handles.
+            _clamp_spline_handles(bunker, bridge_indices, course_version)
+            bunker_splines.append(bunker)
+
+            # Do NOT create a separate rough spline for the inner island.
+            # The lollipop excursion physically removes the bunker fill there,
+            # so the underlying course surface is exposed naturally in 2K25.
+            # We still consume the OSM inner rough way so the normal way pass
+            # cannot create a duplicate/leftover rough spline.
+            for inner_id, inner_ring in inner_entries:
+                consumed_way_ids.add(inner_id)
+
+            printf(
+                "2K25 bunker-hole conversion: relation " +
+                str(rel.id) + ", outer way " + str(outer_id) +
+                ", rough inner islands=" + str(len(inner_entries)) +
+                ", bunker waypoints=" + str(len(merged_ring))
+            )
+        else:
+            bunker_splines.append(newBunker(outer_ring, course_version))
+
+        consumed_way_ids.add(outer_id)
+
+    return bunker_splines, rough_splines, consumed_way_ids
+
+
 def newHeavyRough(points, course_version):
     global spline_configuration
     spline_json = None
@@ -467,7 +842,52 @@ def addOSMToTGC(course_json, geopointcloud, osm_result, x_offset=0.0, y_offset=0
     last_print_time = time.time()
     way_dict = {}
 
+    # Pre-detect bunker multipolygons with golf=rough inner islands.
+    # Their member ways are consumed by the relation converter so the normal
+    # way loop does not create duplicate overlapping bunker/rough splines.
+    bunker_hole_relation_ids = set()
+    bunker_hole_consumed_way_ids = set()
+    bunker_hole_way_lookup = {
+        way.id: way for way in osm_result.ways
+    }
+
+    if (
+        options_dict.get('bunker', True) and
+        options_dict.get('rough', True)
+    ):
+        for rel in osm_result.relations:
+            if _relation_is_bunker_with_rough_inner(
+                rel,
+                bunker_hole_way_lookup
+            ):
+                bunker_hole_relation_ids.add(rel.id)
+
+                for member in rel.members:
+                    if not isinstance(member, overpy.RelationWay):
+                        continue
+
+                    way = bunker_hole_way_lookup.get(member.ref)
+                    if way is None:
+                        continue
+
+                    role = str(member.role or "").lower()
+                    if role == "outer":
+                        bunker_hole_consumed_way_ids.add(member.ref)
+                    elif (
+                        role == "inner" and
+                        way.tags.get("golf", None) == "rough"
+                    ):
+                        bunker_hole_consumed_way_ids.add(member.ref)
+
+        if bunker_hole_relation_ids:
+            printf(
+                "Detected " + str(len(bunker_hole_relation_ids)) +
+                " bunker multipolygon relation(s) with rough inner islands."
+            )
+
     for n, way in enumerate(osm_result.ways):
+        if way.id in bunker_hole_consumed_way_ids:
+            continue
         if time.time() > last_print_time + status_print_duration:
             last_print_time = time.time()
             printf(str(round(100.0*float(n) / num_ways, 2)) + "% through OpenStreetMap Ways")
@@ -586,6 +1006,48 @@ def addOSMToTGC(course_json, geopointcloud, osm_result, x_offset=0.0, y_offset=0
             printf(str(round(100.0*float(n) / num_rels, 2)) + "% through OpenStreetMap Relations")
 
         golf_type = rel.tags.get("golf", None)
+
+        if rel.id in bunker_hole_relation_ids:
+            try:
+                bunker_splines, rough_splines, consumed_ids = (
+                    _build_bunker_rough_multipolygon_splines(
+                        rel,
+                        bunker_hole_way_lookup,
+                        geopointcloud,
+                        x_offset,
+                        y_offset,
+                        resolve_missing_nodes,
+                        course_version,
+                        printf=printf,
+                    )
+                )
+            except overpy.exception.OverPyException:
+                printf(
+                    "OpenStreetMap servers are too busy right now. Try later."
+                    if resolve_missing_nodes else
+                    "Local OSM file is incomplete: a bunker multipolygon "
+                    "references nodes that are not present in the file."
+                )
+                return []
+            except Exception as exc:
+                printf(
+                    "Warning: bunker rough-inner conversion failed for relation " +
+                    str(rel.id) + ": " + str(exc)
+                )
+                bunker_splines = []
+                rough_splines = []
+
+            if bunker_splines:
+                for spline in bunker_splines:
+                    course_json[spline_tag].append(spline)
+                for spline in rough_splines:
+                    course_json[spline_tag].append(spline)
+
+                printf(
+                    "Imported bunker relation " + str(rel.id) +
+                    " as lollipop bunker hole(s) for 2K25."
+                )
+                continue
 
         if golf_type == "fairway" and options_dict.get('fairway', True):
             for member in rel.members:

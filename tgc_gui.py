@@ -21,7 +21,7 @@ import tgc_image_terrain
 from tgc_visualizer import drawCourseAsImage
 import OSMTGC
 
-TGC_GUI_VERSION = "v0.5.0-2k25-beta1"
+TGC_GUI_VERSION = "v0.5.0-2k25-beta2"
 
 image_width = 500
 image_height = 500
@@ -930,7 +930,7 @@ lidarControlFrame = Frame(lidar, bg=tool_bg)
 scale_label = Label(lidarControlFrame, text="Map Scale", fg=text_fg, bg=tool_bg)
 scale_entry = tk.Entry(lidarControlFrame, width=8, justify='center')
 scale_entry.insert(END, 2.0)
-epsg_label = Label(lidarControlFrame, text="Force Lidar EPSG Projection", fg=text_fg, bg=tool_bg)
+epsg_label = Label(lidarControlFrame, text="Force LiDAR Horizontal EPSG (blank = auto)", fg=text_fg, bg=tool_bg)
 epsg_entry = tk.Entry(lidarControlFrame, width=8, justify='center')
 epsg_entry.insert(END, "")
 lidarbutton = Button(lidarControlFrame, text="Select Lidar and Generate Heightmap", command=partial(runLidar, scale_entry, epsg_entry, lidarPrintf))
@@ -1062,6 +1062,25 @@ bgentry = tk.Entry(courseSubFrame, width=10, justify='center')
 bgentry.insert(END, '16.0')
 options_entries_dict["background_scale"] = bgentry
 backgroundCheck['command'] = partial(disableAllChildren, options_entries_dict["add_background"], bgentry)
+options_entries_dict["auto_background_landscape"] = tk.BooleanVar()
+outsideLevelCheck = Checkbutton(
+    courseSubFrame,
+    text="Auto Background Landscape (Purple)",
+    variable=options_entries_dict["auto_background_landscape"],
+    fg=check_fg,
+    bg=check_bg
+)
+outsideLevelCheck.select()
+
+outside_bg_resolution_var = tk.StringVar()
+outside_bg_resolution_var.set("48")
+options_entries_dict["outside_background_resolution"] = outside_bg_resolution_var
+outside_bg_resolution_entry = tk.Entry(
+    courseSubFrame,
+    width=8,
+    justify='center',
+    textvariable=outside_bg_resolution_var
+)
 options_entries_dict["lidar_trees"] = tk.BooleanVar()
 lidarTreeCheck = Checkbutton(courseSubFrame, text="Add Trees From Lidar (Experimental)", variable=options_entries_dict["lidar_trees"], fg=check_fg, bg=check_bg)
 lidarTreeCheck.deselect()
@@ -1074,6 +1093,7 @@ fillWaterCheck.deselect()
 options_entries_dict["purge_water"] = tk.BooleanVar()
 purgeWaterCheck = Checkbutton(courseSubFrame, text="Remove All Terrain Under Blue Mask", variable=options_entries_dict["purge_water"], fg=check_fg, bg=check_bg)
 purgeWaterCheck.deselect()
+
 
 brush_type_var = tk.StringVar()
 brush_type_var.set("72")
@@ -1089,20 +1109,39 @@ brush_scale_combo = ttk.Combobox(courseSubFrame, width=8, justify='center',
                                  textvariable=brush_scale_var, state='readonly',
                                  values=("1", "2", "3", "4", "6"))
 
+
+terrain_mode_var = tk.StringVar()
+terrain_mode_var.set("Dense / Original")
+options_entries_dict["terrain_mode"] = terrain_mode_var
+terrain_mode_combo = ttk.Combobox(
+    courseSubFrame,
+    width=22,
+    justify='center',
+    textvariable=terrain_mode_var,
+    state='readonly',
+    values=("Dense / Original", "Adaptive - Aggressive")
+)
+
 # Pack the osmControlFrame
 courseSubFrame.pack(padx=5, pady=5, fill=X, expand=True)
 backgroundCheck.grid(row=0, columnspan=2, sticky=W, padx=5)
 Label(courseSubFrame, text="Background Scale", fg=check_fg, bg=check_bg).grid(row=1, column=0, sticky=W, padx=5)
 bgentry.grid(row=1, column=1, sticky=W, padx=5)
-lidarTreeCheck.grid(row=2, columnspan=2, sticky=W, padx=5)
-treeVarietyCheck.grid(row=3, columnspan=2, sticky=W, padx=5)
-fillWaterCheck.grid(row=4, columnspan=2, sticky=W, padx=5)
-purgeWaterCheck.grid(row=5, columnspan=2, sticky=W, padx=5)
-Label(courseSubFrame, text="Terrain Brush", fg=check_fg, bg=check_bg).grid(row=6, column=0, pady=(10,3), sticky=W, padx=5)
-brush_type_combo.grid(row=6, column=1, pady=(10,3), sticky=W, padx=5)
-Label(courseSubFrame, text="Brush Size (meters)", fg=check_fg, bg=check_bg).grid(row=7, column=0, pady=3, sticky=W, padx=5)
-brush_scale_combo.grid(row=7, column=1, pady=3, sticky=W, padx=5)
-Label(courseSubFrame, text="Brushes: 72 / 9 / 10 / 15", fg=check_fg, bg=check_bg).grid(row=8, columnspan=2, sticky=W, padx=5)
+outsideLevelCheck.grid(row=2, columnspan=2, sticky=W, padx=5, pady=(5,0))
+Label(courseSubFrame, text="Purple Background Detail Spacing (m)", fg=check_fg, bg=check_bg).grid(row=3, column=0, sticky=W, padx=5)
+outside_bg_resolution_entry.grid(row=3, column=1, sticky=W, padx=5)
+lidarTreeCheck.grid(row=4, columnspan=2, sticky=W, padx=5)
+treeVarietyCheck.grid(row=5, columnspan=2, sticky=W, padx=5)
+fillWaterCheck.grid(row=6, columnspan=2, sticky=W, padx=5)
+purgeWaterCheck.grid(row=7, columnspan=2, sticky=W, padx=5)
+Label(courseSubFrame, text="Terrain Brush", fg=check_fg, bg=check_bg).grid(row=9, column=0, pady=(10,3), sticky=W, padx=5)
+brush_type_combo.grid(row=9, column=1, pady=(10,3), sticky=W, padx=5)
+Label(courseSubFrame, text="Brush Size (meters)", fg=check_fg, bg=check_bg).grid(row=10, column=0, pady=3, sticky=W, padx=5)
+brush_scale_combo.grid(row=10, column=1, pady=3, sticky=W, padx=5)
+Label(courseSubFrame, text="Brushes: 72 / 9 / 10 / 15", fg=check_fg, bg=check_bg).grid(row=11, columnspan=2, sticky=W, padx=5)
+Label(courseSubFrame, text="Terrain Generation", fg=check_fg, bg=check_bg).grid(row=12, column=0, pady=(10,3), sticky=W, padx=5)
+terrain_mode_combo.grid(row=12, column=1, pady=(10,3), sticky=W, padx=5)
+Label(courseSubFrame, text="Aggressive mode chooses brush/scale automatically", fg=check_fg, bg=check_bg).grid(row=13, columnspan=2, sticky=W, padx=5)
 
 # Pack the two option frames side by side
 osmControlFrame.pack(side=LEFT, anchor=N, padx=5)

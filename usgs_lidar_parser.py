@@ -68,6 +68,181 @@ def convert_latlon_to_utm_espg(lat, lon):
         epsg_code = '327' + utm_band
     return int(epsg_code)
 
+
+def _axis_unit_multiplier(crs):
+    """Return native CRS linear-unit -> meter multiplier from pyproj axis metadata."""
+    try:
+        axis_info = crs.axis_info
+        if axis_info:
+            factor = float(axis_info[0].unit_conversion_factor)
+            if math.isfinite(factor) and factor > 0.0:
+                return factor
+    except Exception:
+        pass
+    return 0.0
+
+
+def _find_las_horizontal_vertical_crs(crs):
+    """
+    Split a pyproj CRS into the projected horizontal CRS used for XY and,
+    when present, the vertical CRS used for Z.
+
+    For compound CRS objects, inspect sub_crs_list FIRST.  pyproj may expose
+    aggregate properties on the compound object that make the parent appear
+    usable for both horizontal and vertical reporting.
+    """
+    if crs is None:
+        return None, None
+
+    horizontal = None
+    vertical = None
+
+    sub_crs_list = list(getattr(crs, "sub_crs_list", []) or [])
+
+    if sub_crs_list:
+        pending = list(sub_crs_list)
+
+        while pending:
+            sub = pending.pop(0)
+
+            if horizontal is None and getattr(sub, "is_projected", False):
+                horizontal = sub
+
+            if vertical is None and getattr(sub, "is_vertical", False):
+                vertical = sub
+
+            children = list(getattr(sub, "sub_crs_list", []) or [])
+            if children:
+                pending.extend(children)
+
+        return horizontal, vertical
+
+    if getattr(crs, "is_projected", False):
+        horizontal = crs
+
+    if getattr(crs, "is_vertical", False):
+        vertical = crs
+
+    return horizontal, vertical
+
+
+def proj_from_las_header(header, printf=print):
+    """
+    Preferred modern CRS parser.
+
+    Returns:
+      (horizontal_projection_in_meters, xy_unit_to_meters, z_unit_to_meters)
+    """
+    try:
+        crs = header.parse_crs()
+    except Exception as exc:
+        printf("Modern LiDAR CRS parse failed: " + str(exc))
+        return None, 0.0, 0.0
+
+    if crs is None:
+        return None, 0.0, 0.0
+
+    horizontal_crs, vertical_crs = _find_las_horizontal_vertical_crs(crs)
+
+    if horizontal_crs is None:
+        printf(
+            "LiDAR CRS metadata was found, but no projected horizontal CRS "
+            "was present; trying legacy/fallback detection."
+        )
+        return None, 0.0, 0.0
+
+    horizontal_epsg = None
+    vertical_epsg = None
+
+    try:
+        horizontal_epsg = horizontal_crs.to_epsg()
+    except Exception:
+        pass
+
+    if vertical_crs is not None:
+        try:
+            vertical_epsg = vertical_crs.to_epsg()
+        except Exception:
+            pass
+
+    xy_unit = _axis_unit_multiplier(horizontal_crs)
+
+    if xy_unit <= 0.0 and horizontal_epsg is not None:
+        try:
+            xy_unit = get_unit_multiplier_from_epsg(horizontal_epsg)
+        except Exception:
+            xy_unit = 0.0
+
+    z_unit = 0.0
+    if vertical_crs is not None:
+        z_unit = _axis_unit_multiplier(vertical_crs)
+
+    if z_unit <= 0.0:
+        z_unit = xy_unit
+
+    if xy_unit <= 0.0:
+        printf(
+            "Modern LiDAR CRS was parsed but its horizontal linear unit "
+            "could not be determined; trying legacy/fallback detection."
+        )
+        return None, 0.0, 0.0
+
+    try:
+        proj = pyproj.Proj(horizontal_crs, preserve_units=False)
+    except Exception as exc:
+        printf(
+            "Modern LiDAR horizontal CRS could not be converted to a "
+            "projected pyproj definition: " + str(exc)
+        )
+        return None, 0.0, 0.0
+
+    printf("Automatically detected LiDAR CRS from LAS/LAZ header")
+
+    try:
+        printf("  Horizontal CRS: " + str(horizontal_crs.name))
+    except Exception:
+        pass
+
+    if horizontal_epsg is not None:
+        printf("  Horizontal EPSG: " + str(horizontal_epsg))
+    else:
+        printf("  Horizontal EPSG: not explicitly resolvable")
+
+    try:
+        if horizontal_crs.axis_info:
+            printf("  Horizontal unit: " + str(horizontal_crs.axis_info[0].unit_name))
+    except Exception:
+        pass
+
+    printf("  XY conversion to meters: " + str(xy_unit))
+
+    if vertical_crs is not None:
+        try:
+            printf("  Vertical CRS: " + str(vertical_crs.name))
+        except Exception:
+            pass
+
+        if vertical_epsg is not None:
+            printf("  Vertical EPSG: " + str(vertical_epsg))
+        else:
+            printf("  Vertical EPSG: not explicitly resolvable")
+
+        try:
+            if vertical_crs.axis_info:
+                printf("  Vertical unit: " + str(vertical_crs.axis_info[0].unit_name))
+        except Exception:
+            pass
+    else:
+        printf(
+            "  Vertical CRS: not separately defined; "
+            "using horizontal linear unit for Z"
+        )
+
+    printf("  Z conversion to meters: " + str(z_unit))
+
+    return proj, xy_unit, z_unit
+
+
 def print_failure_message(printf=print):
     printf("Could not determine lidar projection, please report an issue and send this lidar and metadata")
     printf("Alternatively, look for something called EPSG Value in Metadata and provide EPSG.")
@@ -95,13 +270,21 @@ def load_usgs_directory(d, force_epsg=None, force_unit=None, printf=print):
                 las = f.read()
                 # Needed from metadata for all files
                 proj = None
-                unit = 0.0 # Don't assume unit
+                unit = 0.0 # Horizontal XY unit -> meters
+                z_unit = 0.0 # Vertical Z unit -> meters
 
                 if force_epsg is not None:
                     proj, unit = proj_from_epsg(force_epsg, printf=printf)
+                    z_unit = unit
+                    printf("Manual horizontal EPSG override is active.")
+                else:
+                    proj, unit, z_unit = proj_from_las_header(
+                        las.header,
+                        printf=printf
+                    )
 
                 if proj is None:
-                    # Try to get projection data from laspy
+                    # Legacy fallback: inspect individual VLRs / GeoTIFF keys.
                     for v in las.header.vlrs:
                         try:
                             proj = v.parse_crs()
@@ -117,8 +300,8 @@ def load_usgs_directory(d, force_epsg=None, force_unit=None, printf=print):
                                     unit = 0.0
 
                         except Exception as e:
+                            # Do not erase a CRS successfully found by an earlier VLR.
                             print(e)
-                            proj = None
 
                         parsed_body = v.record_data_bytes()
 
@@ -256,16 +439,29 @@ def load_usgs_directory(d, force_epsg=None, force_unit=None, printf=print):
                 if proj is None:
                     return print_failure_message(printf=printf)
 
-                # Need to overwrite unit last for situations where projection is not overwritten
+                # If legacy metadata supplied only one linear unit, preserve the
+                # historical assumption that Z uses that same unit.
+                if z_unit <= 0.0:
+                    z_unit = unit
+
+                # Existing force_unit remains a full XYZ override.
                 if force_unit is not None:
                     unit = float(force_unit)
+                    z_unit = float(force_unit)
 
-                printf("Unit in use is " + str(unit))
+                if unit <= 0.0:
+                    return print_failure_message(printf=printf)
+
+                if z_unit <= 0.0:
+                    z_unit = unit
+
+                printf("Horizontal XY unit conversion to meters: " + str(unit))
+                printf("Vertical Z unit conversion to meters: " + str(z_unit))
                 printf("Proj4 : " + str(proj))
 
                 scaled_x = las.x*unit
                 scaled_y = las.y*unit
-                scaled_z = las.z*unit
+                scaled_z = las.z*z_unit
 
                 converted_x = scaled_x
                 converted_y = scaled_y
