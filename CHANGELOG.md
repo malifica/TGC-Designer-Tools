@@ -5,6 +5,38 @@ All notable fork-specific changes to `malifica/TGC-Designer-Tools` are documente
 The fork is based on work from `HiCamino/TGC-Designer-Tools`.
 
 
+## [0.5.0-2k25-beta3] - CFS alignment, automatic masking, and performance
+
+### Added
+
+- CFS projected-master-grid georeference helpers shared by terrain and OSM.
+- OSM alignment viewer for terrain/feature verification before generation, with Blend / Visual / Hillshade views and manual drag/keyboard nudging.
+- Higher-contrast preview-only CFS hillshade and constant 2-screen-pixel `gray75` OSM tracing overlay for easier manual alignment.
+- Auto Red Mask with a user-selectable 5–30 m golf/cart-path preservation buffer (5 m default), plus conservative 2 px minimum-width cleanup and removal of enclosed red islands smaller than 25 raster pixels.
+- OSM multipolygon-aware mask rasterization with stitched outer/inner rings.
+- Green preview fill for compound fairway/rough relations and pure-blue multipolygon water.
+- Optional native C exact-order LiDAR ground rasterizer with Python fallback.
+- 50 m LiDAR tree/building course-proximity filters based on core golf geometry.
+- OSM spline point optimizer with feature-specific tolerances and shape-preservation guards.
+
+### Changed
+
+- Main TGCTool terrain generation is now **Dense / Original only**; integrated Adaptive terrain generation and GUI controls are removed, and Adaptive conversion is handled by the separate Adaptive Terrain Converter.
+- Source-derived low-resolution background terrain is written first with Brush 10 at a footprint of **2.5 × Background Scale**, then the regular dense selected-brush terrain is written afterward.
+- Beta 3 Windows packaging uses `BUILD_TGC_2K25_BETA3.bat` and produces a versioned release ZIP plus SHA-256 checksums.
+- Obsolete Beta 2 release-preparation scripts and the unused integrated `adaptive_terrain.py` module are removed from the publish tree.
+- Heavy DEM and LiDAR preparation now runs off the Tk main thread.
+- Arbitrary-ratio DEM reduction is vectorized/chunked while retaining the established 40th-percentile behavior.
+- LiDAR crop/classification, tile assembly, CRS transforms, preview raster generation, tree maxima, and interpolation setup use vectorized paths.
+- Main TGCTool remains focused on course creation; cart-path and native-water finishing remain downstream operations.
+
+### Fixed
+
+- Automatic masking no longer paints compound OSM polygons incorrectly because relation outer/inner topology is now reconstructed before buffering.
+- Open multipolygon fragments are no longer implicitly fill-closed as false areas.
+- Compound water relations remain preserved/blue in the mask.
+- Auto Red Mask crop rectangle remains visible over the red background.
+
 ## [0.5.0-2k25-beta2] - Terrain, CRS, OSM, and workflow beta
 
 ### Added

@@ -1,10 +1,8 @@
 # Windows Build Guide
 
-This guide builds the 2K25 Local OSM / LiDAR / DEM fork on Windows.
+This guide builds the PGA TOUR 2K25 Beta 3 fork on Windows.
 
 ## Tested development environment
-
-The current working fork was developed with:
 
 ```text
 Windows 10/11 64-bit
@@ -14,165 +12,141 @@ Rasterio 1.4.4
 Git
 ```
 
-A modern `laspy` 2.x installation is required by the current loader code.
-
-The repository also contains `laszip/laszip-cli.exe`, which is bundled into the packaged application.
-
-## Existing working checkout
-
-The development checkout used for this fork is:
+The current development checkout is:
 
 ```text
 C:\TGC-Designer-Tools
 ```
 
-If you already have a working checkout and virtual environment, do not reclone it just to build.
-
-Example environment:
+The tested virtual environment is:
 
 ```text
 C:\TGC-Designer-Tools\.venv_local_osm
 ```
 
-Activate it:
+## Install dependencies
+
+Activate the environment:
 
 ```bat
 cd /d C:\TGC-Designer-Tools
 call .venv_local_osm\Scripts\activate.bat
 ```
 
-## Install / verify DEM dependency
-
-Install the Rasterio version used by this fork:
+Install or refresh the repository requirements:
 
 ```bat
-python -m pip install --upgrade "rasterio==1.4.4"
+python -m pip install -r requirements.txt
 ```
 
-Verify:
+Verify the key DEM dependency:
 
 ```bat
 python -c "import rasterio; print('Rasterio', rasterio.__version__); print('GDAL', rasterio.__gdal_version__)"
 ```
 
-You should also verify the core application dependencies from the upstream project are installed in the same environment.
+Beta 3 uses modern `laspy` 2.x. LAZ support is available through `laspy[lazrs]`; the repository also retains the upstream `laszip` tools.
 
-## Syntax check before building
+## Syntax check
 
-Run:
+The Beta 3 build script checks:
 
-```bat
-python -m py_compile dem_map_api.py tgc_gui.py lidar_map_api.py tgc_image_terrain.py OSMTGC.py infill_image.py usgs_lidar_parser.py
+```text
+tgc_gui.py
+dem_map_api.py
+lidar_map_api.py
+lidar_fast_native.py
+usgs_lidar_parser.py
+infill_image.py
+tgc_image_terrain.py
+OSMTGC.py
+auto_red_mask.py
+cfs_georef.py
+lidar_feature_filter.py
+osm_alignment_viewer.py
 ```
 
-Do not package a build if this step fails.
-
-## Test from source first
-
-Before building the EXE:
+You can also run the application from source before packaging:
 
 ```bat
 python tgc_gui.py
 ```
 
-Recommended quick checks:
-
-- application opens at the larger screen-aware size;
-- Local OSM browse control appears;
-- DEM GeoTIFF selector appears;
-- terrain Brush and Brush Size selectors appear;
-- LiDAR processing still opens and runs;
-- DEM processing starts and logs CRS/EPSG and vertical-unit information.
-
-## Build the EXE
-
-The repository contains:
-
-```text
-BUILD_TGC_2K25_LOCAL_OSM_DEM.bat
-```
-
-It installs/verifies Rasterio, runs syntax checks, and executes PyInstaller.
+## Build Beta 3
 
 Run:
 
 ```bat
-BUILD_TGC_2K25_LOCAL_OSM_DEM.bat
+BUILD_TGC_2K25_BETA3.bat
 ```
 
-Or use the equivalent PyInstaller command directly:
-
-```bat
-python -m PyInstaller ^
- --noconfirm ^
- --clean ^
- --onefile ^
- --name "tgc_gui_2k25_LOCAL_OSM_DEM" ^
- --add-binary "./laszip/laszip-cli.exe;laszip" ^
- --additional-hooks-dir "./PyInstaller/hooks/" ^
- --runtime-hook "./PyInstaller/rthook_rasterio.py" ^
- tgc_gui.py
-```
-
-Expected output:
+Expected executable:
 
 ```text
-C:\TGC-Designer-Tools\dist\tgc_gui_2k25_beta2.exe
+C:\TGC-Designer-Tools\dist\tgc_gui_2k25_beta3.exe
 ```
 
-## Why Rasterio has custom PyInstaller files
+The script also creates:
 
-Rasterio Windows wheels include GDAL/PROJ support and DLLs that may not be discovered by a basic one-file PyInstaller build.
+```text
+C:\TGC-Designer-Tools\dist\release_beta3\
+    TGC-Designer-Tools-2K25-v0.5.0-2k25-beta3-Windows-x64.zip
+    tgc_gui_2k25_beta3.exe.sha256.txt
+    TGC-Designer-Tools-2K25-v0.5.0-2k25-beta3-Windows-x64.zip.sha256.txt
+```
 
-This fork includes:
+## Native LiDAR helper
+
+`BUILD_TGC_2K25_BETA3.bat` attempts to compile:
+
+```text
+lidar_fast_native.c
+```
+
+into:
+
+```text
+tgc_lidar_fast_native.dll
+```
+
+Compiler lookup order:
+
+1. `TGC_CC`
+2. `D:\llvm-mingw\bin\x86_64-w64-mingw32-clang.exe`
+3. `x86_64-w64-mingw32-clang.exe` on `PATH`
+4. `x86_64-w64-mingw32-gcc.exe` on `PATH`
+
+The native helper uses generic x86-64 compiler settings. If no compiler is available, or the DLL build fails, the main EXE is still built and uses the exact Python rasterizer fallback.
+
+## Rasterio / GDAL / PROJ packaging
+
+Rasterio Windows wheels include GDAL/PROJ data and DLLs that a minimal PyInstaller build may not discover automatically.
+
+Beta 3 retains:
 
 ```text
 PyInstaller/hooks/hook-rasterio.py
 PyInstaller/rthook_rasterio.py
 ```
 
-The hook collects Rasterio submodules, package data, dynamic libraries, and Windows wheel libraries.
-
-The runtime hook makes bundled GDAL/PROJ data directories available when the one-file EXE starts.
-
-Do not omit these files from a DEM-enabled release build.
+Do not remove these from a DEM-enabled release.
 
 ## Release verification
 
-Before publishing a binary:
+Before publishing the Windows package:
 
 1. Run the EXE outside the source folder.
-2. Process a known LiDAR test.
-3. Process a known DEM GeoTIFF.
+2. Process a known LiDAR course.
+3. Process a known GeoTIFF DEM course.
 4. Verify Local OSM works with networking unavailable.
-5. Confirm water appears pure blue in `mask.png`.
-6. Verify terrain import completes.
-7. Open the resulting course in PGA TOUR 2K25 course designer.
-8. Confirm trees, terrain, and OSM features are present.
+5. Confirm the CFS alignment viewer displays OSM against terrain correctly.
+6. Confirm Auto Red Mask preserves compound outer/inner OSM geometry.
+7. Confirm relation fairways/rough are visibly filled in `mask.png`.
+8. Confirm relation water is pure blue.
+9. Import terrain/features and open the output course in PGA TOUR 2K25 Designer.
+10. Verify the resulting course geometry and terrain are aligned.
 
-## SHA-256 checksum
-
-Create a checksum for the release EXE:
-
-```bat
-powershell -NoProfile -Command "(Get-FileHash 'dist\tgc_gui_2k25_beta2.exe' -Algorithm SHA256).Hash | Out-File 'dist\tgc_gui_2k25_beta2.exe.sha256.txt' -Encoding ascii"
-```
-
-## Suggested release package
-
-Create:
-
-```text
-TGC-Designer-Tools-2K25-v0.5.0-2k25-beta2-Windows-x64\
-    tgc_gui_2k25_beta2.exe
-    LICENSE
-    README.md
-    CHANGELOG.md
-```
-
-Publish the ZIP and checksum as GitHub Release assets.
-
-## Git remote layout used by the fork
+## Git remotes
 
 Recommended:
 
@@ -181,17 +155,4 @@ origin   -> https://github.com/malifica/TGC-Designer-Tools.git
 upstream -> https://github.com/HiCamino/TGC-Designer-Tools.git
 ```
 
-Check with:
-
-```bat
-git remote -v
-```
-
-To inspect future upstream changes without automatically merging them:
-
-```bat
-git fetch upstream
-git log --oneline main..upstream/main
-```
-
-Because this fork modifies several central terrain-processing files, review upstream changes before merging them.
+This fork modifies central terrain, OSM, masking, and LiDAR/DEM processing files. Review upstream changes before merging them.

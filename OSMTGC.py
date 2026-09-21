@@ -24,6 +24,345 @@ def shapeCenter(nds):
     bb = nodeBoundingBox(nds)
     return ((bb[0] + bb[2])/2.0, (bb[1]+bb[3])/2.0)
 
+# -------------------------------------------------------------------------
+# OSM SPLINE POINT OPTIMIZER
+#
+# Conservative feature-aware Douglas-Peucker simplification in TGC X/Z.
+# This runs BEFORE normal newSpline shrink/handle generation.
+#
+# Lollipop fairway/bunker rings explicitly disable this after their neck
+# geometry has been created so the protected neck points cannot be removed.
+# -------------------------------------------------------------------------
+
+spline_optimization_enabled = False
+spline_optimization_stats = {}
+
+_SPLINE_OPTIMIZATION_TOLERANCE_M = {
+    "bunker": 0.15,
+    "green": 0.15,
+    "teebox": 0.20,
+    "fairway": 0.40,
+    "rough": 0.50,
+    "heavyrough": 0.50,
+    "cartpath": 0.25,
+    "walkingpath": 0.25,
+}
+
+_SPLINE_OPTIMIZATION_MIN_POINTS = {
+    "bunker": 4,
+    "green": 5,
+    "teebox": 4,
+    "fairway": 5,
+    "rough": 5,
+    "heavyrough": 5,
+    "cartpath": 2,
+    "walkingpath": 2,
+}
+
+
+def _point_distance_xz(a, b):
+    return math.hypot(
+        float(a[0]) - float(b[0]),
+        float(a[2]) - float(b[2]),
+    )
+
+
+def _remove_near_duplicate_xz(points, closed=False, threshold=0.02):
+    if not points:
+        return []
+
+    out = [points[0]]
+
+    for p in points[1:]:
+        if _point_distance_xz(out[-1], p) >= threshold:
+            out.append(p)
+
+    if closed and len(out) > 1:
+        if _point_distance_xz(out[0], out[-1]) < threshold:
+            out.pop()
+
+    return out
+
+
+def _signed_area_points_xz(points):
+    if len(points) < 3:
+        return 0.0
+
+    total = 0.0
+    for i, p in enumerate(points):
+        q = points[(i + 1) % len(points)]
+        total += (
+            float(p[0]) * float(q[2]) -
+            float(q[0]) * float(p[2])
+        )
+    return 0.5 * total
+
+
+def _interior_angle_degrees_xz(prev_p, p, next_p):
+    ax = float(prev_p[0]) - float(p[0])
+    az = float(prev_p[2]) - float(p[2])
+    bx = float(next_p[0]) - float(p[0])
+    bz = float(next_p[2]) - float(p[2])
+
+    amag = math.hypot(ax, az)
+    bmag = math.hypot(bx, bz)
+
+    if amag < 1.0e-9 or bmag < 1.0e-9:
+        return 180.0
+
+    dot = (ax * bx + az * bz) / (amag * bmag)
+    dot = min(1.0, max(-1.0, dot))
+    return math.degrees(math.acos(dot))
+
+
+def _nearest_original_index_xz(points, x, z):
+    best_index = 0
+    best_d2 = None
+
+    for i, p in enumerate(points):
+        dx = float(p[0]) - float(x)
+        dz = float(p[2]) - float(z)
+        d2 = dx * dx + dz * dz
+
+        if best_d2 is None or d2 < best_d2:
+            best_d2 = d2
+            best_index = i
+
+    return best_index
+
+
+def _approximate_points_xz(points, epsilon, closed):
+    """
+    OpenCV approxPolyDP gives us Douglas-Peucker geometry while we map every
+    returned point back to the original TGC tuple. This means no new geometry
+    is invented; the optimizer only culls existing OSM/TGC vertices.
+    """
+    if len(points) < (3 if closed else 2):
+        return list(points)
+
+    curve = np.asarray(
+        [[float(p[0]), float(p[2])] for p in points],
+        dtype=np.float32,
+    ).reshape((-1, 1, 2))
+
+    approx = cv2.approxPolyDP(
+        curve,
+        float(epsilon),
+        bool(closed),
+    )
+
+    selected = set()
+
+    for item in approx:
+        x = float(item[0][0])
+        z = float(item[0][1])
+        selected.add(_nearest_original_index_xz(points, x, z))
+
+    # Preserve the endpoints of open paths.
+    if not closed:
+        selected.add(0)
+        selected.add(len(points) - 1)
+
+    # Preserve deliberate/sharp corners even if RDP believes a nearby chord
+    # is within tolerance. Rectangular tees and hard path turns depend on this.
+    if closed:
+        for i in range(len(points)):
+            angle = _interior_angle_degrees_xz(
+                points[i - 1],
+                points[i],
+                points[(i + 1) % len(points)],
+            )
+            if angle <= 115.0:
+                selected.add(i)
+    else:
+        for i in range(1, len(points) - 1):
+            angle = _interior_angle_degrees_xz(
+                points[i - 1],
+                points[i],
+                points[i + 1],
+            )
+            if angle <= 110.0:
+                selected.add(i)
+
+    return [points[i] for i in sorted(selected)]
+
+
+def _optimize_osm_feature_points(
+    points,
+    feature_type,
+    closed=True,
+    enabled=True,
+):
+    """
+    Cull redundant OSM points conservatively.
+
+    Safety rules:
+      - never invent coordinates;
+      - preserve sharp corners;
+      - preserve open-path endpoints;
+      - maintain winding;
+      - maintain polygon area within a conservative guard;
+      - progressively reduce epsilon if the guard is exceeded;
+      - enforce feature-specific minimum point counts.
+    """
+    global spline_optimization_enabled
+    global spline_optimization_stats
+
+    original = list(points)
+
+    if (
+        not spline_optimization_enabled or
+        not enabled or
+        feature_type not in _SPLINE_OPTIMIZATION_TOLERANCE_M
+    ):
+        return original
+
+    if len(original) < 3:
+        return original
+
+    cleaned = _remove_near_duplicate_xz(
+        original,
+        closed=closed,
+        threshold=0.02,
+    )
+
+    minimum = _SPLINE_OPTIMIZATION_MIN_POINTS.get(
+        feature_type,
+        4 if closed else 2,
+    )
+
+    if len(cleaned) <= minimum:
+        optimized = cleaned
+    else:
+        epsilon = float(
+            _SPLINE_OPTIMIZATION_TOLERANCE_M[feature_type]
+        )
+
+        baseline_area = _signed_area_points_xz(cleaned) if closed else 0.0
+        baseline_abs_area = abs(baseline_area)
+
+        optimized = cleaned
+
+        for _attempt in range(5):
+            candidate = _approximate_points_xz(
+                cleaned,
+                epsilon,
+                closed,
+            )
+
+            if len(candidate) < minimum:
+                epsilon *= 0.5
+                continue
+
+            if closed:
+                candidate_area = _signed_area_points_xz(candidate)
+
+                # Winding must never reverse.
+                if (
+                    baseline_area != 0.0 and
+                    candidate_area != 0.0 and
+                    ((baseline_area > 0.0) != (candidate_area > 0.0))
+                ):
+                    epsilon *= 0.5
+                    continue
+
+                area_delta = abs(abs(candidate_area) - baseline_abs_area)
+
+                # Small features get a strict absolute guard. Large features
+                # get a 1.5% guard.
+                allowed_area_delta = max(
+                    0.50,
+                    baseline_abs_area * 0.015,
+                )
+
+                if area_delta > allowed_area_delta:
+                    epsilon *= 0.5
+                    continue
+
+            optimized = candidate
+            break
+
+    before_count = len(original)
+    after_count = len(optimized)
+
+    stats = spline_optimization_stats.setdefault(
+        feature_type,
+        {
+            "features": 0,
+            "before": 0,
+            "after": 0,
+        },
+    )
+
+    stats["features"] += 1
+    stats["before"] += before_count
+    stats["after"] += after_count
+
+    return optimized
+
+
+def _print_spline_optimization_summary(printf=print):
+    if not spline_optimization_enabled:
+        return
+
+    total_before = 0
+    total_after = 0
+
+    printf("OSM spline optimization summary:")
+
+    display_order = [
+        "fairway",
+        "green",
+        "teebox",
+        "rough",
+        "heavyrough",
+        "bunker",
+        "cartpath",
+        "walkingpath",
+    ]
+
+    for feature_type in display_order:
+        stats = spline_optimization_stats.get(feature_type)
+        if not stats:
+            continue
+
+        before = int(stats["before"])
+        after = int(stats["after"])
+        removed = max(0, before - after)
+
+        total_before += before
+        total_after += after
+
+        reduction = (
+            100.0 * removed / before
+            if before > 0 else 0.0
+        )
+
+        printf(
+            "  " + feature_type + ": " +
+            str(before) + " -> " + str(after) +
+            " points (" +
+            str(round(reduction, 1)) +
+            "% fewer across " +
+            str(stats["features"]) +
+            " spline(s))"
+        )
+
+    total_removed = max(0, total_before - total_after)
+    total_reduction = (
+        100.0 * total_removed / total_before
+        if total_before > 0 else 0.0
+    )
+
+    printf(
+        "  TOTAL: " +
+        str(total_before) + " -> " +
+        str(total_after) +
+        " points; removed " +
+        str(total_removed) +
+        " (" + str(round(total_reduction, 1)) + "%)"
+    )
+
 def getwaypoint(easting, vertical, northing, course_version):
     dim2 = "y"
     if course_version == 25:
@@ -185,52 +524,115 @@ def newSpline(points, pathWidth=0.01, shrink_distance=None, handleLength=0.5, ti
 
     return spline
 
-def newBunker(points, course_version):
+def _configured_primary_surface(
+    spline_json,
+    default_surface_name,
+    course_version=-1,
+):
+    """
+    Resolve optional splines.json primarySurface.
+
+    Existing splines.json files remain fully backward compatible. If the key
+    is absent, blank, null, or unknown, the existing Python-coded surface is
+    retained.
+    """
+    default_value = tgc_definitions.featuresToSurfaces.get(
+        default_surface_name,
+        1,
+    )
+
+    if not isinstance(spline_json, dict):
+        return default_value
+
+    configured = spline_json.get("primarySurface", None)
+
+    if configured is None:
+        return default_value
+
+    if isinstance(configured, (int, float)):
+        value = int(configured)
+        if 0 <= value <= 255:
+            return value
+        return default_value
+
+    configured = str(configured).strip().lower()
+
+    if not configured:
+        return default_value
+
+    aliases = {
+        "tee": "green",
+        "teebox": "green",
+        "heavy rough": "heavyrough",
+        "heavy_rough": "heavyrough",
+        "surface 1": "surface1",
+        "surface 2": "surface2",
+        "surface 3": "surface3",
+    }
+
+    configured = aliases.get(configured, configured)
+
+    if configured in tgc_definitions.featuresToSurfaces:
+        return tgc_definitions.featuresToSurfaces[configured]
+
+    return default_value
+
+def newBunker(points, course_version, optimize_points=True):
     global spline_configuration
     spline_json = None
     if spline_configuration is not None:
         spline_json = spline_configuration.get("bunker", None)
     # Very tight shaped to make complex curves
+    if optimize_points:
+        points = _optimize_osm_feature_points(points, "bunker", closed=True)
     bunker = newSpline(points, pathWidth=0.01, handleLength=1.0, tightSplines=True, secondarySurface="heavyrough", secondaryWidth=2.5, spline_json=spline_json, course_version=course_version)
-    bunker["surface"] = tgc_definitions.featuresToSurfaces["bunker"]
+    bunker["surface"] = _configured_primary_surface(spline_json, "bunker", course_version)
     return bunker
 
-def newGreen(points, course_version):
+def newGreen(points, course_version, optimize_points=True):
     global spline_configuration
     spline_json = None
     if spline_configuration is not None:
         spline_json = spline_configuration.get("green", None)
+    if optimize_points:
+        points = _optimize_osm_feature_points(points, "green", closed=True)
     green = newSpline(points, pathWidth = 1.7, handleLength=0.2, tightSplines=True, secondarySurface="heavyrough", secondaryWidth=2.5, spline_json=spline_json, course_version=course_version)
-    green["surface"] = tgc_definitions.featuresToSurfaces["green"]
+    green["surface"] = _configured_primary_surface(spline_json, "green", course_version)
     return green
 
-def newTeeBox(points, course_version):
+def newTeeBox(points, course_version, optimize_points=True):
     global spline_configuration
     spline_json = None
     if spline_configuration is not None:
         spline_json = spline_configuration.get("teebox", None)
+    if optimize_points:
+        points = _optimize_osm_feature_points(points, "teebox", closed=True)
     teebox = newSpline(points, pathWidth = 1.7, handleLength=0.2, tightSplines=True, secondarySurface="heavyrough", secondaryWidth=2.5, spline_json=spline_json, course_version=course_version)
-    teebox["surface"] = tgc_definitions.featuresToSurfaces["green"]
+    teebox["surface"] = _configured_primary_surface(spline_json, "green", course_version)
     return teebox
 
-def newFairway(points, course_version):
+def newFairway(points, course_version, optimize_points=True):
     global spline_configuration
     spline_json = None
     if spline_configuration is not None:
         spline_json = spline_configuration.get("fairway", None)
+    if optimize_points:
+        points = _optimize_osm_feature_points(points, "fairway", closed=True)
     fw = newSpline(points, pathWidth = 3.0, handleLength=3.0, tightSplines=False, secondarySurface="rough", secondaryWidth=5.0, spline_json=spline_json, course_version=course_version)
-    fw["surface"] = tgc_definitions.featuresToSurfaces["fairway"]
+    fw["surface"] = _configured_primary_surface(spline_json, "fairway", course_version)
     return fw
 
-def newRough(points, course_version):
+def newRough(points, course_version, optimize_points=True):
     global spline_configuration
     spline_json = None
     if spline_configuration is not None:
         spline_json = spline_configuration.get("rough", None)
+    if optimize_points:
+        points = _optimize_osm_feature_points(points, "rough", closed=True)
     rh = newSpline(points, pathWidth = 1.7, handleLength=3.0, tightSplines=False, secondarySurface="", secondaryWidth=0.0, spline_json=spline_json, course_version=course_version)
     # Game outputs secondary as 1
     # Remove with 0 width
-    rh["surface"] = tgc_definitions.featuresToSurfaces["rough"]
+    rh["surface"] = _configured_primary_surface(spline_json, "rough", course_version)
     return rh
 
 
@@ -436,6 +838,94 @@ def _build_lollipop_bunker_ring(outer, inner_rings, bridge_width=0.18):
     return merged, bridge_indices
 
 
+def _tighten_and_smooth_fairway_lollipop_neck(
+    spline,
+    bridge_indices,
+    course_version,
+    target_pair_gap=0.02,
+):
+    """
+    Tighten the final fairway lollipop neck AFTER newFairway() has applied
+    its normal spline shrink.
+
+    Each excursion contributes four bridge indices:
+        outer_a, inner_a, inner_b, outer_b
+
+    Matching pairs are moved almost on top of each other:
+        outer_a <-> outer_b
+        inner_a <-> inner_b
+
+    Unlike bunker necks, fairway bridge handles are NOT clamped. After
+    moving the neck points, normal loose/smooth fairway handles are rebuilt.
+    """
+    dim2 = "z" if course_version == 25 else "y"
+    waypoints = spline.get("waypoints", [])
+
+    try:
+        target_pair_gap = max(0.002, float(target_pair_gap))
+    except Exception:
+        target_pair_gap = 0.02
+
+    def move_pair_together(index_a, index_b):
+        if (
+            index_a < 0 or index_b < 0 or
+            index_a >= len(waypoints) or
+            index_b >= len(waypoints)
+        ):
+            return
+
+        a = waypoints[index_a]["waypoint"]
+        b = waypoints[index_b]["waypoint"]
+
+        ax = float(a["x"])
+        ad = float(a[dim2])
+        bx = float(b["x"])
+        bd = float(b[dim2])
+
+        dx = ax - bx
+        dd = ad - bd
+        distance = math.hypot(dx, dd)
+
+        mx = 0.5 * (ax + bx)
+        md = 0.5 * (ad + bd)
+
+        if distance < 1.0e-9:
+            a["x"] = mx + 0.5 * target_pair_gap
+            a[dim2] = md
+            b["x"] = mx - 0.5 * target_pair_gap
+            b[dim2] = md
+            return
+
+        ux = dx / distance
+        ud = dd / distance
+        half = 0.5 * target_pair_gap
+
+        a["x"] = mx + ux * half
+        a[dim2] = md + ud * half
+        b["x"] = mx - ux * half
+        b[dim2] = md - ud * half
+
+    for offset in range(0, len(bridge_indices), 4):
+        group = bridge_indices[offset:offset + 4]
+        if len(group) != 4:
+            continue
+
+        outer_a, inner_a, inner_b, outer_b = group
+        move_pair_together(outer_a, outer_b)
+        move_pair_together(inner_a, inner_b)
+
+    # Rebuild normal fairway handles after moving the bridge points.
+    # Fairways use loose/smooth splines and 3.0 m handles.
+    is_clockwise = splineIsClockWise(spline, course_version)
+    completeSpline(
+        [],
+        spline,
+        handleLength=3.0,
+        is_clockwise=is_clockwise,
+        tightSplines=False,
+        course_version=course_version,
+    )
+
 def _clamp_spline_handles(spline, waypoint_indices, course_version):
     dim2 = "z" if course_version == 25 else "y"
     waypoints = spline.get("waypoints", [])
@@ -499,6 +989,217 @@ def _relation_is_bunker_with_rough_inner(rel, way_lookup):
 
     return relation_is_bunker and outer_members and rough_inner_members
 
+
+def _rough_relation_outer_way_ids(relations):
+    """Return way IDs that are OUTER members of golf=rough multipolygons."""
+    rough_outer_way_ids = set()
+
+    for rel in relations:
+        if rel.tags.get("golf", None) != "rough":
+            continue
+
+        for member in rel.members:
+            if not isinstance(member, overpy.RelationWay):
+                continue
+            if str(member.role or "").lower() != "outer":
+                continue
+            rough_outer_way_ids.add(member.ref)
+
+    return rough_outer_way_ids
+
+
+def _way_is_semantic_rough(way, rough_outer_way_ids):
+    """
+    A fairway inner ring counts as rough when either:
+      A) the way itself is tagged golf=rough, or
+      B) the way is the OUTER ring of a golf=rough multipolygon.
+    """
+    if way is None:
+        return False
+
+    if way.tags.get("golf", None) == "rough":
+        return True
+
+    return way.id in rough_outer_way_ids
+
+
+def _relation_is_fairway_with_rough_inner(
+    rel,
+    way_lookup,
+    rough_outer_way_ids,
+):
+    outer_members = []
+    rough_inner_members = []
+
+    for member in rel.members:
+        if not isinstance(member, overpy.RelationWay):
+            continue
+
+        way = way_lookup.get(member.ref)
+        if way is None:
+            continue
+
+        role = str(member.role or "").lower()
+
+        if role == "outer":
+            outer_members.append(member)
+        elif (
+            role == "inner" and
+            _way_is_semantic_rough(way, rough_outer_way_ids)
+        ):
+            rough_inner_members.append(member)
+
+    relation_is_fairway = rel.tags.get("golf", None) == "fairway"
+
+    if not relation_is_fairway:
+        for member in outer_members:
+            way = way_lookup.get(member.ref)
+            if (
+                way is not None and
+                way.tags.get("golf", None) == "fairway"
+            ):
+                relation_is_fairway = True
+                break
+
+    return (
+        relation_is_fairway and
+        bool(outer_members) and
+        bool(rough_inner_members)
+    )
+
+
+def _build_fairway_rough_multipolygon_splines(
+    rel,
+    way_lookup,
+    rough_outer_way_ids,
+    geopointcloud,
+    x_offset,
+    y_offset,
+    resolve_missing_nodes,
+    course_version,
+    printf=print,
+):
+    """
+    Build fairway splines where rough inner rings become physical holes
+    using the same narrow-neck/lollipop topology used by the bunker fix.
+
+    The rough inner member is NOT consumed here. It still imports normally
+    either as a direct golf=rough way or through its own golf=rough relation.
+    """
+
+    outer_rings = []
+    rough_inner_rings = []
+
+    for member in rel.members:
+        if not isinstance(member, overpy.RelationWay):
+            continue
+
+        way = way_lookup.get(member.ref)
+        if way is None:
+            continue
+
+        role = str(member.role or "").lower()
+
+        if role == "outer":
+            points = _way_to_tgc_points(
+                way,
+                geopointcloud,
+                x_offset,
+                y_offset,
+                resolve_missing_nodes,
+            )
+            if len(points) >= 3:
+                outer_rings.append((member.ref, points))
+
+        elif (
+            role == "inner" and
+            _way_is_semantic_rough(way, rough_outer_way_ids)
+        ):
+            points = _way_to_tgc_points(
+                way,
+                geopointcloud,
+                x_offset,
+                y_offset,
+                resolve_missing_nodes,
+            )
+            if len(points) >= 3:
+                rough_inner_rings.append((member.ref, points))
+
+    if not outer_rings or not rough_inner_rings:
+        return []
+
+    assigned = {outer_id: [] for outer_id, _ in outer_rings}
+
+    for inner_id, inner_ring in rough_inner_rings:
+        center = _ring_centroid_average(inner_ring)
+        containing_outer = None
+
+        for outer_id, outer_ring in outer_rings:
+            if _point_in_ring_xz(center, outer_ring):
+                containing_outer = outer_id
+                break
+
+        if containing_outer is None:
+            best = None
+            for outer_id, outer_ring in outer_rings:
+                _, _, distance = _nearest_ring_vertex_pair(
+                    outer_ring,
+                    inner_ring,
+                )
+                if best is None or distance < best[0]:
+                    best = (distance, outer_id)
+
+            if best is not None:
+                containing_outer = best[1]
+
+        if containing_outer is not None:
+            assigned[containing_outer].append(
+                (inner_id, inner_ring)
+            )
+
+    fairway_splines = []
+
+    for outer_id, outer_ring in outer_rings:
+        inner_entries = assigned.get(outer_id, [])
+        inner_rings = [ring for _, ring in inner_entries]
+
+        if inner_rings:
+            merged_ring, bridge_indices = _build_lollipop_bunker_ring(
+                outer_ring,
+                inner_rings,
+                bridge_width=3.4,
+            )
+
+            fairway = newFairway(merged_ring, course_version, optimize_points=False)
+
+            # Seamless fairway lollipop neck:
+            # paired bridge points are virtually coincident, then normal
+            # loose/smooth fairway handles are regenerated.
+            _tighten_and_smooth_fairway_lollipop_neck(
+                fairway,
+                bridge_indices,
+                course_version,
+                target_pair_gap=0.02,
+            )
+
+
+            fairway_splines.append(fairway)
+
+            printf(
+                "2K25 fairway-hole conversion: relation " +
+                str(rel.id) +
+                ", outer way " + str(outer_id) +
+                ", rough inner islands=" +
+                str(len(inner_entries)) +
+                ", fairway waypoints=" +
+                str(len(merged_ring))
+            )
+        else:
+            fairway_splines.append(
+                newFairway(outer_ring, course_version)
+            )
+
+    return fairway_splines
 
 def _build_bunker_rough_multipolygon_splines(
     rel,
@@ -579,7 +1280,7 @@ def _build_bunker_rough_multipolygon_splines(
                 bridge_width=0.18,
             )
 
-            bunker = newBunker(merged_ring, course_version)
+            bunker = newBunker(merged_ring, course_version, optimize_points=False)
 
             # Normal bunker handles are ~1 m and would balloon a 0.18 m neck.
             # Clamp the four neck points to zero handles.
@@ -608,18 +1309,20 @@ def _build_bunker_rough_multipolygon_splines(
     return bunker_splines, rough_splines, consumed_way_ids
 
 
-def newHeavyRough(points, course_version):
+def newHeavyRough(points, course_version, optimize_points=True):
     global spline_configuration
     spline_json = None
     if spline_configuration is not None:
         spline_json = spline_configuration.get("heavyrough", None)
+    if optimize_points:
+        points = _optimize_osm_feature_points(points, "heavyrough", closed=True)
     hr = newSpline(points, pathWidth = 1.7, handleLength=3.0, tightSplines=False, secondarySurface="", secondaryWidth=0.0, spline_json=spline_json, course_version=course_version)
     # Game outputs secondary as 1
     # Remove with 0 width
-    hr["surface"] = tgc_definitions.featuresToSurfaces["heavyrough"]
+    hr["surface"] = _configured_primary_surface(spline_json, "heavyrough", course_version)
     return hr
 
-def newCartPath(points, area=False, course_version=-1):
+def newCartPath(points, area=False, course_version=-1, optimize_points=True):
     global spline_configuration
     spline_json = None
     if spline_configuration is not None:
@@ -628,12 +1331,17 @@ def newCartPath(points, area=False, course_version=-1):
     shrink_distance = 0.0
     if area:
         shrink_distance = None # Automatic shrink_distance
+    if optimize_points:
+        points = _optimize_osm_feature_points(points, "cartpath", closed=bool(area))
     cp = newSpline(points, pathWidth=pathWidth, shrink_distance=shrink_distance, handleLength=4.0, tightSplines=False, secondarySurface="", secondaryWidth=0.0, spline_json=spline_json, course_version=course_version) # Smooth a lot
     # Cartpath is surface 10 (this is the one with Cartpath logo in Designer)
     # Remove secondary with 0 width
-    cp["surface"] = tgc_definitions.featuresToSurfaces["cartpath"] # Cartpath, Surface #3
-    if course_version == 25:
-        cp["surface"] = tgc_definitions.featuresToSurfaces["surface1"] 
+    default_cartpath_surface = "surface1" if course_version == 25 else "cartpath"
+    cp["surface"] = _configured_primary_surface(
+        spline_json,
+        default_cartpath_surface,
+        course_version,
+    )
         
     # 0 is 'not closed' and 3 is 'closed and filled' maybe a bitmask?
     if area:
@@ -647,7 +1355,7 @@ def newCartPath(points, area=False, course_version=-1):
 
     return cp
 
-def newWalkingPath(points, area=False, course_version=-1):
+def newWalkingPath(points, area=False, course_version=-1, optimize_points=True):
     global spline_configuration
     spline_json = None
     if spline_configuration is not None:
@@ -657,11 +1365,13 @@ def newWalkingPath(points, area=False, course_version=-1):
     shrink_distance = 0.0
     if area:
         shrink_distance = None # Automatic shrink_distance
+    if optimize_points:
+        points = _optimize_osm_feature_points(points, "walkingpath", closed=bool(area))
     wp = newSpline(points, pathWidth=pathWidth, shrink_distance=shrink_distance, handleLength=2.0, tightSplines=False, secondarySurface="rough", secondaryWidth=0.0, spline_json=spline_json, course_version=course_version)
     # Make walking paths Surface #1 for visibility
     # User can switch to green/fairway/rough depending on taste
     # Remove secondary with 0 width
-    wp["surface"] = tgc_definitions.featuresToSurfaces["surface1"]
+    wp["surface"] = _configured_primary_surface(spline_json, "surface1", course_version)
     if area:
         wp["state"] = 3
         wp["isClosed"] = True
@@ -814,6 +1524,8 @@ def clearFeatures(course_json, course_version):
 
 def addOSMToTGC(course_json, geopointcloud, osm_result, x_offset=0.0, y_offset=0.0, options_dict={}, spline_configuration_json=None, printf=print, course_version=-1, resolve_missing_nodes=True):
     global spline_configuration
+    global spline_optimization_enabled
+    global spline_optimization_stats
 
     if course_version not in tgc_definitions.version_tags:
         print("invalid version")
@@ -827,6 +1539,12 @@ def addOSMToTGC(course_json, geopointcloud, osm_result, x_offset=0.0, y_offset=0
     # We can convert these directly into the game's splines
 
     spline_configuration = spline_configuration_json
+    spline_optimization_enabled = bool(
+        options_dict.get('optimize_osm_spline_points', True)
+    )
+    spline_optimization_stats = {}
+    if spline_optimization_enabled:
+        printf("Optimizing OSM spline point density")
 
     # Get terrain bounding box
     ul_enu = geopointcloud.ulENU()
@@ -850,6 +1568,33 @@ def addOSMToTGC(course_json, geopointcloud, osm_result, x_offset=0.0, y_offset=0
     bunker_hole_way_lookup = {
         way.id: way for way in osm_result.ways
     }
+
+    # Pre-detect fairway multipolygons whose inner ring represents rough.
+    # Rough identity may be direct (golf=rough on the way) or indirect
+    # (the same way is the OUTER member of a golf=rough multipolygon).
+    rough_relation_outer_way_ids = _rough_relation_outer_way_ids(
+        osm_result.relations
+    )
+    fairway_rough_hole_relation_ids = set()
+
+    if (
+        options_dict.get('fairway', True) and
+        options_dict.get('rough', True)
+    ):
+        for rel in osm_result.relations:
+            if _relation_is_fairway_with_rough_inner(
+                rel,
+                bunker_hole_way_lookup,
+                rough_relation_outer_way_ids,
+            ):
+                fairway_rough_hole_relation_ids.add(rel.id)
+
+        if fairway_rough_hole_relation_ids:
+            printf(
+                "Detected " +
+                str(len(fairway_rough_hole_relation_ids)) +
+                " fairway multipolygon relation(s) with rough inner islands."
+            )
 
     if (
         options_dict.get('bunker', True) and
@@ -1007,6 +1752,46 @@ def addOSMToTGC(course_json, geopointcloud, osm_result, x_offset=0.0, y_offset=0
 
         golf_type = rel.tags.get("golf", None)
 
+        if rel.id in fairway_rough_hole_relation_ids:
+            try:
+                fairway_splines = (
+                    _build_fairway_rough_multipolygon_splines(
+                        rel,
+                        bunker_hole_way_lookup,
+                        rough_relation_outer_way_ids,
+                        geopointcloud,
+                        x_offset,
+                        y_offset,
+                        resolve_missing_nodes,
+                        course_version,
+                        printf=printf,
+                    )
+                )
+            except overpy.exception.OverPyException:
+                printf(
+                    "OpenStreetMap servers are too busy right now. Try later."
+                    if resolve_missing_nodes else
+                    "Local OSM file is incomplete: a fairway/rough "
+                    "multipolygon references nodes that are not present."
+                )
+                return []
+            except Exception as exc:
+                printf(
+                    "Warning: fairway rough-inner conversion failed for "
+                    "relation " + str(rel.id) + ": " + str(exc)
+                )
+                fairway_splines = []
+
+            if fairway_splines:
+                for spline in fairway_splines:
+                    course_json[spline_tag].append(spline)
+
+                printf(
+                    "Imported fairway relation " + str(rel.id) +
+                    " with rough island hole(s) for 2K25."
+                )
+                continue
+
         if rel.id in bunker_hole_relation_ids:
             try:
                 bunker_splines, rough_splines, consumed_ids = (
@@ -1120,6 +1905,8 @@ def addOSMToTGC(course_json, geopointcloud, osm_result, x_offset=0.0, y_offset=0
                     trees.append(newTree(nd))
         else:
             printf("Lidar trees requested: not adding trees from OpenStreetMap")
+
+    _print_spline_optimization_summary(printf=printf)
 
     # Return the tree list for later use
     return trees

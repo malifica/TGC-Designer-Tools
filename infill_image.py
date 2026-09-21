@@ -40,73 +40,81 @@ def get_binary_mask(cv2_mask):
 def infill_image_scipy(np_array, cv2_mask, background_ratio=16.0, fill_water=False, purge_water=False, printf=print):
     remove_mask, preserve_mask = get_binary_mask(cv2_mask)
 
-    # Get valid pixel elevations
-    full_points_list = []
-    full_values_list = []
+    values_2d = np.asarray(np_array[:, :, 0])
+    rows, cols = values_2d.shape
 
-    points_list = []
-    values_list = []
+    printf("Finding valid masked points (vectorized)")
 
-    output_list = []
+    finite = np.isfinite(values_2d)
+    full_points = np.argwhere(finite)
+    full_values = values_2d[finite]
 
-    printf("Finding valid masked points")
-    for row in np.arange(0, np_array.shape[0]):
-        for column in np.arange(0, np_array.shape[1]):
-            value = np_array[row, column][0]
-            masked = 1 # Pass through by default
-            if remove_mask is not None:
-                masked = remove_mask[row, column]
+    if remove_mask is None:
+        keep = np.ones((rows, cols), dtype=bool)
+    else:
+        keep = remove_mask[:, :, 0] > 0
 
-            # Need to output a high resolution pixel for every pixel in original
-            output_list.append([row, column])
+    detail_valid = finite & keep
+    points = np.argwhere(detail_valid)
+    values = values_2d[detail_valid]
 
-            # Don't interpolate on invalid points
-            if not math.isnan(value):
-                # Background requires every valid point
-                full_points_list.append([row, column])
-                full_values_list.append(value)
-                if masked  > 0:
-                    # Only feed masked points into high resolution
-                    points_list.append([row, column])
-                    values_list.append(value)
-
-    points = np.array(points_list)
-    values = np.array(values_list)
-    outs = np.array(output_list)
+    # Row-major ordering matches the historical nested loops exactly.
+    grid_rows, grid_cols = np.indices((rows, cols), dtype=np.int32)
+    outs = np.column_stack((grid_rows.ravel(), grid_cols.ravel()))
 
     background_map = None
+    background_preserve_mask = None
     if background_ratio is not None:
         printf("Generating low detail background")
-        starts = np.amin(output_list, axis=0)
-        ends = np.amax(output_list, axis=0)
-        background_row_count = math.ceil((ends[0]-starts[0])/background_ratio)
-        background_col_count = math.ceil((ends[1]-starts[1])/background_ratio)
-        background_outs = np.mgrid[starts[0]:ends[0]:background_ratio, starts[1]:ends[1]:background_ratio].reshape(2,-1).T
-        background_grid_z = griddata(full_points_list, full_values_list, background_outs, method='linear', fill_value=-1.0)
-        background_map = background_grid_z.reshape((background_row_count, background_col_count))
+        starts = np.array([0, 0], dtype=float)
+        ends = np.array([rows - 1, cols - 1], dtype=float)
+        background_row_count = math.ceil((ends[0] - starts[0]) / background_ratio)
+        background_col_count = math.ceil((ends[1] - starts[1]) / background_ratio)
+        background_outs = np.mgrid[
+            starts[0]:ends[0]:background_ratio,
+            starts[1]:ends[1]:background_ratio,
+        ].reshape(2, -1).T
+        background_grid_z = griddata(
+            full_points,
+            full_values,
+            background_outs,
+            method='linear',
+            fill_value=-1.0,
+        )
+        background_map = background_grid_z.reshape(
+            (background_row_count, background_col_count)
+        )
 
         if preserve_mask is not None:
-            background_preserve_mask = cv2.resize(preserve_mask, (background_col_count, background_row_count), interpolation = cv2.INTER_AREA)
+            background_preserve_mask = cv2.resize(
+                preserve_mask,
+                (background_col_count, background_row_count),
+                interpolation=cv2.INTER_AREA,
+            )
 
     printf("Filling missing data in heightmap")
-    detail_grid_z = griddata(points, values, outs, method='linear', fill_value=math.nan)
+    detail_grid_z = griddata(
+        points,
+        values,
+        outs,
+        method='linear',
+        fill_value=math.nan,
+    )
 
     if remove_mask is not None:
-        # Make sure that pixels marked red are not used
-        red_masked = apply_mask(detail_grid_z.reshape(np_array.shape), remove_mask)
+        red_masked = apply_mask(
+            detail_grid_z.reshape(np_array.shape),
+            remove_mask,
+        )
         blue_indices = preserve_mask > 0
-        # If a pixel is blue, use the original pre-infilled values
-        # This helps populate water features, etc
         if not fill_water:
             red_masked[blue_indices] = np_array[blue_indices]
         if purge_water:
-            # Remove all terrain that is masked as blue
             red_masked[blue_indices] = math.nan
 
-        # Don't add background pixels where the mask was blue
         if background_map is not None and background_preserve_mask is not None:
             background_blue_indices = background_preserve_mask > 0
             background_map[background_blue_indices] = math.nan
         return red_masked, background_map, remove_mask
-    else:
-        return detail_grid_z.reshape(np_array.shape), background_map, remove_mask
+
+    return detail_grid_z.reshape(np_array.shape), background_map, remove_mask

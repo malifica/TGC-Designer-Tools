@@ -1,6 +1,7 @@
 import math
 import os
 import tkinter as tk
+import warnings
 from functools import partial
 from tkinter import ttk
 
@@ -14,6 +15,8 @@ from rasterio.merge import merge
 from rasterio.warp import calculate_default_transform, reproject, Resampling
 
 import OSMTGC
+import auto_red_mask
+import cfs_georef
 from GeoPointCloud import GeoPointCloud
 import tgc_tools
 
@@ -23,19 +26,139 @@ import tgc_tools
 # toward the lower ground envelope, without inheriting LiDAR's order dependence.
 DEM_LOWER_GROUND_PERCENTILE = 40.0
 
+# DEM performance controls. Defaults are conservative enough for normal
+# systems while still using all 8 physical cores of a Ryzen 7 7800X3D.
+# Advanced users can override these without changing source:
+#
+#   TGC_DEM_THREADS=8
+#   TGC_DEM_REDUCER_MB=64
+#   TGC_DEM_MERGE_MB=256
+#   TGC_DEM_WARP_MB=256
+#
+# Rasterio/GDAL handles mosaic + reprojection on the CPU. The custom percentile
+# reducer below is pure NumPy and processes small windows in cache-friendly
+# chunks rather than calling Python once per output pixel.
+DEM_DEFAULT_THREADS = 8
+DEM_DEFAULT_REDUCER_MB = 64
+DEM_DEFAULT_MERGE_MB = 256
+DEM_DEFAULT_WARP_MB = 256
+
+
+def _env_positive_int(name, default_value, minimum=1, maximum=4096):
+    try:
+        raw = os.environ.get(name, "")
+        if raw:
+            value = int(raw)
+        else:
+            value = int(default_value)
+    except Exception:
+        value = int(default_value)
+
+    return max(int(minimum), min(int(maximum), value))
+
+
+def _dem_cpu_threads():
+    logical = os.cpu_count() or 1
+    default_threads = min(DEM_DEFAULT_THREADS, max(1, int(logical)))
+    return _env_positive_int(
+        "TGC_DEM_THREADS",
+        default_threads,
+        minimum=1,
+        maximum=max(1, int(logical)),
+    )
+
+
+def _dem_reducer_work_mb():
+    return _env_positive_int(
+        "TGC_DEM_REDUCER_MB",
+        DEM_DEFAULT_REDUCER_MB,
+        minimum=16,
+        maximum=2048,
+    )
+
+
+def _dem_merge_mem_mb():
+    return _env_positive_int(
+        "TGC_DEM_MERGE_MB",
+        DEM_DEFAULT_MERGE_MB,
+        minimum=32,
+        maximum=4096,
+    )
+
+
+def _dem_warp_mem_mb():
+    return _env_positive_int(
+        "TGC_DEM_WARP_MB",
+        DEM_DEFAULT_WARP_MB,
+        minimum=32,
+        maximum=4096,
+    )
+
+
+def _small_window_percentile_linear(values, percentile):
+    """Fast linear percentile for many tiny windows.
+
+    values is (..., sample_count), float32, with NaNs marking invalid cells.
+    Sorting tiny windows in one vectorized operation reproduces NumPy's default
+    linear percentile to float32 precision.
+    """
+    if values.shape[-1] < 1:
+        return np.full(values.shape[:-1], np.nan, dtype=np.float32)
+
+    values.sort(axis=-1)
+
+    counts = np.isfinite(values).sum(axis=-1).astype(np.int64)
+    good = counts > 0
+
+    safe_counts = np.maximum(counts, 1)
+    rank = (float(percentile) / 100.0) * (safe_counts - 1)
+    low = np.floor(rank).astype(np.int64)
+    high = np.ceil(rank).astype(np.int64)
+    fraction = rank - low
+
+    low_values = np.take_along_axis(
+        values,
+        low[..., None],
+        axis=-1,
+    )[..., 0].astype(np.float64)
+
+    high_values = np.take_along_axis(
+        values,
+        high[..., None],
+        axis=-1,
+    )[..., 0].astype(np.float64)
+
+    result = low_values + (high_values - low_values) * fraction
+    result[~good] = np.nan
+    return result.astype(np.float32)
+
 
 def _reduce_dem_lidar_style(dem, native_scale, target_scale, printf=print):
-    # Reduce a dense square-pixel DEM to the requested terrain sample spacing.
-    # Each output cell is treated as a terrain bin, analogous to multiple
-    # LiDAR points falling inside one Map Scale cell.
+    """Reduce DEM cells to the requested terrain sample spacing.
+
+    Compatibility goal:
+      - same geometric source-cell windows as the previous reducer
+      - same 40th-percentile lower-ground bias
+      - same float32 output grid dimensions
+
+    Performance change:
+      - no Python loop per output cell
+      - exact windows are gathered in bounded row chunks
+      - tiny-window percentiles are vectorized and sorted in NumPy
+      - progress messages keep the GUI event queue moving
+    """
     native_scale = float(native_scale)
     target_scale = float(target_scale)
 
     if target_scale <= native_scale + 1e-9:
         return np.array(dem, dtype=np.float32, copy=True)
 
+    src = np.asarray(dem, dtype=np.float32)
+    src_h, src_w = src.shape
     ratio = target_scale / native_scale
-    src_h, src_w = dem.shape
+
+    out_w = int(math.ceil((src_w * native_scale) / target_scale))
+    out_h = int(math.ceil((src_h * native_scale) / target_scale))
 
     printf(
         "LiDAR-style DEM reduction: native " + str(native_scale) +
@@ -44,74 +167,112 @@ def _reduce_dem_lidar_style(dem, native_scale, target_scale, printf=print):
         str(DEM_LOWER_GROUND_PERCENTILE)
     )
 
-    # Fast exact-block path when target spacing is an integer multiple
-    # of native DEM spacing.
-    rounded_ratio = int(round(ratio))
-    if rounded_ratio >= 1 and abs(ratio - rounded_ratio) <= 1e-6:
-        block = rounded_ratio
+    out_rows = np.arange(out_h, dtype=np.float64)
+    out_cols = np.arange(out_w, dtype=np.float64)
 
-        out_h = int(math.ceil(src_h / float(block)))
-        out_w = int(math.ceil(src_w / float(block)))
+    row_start = np.floor(out_rows * ratio).astype(np.int64)
+    row_end = np.ceil((out_rows + 1.0) * ratio).astype(np.int64)
+    col_start = np.floor(out_cols * ratio).astype(np.int64)
+    col_end = np.ceil((out_cols + 1.0) * ratio).astype(np.int64)
 
-        pad_h = out_h * block - src_h
-        pad_w = out_w * block - src_w
+    row_start = np.clip(row_start, 0, max(0, src_h - 1))
+    col_start = np.clip(col_start, 0, max(0, src_w - 1))
+    row_end = np.clip(row_end, 1, src_h)
+    col_end = np.clip(col_end, 1, src_w)
 
-        padded = np.pad(
-            dem,
-            ((0, pad_h), (0, pad_w)),
-            mode="constant",
-            constant_values=np.nan,
-        )
+    row_end = np.maximum(row_end, row_start + 1)
+    col_end = np.maximum(col_end, col_start + 1)
 
-        blocked = padded.reshape(out_h, block, out_w, block)
+    max_rows = int(np.max(row_end - row_start))
+    max_cols = int(np.max(col_end - col_start))
+    sample_count = max_rows * max_cols
 
-        with np.errstate(all="ignore"):
-            reduced = np.nanpercentile(
-                blocked,
-                DEM_LOWER_GROUND_PERCENTILE,
-                axis=(1, 3),
-            )
+    col_offsets = np.arange(max_cols, dtype=np.int64)
+    col_index = col_start[:, None] + col_offsets[None, :]
+    col_valid = col_index < col_end[:, None]
+    col_index = np.clip(col_index, 0, max(0, src_w - 1))
 
-        reduced = reduced.astype(np.float32)
+    work_mb = _dem_reducer_work_mb()
+    approx_bytes_per_output_row = max(
+        1,
+        out_w * sample_count * 6,
+    )
+    chunk_rows = int(
+        (work_mb * 1024 * 1024) //
+        approx_bytes_per_output_row
+    )
+    chunk_rows = max(1, min(128, chunk_rows))
 
-        printf(
-            "DEM reducer used exact " + str(block) + "x" + str(block) +
-            " source-cell blocks; output " +
-            str(out_w) + " x " + str(out_h)
-        )
-        return reduced
-
-    # General fallback for arbitrary non-integer scale ratios.
-    out_w = int(math.ceil((src_w * native_scale) / target_scale))
-    out_h = int(math.ceil((src_h * native_scale) / target_scale))
     reduced = np.full((out_h, out_w), np.nan, dtype=np.float32)
-
-    for out_row in range(out_h):
-        src_r0 = int(math.floor((out_row * target_scale) / native_scale))
-        src_r1 = int(math.ceil(((out_row + 1) * target_scale) / native_scale))
-        src_r0 = max(0, min(src_h, src_r0))
-        src_r1 = max(src_r0 + 1, min(src_h, src_r1))
-
-        for out_col in range(out_w):
-            src_c0 = int(math.floor((out_col * target_scale) / native_scale))
-            src_c1 = int(math.ceil(((out_col + 1) * target_scale) / native_scale))
-            src_c0 = max(0, min(src_w, src_c0))
-            src_c1 = max(src_c0 + 1, min(src_w, src_c1))
-
-            window = dem[src_r0:src_r1, src_c0:src_c1]
-            valid = window[np.isfinite(window)]
-            if valid.size:
-                reduced[out_row, out_col] = np.percentile(
-                    valid,
-                    DEM_LOWER_GROUND_PERCENTILE,
-                )
+    row_offsets = np.arange(max_rows, dtype=np.int64)
 
     printf(
-        "DEM reducer used geometric bins for non-integer scale ratio; output " +
+        "Vector DEM reducer: output " + str(out_w) + " x " + str(out_h) +
+        ", source window up to " + str(max_cols) + " x " + str(max_rows) +
+        ", chunk rows=" + str(chunk_rows) +
+        ", work target=" + str(work_mb) + " MB"
+    )
+
+    next_progress = 10
+    for chunk_start in range(0, out_h, chunk_rows):
+        chunk_end = min(out_h, chunk_start + chunk_rows)
+
+        row_index = (
+            row_start[chunk_start:chunk_end, None] +
+            row_offsets[None, :]
+        )
+        row_valid = (
+            row_index <
+            row_end[chunk_start:chunk_end, None]
+        )
+        row_index = np.clip(
+            row_index,
+            0,
+            max(0, src_h - 1),
+        )
+
+        windows = src[
+            row_index[:, None, :, None],
+            col_index[None, :, None, :],
+        ]
+
+        for local_row in range(max_rows):
+            invalid_rows = ~row_valid[:, local_row]
+            if np.any(invalid_rows):
+                windows[invalid_rows, :, local_row, :] = np.nan
+
+        for local_col in range(max_cols):
+            invalid_cols = ~col_valid[:, local_col]
+            if np.any(invalid_cols):
+                windows[:, invalid_cols, :, local_col] = np.nan
+
+        windows = windows.reshape(
+            chunk_end - chunk_start,
+            out_w,
+            sample_count,
+        )
+
+        reduced[chunk_start:chunk_end, :] = (
+            _small_window_percentile_linear(
+                windows,
+                DEM_LOWER_GROUND_PERCENTILE,
+            )
+        )
+
+        progress = int(round(100.0 * chunk_end / float(out_h)))
+        if progress >= next_progress or chunk_end == out_h:
+            printf(
+                "DEM reduction progress: " +
+                str(min(progress, 100)) + "%"
+            )
+            while next_progress <= progress:
+                next_progress += 10
+
+    printf(
+        "DEM reducer completed geometric-bin 40th-percentile reduction; output " +
         str(out_w) + " x " + str(out_h)
     )
     return reduced
-
 
 
 # DEM / GeoTIFF support for TGC Designer Tools.
@@ -126,6 +287,7 @@ rectx1 = 10
 recty1 = 10
 move = False
 canvas = None
+selection_outline_color = "#ff0000"  # red normally; black over Auto Red Mask
 
 
 def _normalize_image(im):
@@ -434,24 +596,59 @@ def _load_dem(dem_files, target_sample_scale=None, printf=print):
             str(vertical_to_meters)
         )
 
-        printf("Mosaicing " + str(len(datasets)) + " DEM tile(s)")
-        mosaic, src_transform = merge(datasets, indexes=1, masked=True)
+        dem_threads = _dem_cpu_threads()
+        merge_mem_mb = _dem_merge_mem_mb()
+        warp_mem_mb = _dem_warp_mem_mb()
+
+        printf(
+            "DEM CPU acceleration: " + str(dem_threads) +
+            " GDAL warp thread(s); merge memory chunk=" +
+            str(merge_mem_mb) + " MB; warp memory=" +
+            str(warp_mem_mb) + " MB"
+        )
+
+        try:
+            union_left = min(float(ds.bounds.left) for ds in datasets)
+            union_bottom = min(float(ds.bounds.bottom) for ds in datasets)
+            union_right = max(float(ds.bounds.right) for ds in datasets)
+            union_top = max(float(ds.bounds.top) for ds in datasets)
+            native_x = abs(float(datasets[0].transform.a))
+            native_y = abs(float(datasets[0].transform.e))
+            est_w = int(math.ceil((union_right - union_left) / native_x))
+            est_h = int(math.ceil((union_top - union_bottom) / native_y))
+            est_mb = (est_w * est_h * 4.0) / (1024.0 * 1024.0)
+            printf(
+                "Estimated native mosaic: " + str(est_w) + " x " +
+                str(est_h) + " float32 cells (~" +
+                str(round(est_mb, 1)) + " MB for the base raster)."
+            )
+        except Exception:
+            pass
+
+        printf(
+            "Mosaicing " + str(len(datasets)) +
+            " DEM tile(s) using memory-bounded Rasterio merge"
+        )
+        mosaic, src_transform = merge(
+            datasets,
+            indexes=1,
+            masked=False,
+            dtype="float32",
+            nodata=np.nan,
+            mem_limit=merge_mem_mb,
+        )
 
         if mosaic.ndim == 3:
-            source_ma = np.ma.asarray(mosaic[0], dtype=np.float32)
+            source = mosaic[0]
         else:
-            source_ma = np.ma.asarray(mosaic, dtype=np.float32)
+            source = mosaic
 
-        source = source_ma.filled(np.nan).astype(np.float32)
+        source = np.asarray(source, dtype=np.float32)
 
-        # Convert Z/elevation values to meters BEFORE reprojection/downsampling.
-        # Rasterio reprojection changes horizontal coordinates only and leaves
-        # the raster sample values numerically unchanged.
+        # Convert Z/elevation values to meters in place. NaN remains NaN, so
+        # this avoids a full-size temporary boolean mask.
         if abs(vertical_to_meters - 1.0) > 1e-12:
-            finite_mask = np.isfinite(source)
-            source[finite_mask] = (
-                source[finite_mask] * vertical_to_meters
-            ).astype(np.float32)
+            source *= np.float32(vertical_to_meters)
             printf(
                 "Converted DEM elevations from " + str(first_unit_name) +
                 " to meters."
@@ -459,12 +656,11 @@ def _load_dem(dem_files, target_sample_scale=None, printf=print):
         else:
             printf("DEM elevations already in meters; no Z scaling needed.")
 
-        finite_values = source[np.isfinite(source)]
-        if finite_values.size:
+        if np.isfinite(source).any():
             printf(
                 "DEM elevation range after vertical conversion: " +
-                str(round(float(np.min(finite_values)), 4)) + " to " +
-                str(round(float(np.max(finite_values)), 4)) + " meters"
+                str(round(float(np.nanmin(source)), 4)) + " to " +
+                str(round(float(np.nanmax(source)), 4)) + " meters"
             )
 
         src_h, src_w = source.shape
@@ -480,12 +676,26 @@ def _load_dem(dem_files, target_sample_scale=None, printf=print):
                 src_crs, target_crs, src_w, src_h, *src_bounds
             )
 
-            nodata = -999999.0  # Safe float32 nodata sentinel for terrestrial DEM elevations
-            src_work = np.where(np.isfinite(source), source, nodata).astype(np.float32)
-            dest = np.full((dst_h, dst_w), nodata, dtype=np.float32)
+            nodata = -999999.0
+            np.nan_to_num(
+                source,
+                copy=False,
+                nan=nodata,
+                posinf=nodata,
+                neginf=nodata,
+            )
+            dest = np.full(
+                (dst_h, dst_w),
+                nodata,
+                dtype=np.float32,
+            )
 
+            printf(
+                "Reprojecting DEM with " + str(dem_threads) +
+                " GDAL worker thread(s)"
+            )
             reproject(
-                source=src_work,
+                source=source,
                 destination=dest,
                 src_transform=src_transform,
                 src_crs=src_crs,
@@ -494,14 +704,20 @@ def _load_dem(dem_files, target_sample_scale=None, printf=print):
                 dst_crs=target_crs,
                 dst_nodata=nodata,
                 resampling=Resampling.bilinear,
+                num_threads=dem_threads,
+                warp_mem_limit=warp_mem_mb,
             )
             dem = dest
             dem[dem == nodata] = np.nan
             transform = dst_transform
+
+            del source
+            del mosaic
         else:
             printf("DEM projected CRS: " + str(src_crs))
             dem = source
             transform = src_transform
+            del mosaic
 
         sx = abs(float(transform.a))
         sy = abs(float(transform.e))
@@ -518,12 +734,22 @@ def _load_dem(dem_files, target_sample_scale=None, printf=print):
                 left, top, target_res, target_res
             )
 
-            nodata = -999999.0  # Safe float32 nodata sentinel for terrestrial DEM elevations
-            src_work = np.where(np.isfinite(dem), dem, nodata).astype(np.float32)
-            dest = np.full((new_h, new_w), nodata, dtype=np.float32)
+            nodata = -999999.0
+            np.nan_to_num(
+                dem,
+                copy=False,
+                nan=nodata,
+                posinf=nodata,
+                neginf=nodata,
+            )
+            dest = np.full(
+                (new_h, new_w),
+                nodata,
+                dtype=np.float32,
+            )
 
             reproject(
-                source=src_work,
+                source=dem,
                 destination=dest,
                 src_transform=transform,
                 src_crs=target_crs,
@@ -532,6 +758,8 @@ def _load_dem(dem_files, target_sample_scale=None, printf=print):
                 dst_crs=target_crs,
                 dst_nodata=nodata,
                 resampling=Resampling.bilinear,
+                num_threads=dem_threads,
+                warp_mem_limit=warp_mem_mb,
             )
             dem = dest
             dem[dem == nodata] = np.nan
@@ -642,6 +870,7 @@ def _load_dem(dem_files, target_sample_scale=None, printf=print):
 
 
 def _start_rect(event):
+    global selection_outline_color
     global move, rect, rectid, rectx0, recty0
     move = True
     rectx0 = canvas.canvasx(event.x)
@@ -649,7 +878,7 @@ def _start_rect(event):
     if rect is not None:
         canvas.delete(rect)
     rect = canvas.create_rectangle(
-        rectx0, recty0, rectx0, recty0, outline="#ff0000", width=2
+        rectx0, recty0, rectx0, recty0, outline=selection_outline_color, width=2
     )
     rectid = rect
 
@@ -737,16 +966,31 @@ def _write_output(
         ),
     )
 
+    master_grid = cfs_georef.make_master_grid_from_crop(
+        pc,
+        lower_x,
+        lower_y,
+        upper_x,
+        upper_y,
+        image_scale,
+        source="DEM",
+    )
+
     output_data = {
         "heightmap": heightmap,
         "visual": visual,
         "pointcloud": [],
         "image_scale": float(image_scale),
-        "origin": pc.cv2ToLatLon(lower_y, lower_x, image_scale),
+        # True southwest CELL EDGE, not first pixel centre.
+        "origin": cfs_georef.master_grid_origin_latlon(master_grid),
         "projection": pc.proj,
+        "master_grid": master_grid,
         "trees": [],
         "source": "DEM",
     }
+
+    cfs_georef.describe_master_grid(master_grid, printf=printf)
+    cfs_georef.write_master_grid_json(output_dir, master_grid)
 
     out_base = os.path.join(output_dir, "heightmap")
     printf("Saving DEM data as: " + out_base + ".npy")
@@ -757,7 +1001,10 @@ def _write_output(
     printf("Use Import Terrain and Features exactly as with a LiDAR heightmap.")
 
 
-def _request_crop(dem, pc, image_scale, output_dir, osm_result, printf=print):
+def _request_crop(dem, pc, image_scale, output_dir, osm_result, auto_red_mask_enabled=False, auto_red_mask_buffer_m=5.0, printf=print):
+    global selection_outline_color
+    # TGC_MASK_AWARE_SELECTION_RECT_V1
+    selection_outline_color = "#000000" if bool(auto_red_mask_enabled) else "#ff0000"
     global canvas, rect, rectx0, recty0, rectx1, recty1
 
     preview_gray = _normalize_image(dem)
@@ -772,6 +1019,10 @@ def _request_crop(dem, pc, image_scale, output_dir, osm_result, printf=print):
             printf=printf,
         )
         printf("OSM features rendered into DEM preview/mask.")
+        if auto_red_mask_enabled:
+            preview_rgb = auto_red_mask.apply_auto_red_mask(osm_result, preview_rgb, pc, image_scale, buffer_m=auto_red_mask_buffer_m, printf=printf)
+    elif auto_red_mask_enabled:
+        printf("Auto Red Mask requested, but no OSM result is available; leaving DEM mask unchanged.")
 
     display_rgb = np.flip(preview_rgb, 0)
     pil = Image.fromarray(
@@ -834,27 +1085,46 @@ def _request_crop(dem, pc, image_scale, output_dir, osm_result, printf=print):
     popup.wait_window()
 
 
-def generate_dem_previews(
+def prepare_dem_previews(
     dem_files,
-    output_dir_path,
     local_osm_file=None,
     sample_scale=None,
     printf=print,
 ):
+    """Perform the heavy DEM work without creating Tk widgets."""
     printf("Starting DEM / GeoTIFF processing.")
     printf("Rasterio version: " + str(rasterio.__version__))
 
     dem, image_scale, pc = _load_dem(
         dem_files,
         target_sample_scale=sample_scale,
-        printf=printf
+        printf=printf,
     )
+
     osm_result = _get_osm_for_grid(
-        pc, local_osm_file=local_osm_file, printf=printf
+        pc,
+        local_osm_file=local_osm_file,
+        printf=printf,
     )
 
     if local_osm_file and osm_result is None:
-        printf("Continuing DEM preview without OSM; no online fallback was used.")
+        printf(
+            "Continuing DEM preview without OSM; "
+            "no online fallback was used."
+        )
+
+    return dem, image_scale, pc, osm_result
+
+
+def show_prepared_dem_preview(
+    prepared,
+    output_dir_path,
+    auto_red_mask_enabled=False,
+    auto_red_mask_buffer_m=5.0,
+    printf=print,
+):
+    """Open the crop UI for a prepared DEM result on the Tk main thread."""
+    dem, image_scale, pc, osm_result = prepared
 
     _request_crop(
         dem,
@@ -862,5 +1132,33 @@ def generate_dem_previews(
         image_scale,
         output_dir_path,
         osm_result,
+        auto_red_mask_enabled=auto_red_mask_enabled,
+        auto_red_mask_buffer_m=auto_red_mask_buffer_m,
+        printf=printf,
+    )
+
+
+def generate_dem_previews(
+    dem_files,
+    output_dir_path,
+    local_osm_file=None,
+    sample_scale=None,
+    auto_red_mask_enabled=False,
+    auto_red_mask_buffer_m=5.0,
+    printf=print,
+):
+    """Backward-compatible synchronous DEM entry point."""
+    prepared = prepare_dem_previews(
+        dem_files,
+        local_osm_file=local_osm_file,
+        sample_scale=sample_scale,
+        printf=printf,
+    )
+
+    show_prepared_dem_preview(
+        prepared,
+        output_dir_path,
+        auto_red_mask_enabled=auto_red_mask_enabled,
+        auto_red_mask_buffer_m=auto_red_mask_buffer_m,
         printf=printf,
     )

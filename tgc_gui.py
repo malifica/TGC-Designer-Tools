@@ -5,6 +5,9 @@ import tkinter.ttk as ttk
 from tkinter.scrolledtext import ScrolledText
 
 import copy
+import queue
+import threading
+import traceback
 import cv2
 from functools import partial
 import math
@@ -15,13 +18,19 @@ import string
 
 import tgc_definitions
 import tgc_tools
+import osm_alignment_viewer
 import lidar_map_api
 import dem_map_api
 import tgc_image_terrain
 from tgc_visualizer import drawCourseAsImage
 import OSMTGC
 
-TGC_GUI_VERSION = "v0.5.0-2k25-beta2"
+TGC_GUI_VERSION = "v0.5.0-2k25-beta3"
+TGC_APP_TITLE = "TGC Designer Tools 2K25 - Beta 3"
+
+AUTO_RED_MASK_BUFFER_MIN_M = 5.0
+AUTO_RED_MASK_BUFFER_MAX_M = 30.0
+AUTO_RED_MASK_BUFFER_DEFAULT_M = 5.0
 
 image_width = 500
 image_height = 500
@@ -39,6 +48,8 @@ scorecard = None
 inner_frame = None # Scorecard inner frame
 course_version = -1
 brush_scale_combo = None
+dem_processing_active = False
+lidar_processing_active = False
 
 def drawPlaceholder():
     global root
@@ -329,7 +340,6 @@ def exportCourseAction():
         new_course_name = course_name_var.get()
         if len(new_course_name) > 0:
             course_json["name"] = new_course_name
-            # Need to update the metadata file or it won't show up right in the course list
             tgc_tools.set_course_metadata_name(root.filename, course_json["name"])
         drawPlaceholder()
         tgc_tools.pack_course_file(root.filename, None, dest_file, course_json, course_version)
@@ -530,8 +540,48 @@ def tkinterPrintFunction(root, textfield, message):
     textfield.bind('<Button-3>', rightClickMenu, add='')
     root.update()
 
-def runLidar(scale_entry, epsg_entry, printf):
+def getAutoRedMaskSettings(auto_red_mask_var=None, auto_red_mask_buffer_var=None):
+    """Read and validate Auto Red Mask GUI settings on the Tk thread."""
+    enabled = (
+        bool(auto_red_mask_var.get())
+        if auto_red_mask_var is not None else False
+    )
+
+    # Keep the historical +5 m behavior when the mask is disabled or when an
+    # older caller does not provide the new buffer control.
+    if not enabled or auto_red_mask_buffer_var is None:
+        return enabled, AUTO_RED_MASK_BUFFER_DEFAULT_M
+
+    try:
+        buffer_m = float(auto_red_mask_buffer_var.get())
+    except Exception:
+        alert(
+            "Auto Red Mask buffer must be a numeric value from "
+            "5 to 30 meters."
+        )
+        return None
+
+    if (
+        not math.isfinite(buffer_m)
+        or buffer_m < AUTO_RED_MASK_BUFFER_MIN_M
+        or buffer_m > AUTO_RED_MASK_BUFFER_MAX_M
+    ):
+        alert(
+            "Auto Red Mask buffer must be between 5 meters (minimum) "
+            "and 30 meters (maximum)."
+        )
+        return None
+
+    return enabled, buffer_m
+
+def runLidar(scale_entry, epsg_entry, printf, auto_red_mask_var=None, auto_red_mask_buffer_var=None):
+    """Run heavy LiDAR preparation and terrain rasterization off the Tk thread."""
     global root
+    global lidar_processing_active
+
+    if lidar_processing_active:
+        alert("LiDAR processing is already running. Wait for it to finish first.")
+        return
 
     if not root or not hasattr(root, 'filename'):
         alert("Select a course directory before processing lidar files")
@@ -539,55 +589,191 @@ def runLidar(scale_entry, epsg_entry, printf):
 
     try:
         sample_scale = float(scale_entry.get())
-    except:
+    except Exception:
         alert("No action taken: Could not get valid resolution from entry")
         return
 
     force_epsg = None
     try:
         epsg_raw = epsg_entry.get()
-        if epsg_raw: # Don't process empty string
+        if epsg_raw:
             force_epsg = int(epsg_raw)
-    except:
+    except Exception:
         alert("No action taken: Could not get valid force epsg from entry")
         return
 
-    lidar_dir_path = tk.filedialog.askdirectory(initialdir=root.filename, title="Select las/laz files directory")
-    if lidar_dir_path:
-        # Reuse the Local OSM File selected on the Import Terrain and Features tab.
-        # Do not depend on the exact option-dictionary key so this remains compatible
-        # with the existing Local OSM patch.
+    auto_red_settings = getAutoRedMaskSettings(
+        auto_red_mask_var,
+        auto_red_mask_buffer_var,
+    )
+    if auto_red_settings is None:
+        return
+    auto_red_enabled, auto_red_buffer_m = auto_red_settings
+
+    lidar_dir_path = tk.filedialog.askdirectory(
+        initialdir=root.filename,
+        title="Select las/laz files directory",
+    )
+    if not lidar_dir_path:
+        return
+
+    local_osm_file = ""
+    try:
+        for key, entry in options_entries_dict.items():
+            try:
+                value = entry.get()
+            except Exception:
+                continue
+            if isinstance(value, str):
+                candidate = value.strip()
+                if candidate.lower().endswith((".osm", ".xml")):
+                    local_osm_file = candidate
+                    break
+    except Exception:
         local_osm_file = ""
-        try:
-            for key, entry in options_entries_dict.items():
-                try:
-                    value = entry.get()
-                except Exception:
-                    continue
-                if isinstance(value, str):
-                    candidate = value.strip()
-                    if candidate.lower().endswith((".osm", ".xml")):
-                        local_osm_file = candidate
-                        break
-        except Exception:
-            local_osm_file = ""
 
-        if local_osm_file:
-            printf("Process LiDAR / DEM will use local OSM for preview/mask: " + local_osm_file)
-        else:
-            printf("Process LiDAR / DEM local OSM is blank; using online Overpass for preview/mask")
+    if local_osm_file:
+        printf("LiDAR will use local OSM for preview/mask: " + local_osm_file)
+    else:
+        printf("LiDAR local OSM is blank; using online Overpass for preview/mask")
 
-        lidar_map_api.generate_lidar_previews(
-            lidar_dir_path,
-            sample_scale,
-            root.filename,
-            force_epsg=force_epsg,
-            printf=printf,
-            local_osm_file=local_osm_file
+    if auto_red_enabled:
+        printf(
+            "Auto Red Mask buffer: " +
+            str(round(auto_red_buffer_m, 2)) + " m"
         )
 
-def runDEM(scale_entry, printf):
+    output_dir_path = root.filename
+    result_queue = queue.Queue()
+    lidar_processing_active = True
+
+    printf(
+        "LiDAR Fast job started in background. "
+        "The window should remain responsive."
+    )
+
+    def worker_printf(message):
+        result_queue.put(("log", str(message)))
+
+    def prepare_worker():
+        try:
+            prepared = lidar_map_api.prepare_lidar_previews(
+                lidar_dir_path,
+                sample_scale,
+                output_dir_path,
+                force_epsg=force_epsg,
+                printf=worker_printf,
+                local_osm_file=local_osm_file,
+                auto_red_mask_enabled=auto_red_enabled,
+                auto_red_mask_buffer_m=auto_red_buffer_m,
+            )
+            result_queue.put(("preview", prepared))
+        except Exception:
+            result_queue.put(("error", traceback.format_exc()))
+
+    def height_worker(prepared, crop):
+        try:
+            lidar_map_api.generate_lidar_heightmap(
+                prepared["pc"],
+                prepared["img_points"],
+                prepared["sample_scale"],
+                prepared["output_dir_path"],
+                prepared["osm_result"],
+                prepared["auto_red_mask_enabled"],
+                prepared["auto_red_mask_buffer_m"],
+                crop_bounds=crop,
+                printf=worker_printf,
+            )
+            result_queue.put(("done", None))
+        except Exception:
+            result_queue.put(("error", traceback.format_exc()))
+
+    def pump_worker_messages():
+        global lidar_processing_active
+        finished = False
+
+        while True:
+            try:
+                kind, payload = result_queue.get_nowait()
+            except queue.Empty:
+                break
+
+            if kind == "log":
+                printf(payload)
+                continue
+
+            if kind == "error":
+                lidar_processing_active = False
+                printf("LiDAR processing failed:")
+                printf(payload)
+                alert(
+                    "LiDAR processing failed. "
+                    "See the Process LiDAR / DEM console for details."
+                )
+                finished = True
+                break
+
+            if kind == "preview":
+                if payload is None:
+                    lidar_processing_active = False
+                    finished = True
+                    break
+                printf("LiDAR preparation complete. Opening course-boundary selection.")
+                try:
+                    crop = lidar_map_api.show_prepared_lidar_preview(
+                        payload,
+                        printf=printf,
+                    )
+                except Exception:
+                    lidar_processing_active = False
+                    printf("LiDAR preview/crop failed:")
+                    printf(traceback.format_exc())
+                    alert("LiDAR preview/crop failed. See the console for details.")
+                    finished = True
+                    break
+
+                if crop is None:
+                    lidar_processing_active = False
+                    printf("LiDAR boundary selection cancelled.")
+                    finished = True
+                    break
+
+                printf("Course boundary accepted. Generating LiDAR heightmap in background.")
+                threading.Thread(
+                    target=height_worker,
+                    args=(payload, crop),
+                    name="TGC-LiDAR-Height-Worker",
+                    daemon=True,
+                ).start()
+                continue
+
+            if kind == "done":
+                lidar_processing_active = False
+                printf("LiDAR Fast processing complete.")
+                finished = True
+                break
+
+        if not finished and lidar_processing_active:
+            root.after(100, pump_worker_messages)
+
+    threading.Thread(
+        target=prepare_worker,
+        name="TGC-LiDAR-Prepare-Worker",
+        daemon=True,
+    ).start()
+    root.after(100, pump_worker_messages)
+
+def runDEM(scale_entry, printf, auto_red_mask_var=None, auto_red_mask_buffer_var=None):
+    """Run heavy DEM processing on a worker thread so Tk stays responsive."""
     global root
+    global dem_processing_active
+
+    if dem_processing_active:
+        alert(
+            "DEM processing is already running. "
+            "Wait for it to finish before starting another DEM job."
+        )
+        return
 
     if not root or not hasattr(root, 'filename'):
         alert("Select a course directory before processing DEM files")
@@ -601,7 +787,20 @@ def runDEM(scale_entry, printf):
         alert("No action taken: Could not get valid DEM Map Scale")
         return
 
+    auto_red_settings = getAutoRedMaskSettings(
+        auto_red_mask_var,
+        auto_red_mask_buffer_var,
+    )
+    if auto_red_settings is None:
+        return
+    auto_red_enabled, auto_red_buffer_m = auto_red_settings
+
     printf("Requested DEM output Map Scale: " + str(dem_sample_scale) + " meters")
+    if auto_red_enabled:
+        printf(
+            "Auto Red Mask buffer: " +
+            str(round(auto_red_buffer_m, 2)) + " m"
+        )
 
     dem_files = tk.filedialog.askopenfilenames(
         initialdir=root.filename,
@@ -635,17 +834,96 @@ def runDEM(scale_entry, printf):
     else:
         printf("DEM local OSM is blank; online Overpass will be used for preview/mask")
 
-    try:
-        dem_map_api.generate_dem_previews(
-            list(dem_files),
-            root.filename,
-            local_osm_file=local_osm_file,
-            sample_scale=dem_sample_scale,
-            printf=printf
-        )
-    except Exception as exc:
-        printf("DEM processing failed: " + str(exc))
-        raise
+    output_dir_path = root.filename
+    selected_files = list(dem_files)
+
+    result_queue = queue.Queue()
+    dem_processing_active = True
+
+    printf(
+        "DEM job started in background: " +
+        str(len(selected_files)) + " tile(s). "
+        "The window should remain responsive."
+    )
+
+    def worker_printf(message):
+        result_queue.put(("log", str(message)))
+
+    def worker():
+        try:
+            prepared = dem_map_api.prepare_dem_previews(
+                selected_files,
+                local_osm_file=local_osm_file,
+                sample_scale=dem_sample_scale,
+                printf=worker_printf,
+            )
+            result_queue.put(("done", prepared))
+        except Exception:
+            result_queue.put(
+                ("error", traceback.format_exc())
+            )
+
+    def pump_worker_messages():
+        global dem_processing_active
+
+        finished = False
+
+        while True:
+            try:
+                kind, payload = result_queue.get_nowait()
+            except queue.Empty:
+                break
+
+            if kind == "log":
+                printf(payload)
+                continue
+
+            if kind == "error":
+                dem_processing_active = False
+                printf("DEM processing failed:")
+                printf(payload)
+                alert(
+                    "DEM processing failed. "
+                    "See the Process LiDAR / DEM console for details."
+                )
+                finished = True
+                break
+
+            if kind == "done":
+                printf(
+                    "DEM processing complete. "
+                    "Opening course-boundary selection."
+                )
+                try:
+                    dem_map_api.show_prepared_dem_preview(
+                        payload,
+                        output_dir_path,
+                        auto_red_mask_enabled=auto_red_enabled,
+                        auto_red_mask_buffer_m=auto_red_buffer_m,
+                        printf=printf,
+                    )
+                except Exception:
+                    printf("DEM preview/crop failed:")
+                    printf(traceback.format_exc())
+                    alert(
+                        "DEM preview/crop failed. "
+                        "See the console for details."
+                    )
+                finally:
+                    dem_processing_active = False
+                finished = True
+                break
+
+        if not finished and dem_processing_active:
+            root.after(100, pump_worker_messages)
+
+    threading.Thread(
+        target=worker,
+        name="TGC-DEM-Worker",
+        daemon=True,
+    ).start()
+
+    root.after(100, pump_worker_messages)
 
 
 def generateCourseFromLidar(options_entries_dict, printf):
@@ -719,6 +997,43 @@ osm_types = [
     ('All files', '*'), 
 ]
 
+def openCFSAlignmentViewer(options_entries_dict, printf):
+    global root
+
+    if not root or not hasattr(root, 'filename'):
+        alert("Select a course directory first")
+        return
+
+    local_osm_file = ""
+    try:
+        local_osm_file = str(
+            options_entries_dict["local_osm_file"].get() or ""
+        ).strip()
+    except Exception:
+        local_osm_file = ""
+
+    if not local_osm_file:
+        alert("Select a Local OSM File before opening the alignment viewer")
+        return
+
+    heightmap_dir_path = tk.filedialog.askdirectory(
+        initialdir=root.filename,
+        title="Select heightmap folder for CFS alignment verification"
+    )
+
+    if not heightmap_dir_path:
+        return
+
+    osm_alignment_viewer.open_alignment_viewer(
+        root,
+        heightmap_dir_path,
+        local_osm_file,
+        options_entries_dict["adjust_ew"],
+        options_entries_dict["adjust_ns"],
+        printf=printf,
+    )
+
+
 def selectLocalOSMFile(path_var):
     global root
 
@@ -775,11 +1090,11 @@ def setStartupWindowSize(window):
         screen_w = int(window.winfo_screenwidth())
         screen_h = int(window.winfo_screenheight())
 
-        target_w = min(1400, max(1100, screen_w - 120))
+        target_w = min(1700, max(1300, screen_w - 80))
         target_h = min(900, max(750, screen_h - 140))
 
         # Never request a window larger than the usable screen estimate.
-        target_w = min(target_w, max(900, screen_w - 40))
+        target_w = min(target_w, max(1000, screen_w - 30))
         target_h = min(target_h, max(650, screen_h - 80))
 
         x = max(0, int((screen_w - target_w) / 2))
@@ -789,10 +1104,10 @@ def setStartupWindowSize(window):
             str(target_w) + "x" + str(target_h) +
             "+" + str(x) + "+" + str(y)
         )
-        window.minsize(min(1050, target_w), min(700, target_h))
+        window.minsize(min(1150, target_w), min(700, target_h))
     except Exception:
         # Safe fallback for unusual display configurations.
-        window.geometry("1200x800")
+        window.geometry("1500x800")
 
 
 root = tk.Tk()
@@ -805,7 +1120,7 @@ style.theme_create( "TabStyle", parent="alt", settings={
 
 style.theme_use("TabStyle")
 
-root.title("TGC Designer Tools 2K25 - " + TGC_GUI_VERSION)
+root.title(TGC_APP_TITLE)
 
 header_frame = Frame(root)
 output = Label(header_frame, background="lightgrey", width=75, height=1)
@@ -933,8 +1248,33 @@ scale_entry.insert(END, 2.0)
 epsg_label = Label(lidarControlFrame, text="Force LiDAR Horizontal EPSG (blank = auto)", fg=text_fg, bg=tool_bg)
 epsg_entry = tk.Entry(lidarControlFrame, width=8, justify='center')
 epsg_entry.insert(END, "")
-lidarbutton = Button(lidarControlFrame, text="Select Lidar and Generate Heightmap", command=partial(runLidar, scale_entry, epsg_entry, lidarPrintf))
-dembutton = Button(lidarControlFrame, text="Select DEM GeoTIFF(s)", command=partial(runDEM, scale_entry, lidarPrintf))
+auto_red_mask_var = tk.BooleanVar()
+auto_red_mask_var.set(True)
+auto_red_mask_buffer_var = tk.StringVar()
+auto_red_mask_buffer_var.set(str(int(AUTO_RED_MASK_BUFFER_DEFAULT_M)))
+lidarbutton = Button(
+    lidarControlFrame,
+    text="Select Lidar and Generate Heightmap",
+    command=partial(
+        runLidar,
+        scale_entry,
+        epsg_entry,
+        lidarPrintf,
+        auto_red_mask_var,
+        auto_red_mask_buffer_var,
+    ),
+)
+dembutton = Button(
+    lidarControlFrame,
+    text="Select DEM GeoTIFF(s)",
+    command=partial(
+        runDEM,
+        scale_entry,
+        lidarPrintf,
+        auto_red_mask_var,
+        auto_red_mask_buffer_var,
+    ),
+)
 
 scale_label.pack(side=LEFT, padx=5)
 scale_entry.pack(side=LEFT, padx=5)
@@ -944,6 +1284,43 @@ lidarbutton.pack(side=LEFT, padx=5, pady=5)
 dembutton.pack(side=LEFT, padx=5, pady=5)
 
 lidarControlFrame.pack(pady=5)
+
+lidarMaskFrame = Frame(lidar, bg=tool_bg)
+auto_red_mask_buffer_entry = tk.Entry(
+    lidarMaskFrame,
+    width=6,
+    justify='center',
+    textvariable=auto_red_mask_buffer_var,
+)
+autoRedMaskCheck = Checkbutton(
+    lidarMaskFrame,
+    text="Auto Red Mask",
+    variable=auto_red_mask_var,
+    fg="black",
+    bg="grey80",
+)
+autoRedMaskCheck.pack(side=LEFT, padx=5)
+Label(
+    lidarMaskFrame,
+    text="Buffer (m):",
+    fg=text_fg,
+    bg=tool_bg,
+).pack(side=LEFT, padx=(8, 2))
+auto_red_mask_buffer_entry.pack(side=LEFT, padx=2)
+Label(
+    lidarMaskFrame,
+    text="Minimum 5 m / Maximum 30 m",
+    fg=text_fg,
+    bg=tool_bg,
+).pack(side=LEFT, padx=(4, 8))
+Label(
+    lidarMaskFrame,
+    text="Paints all other terrain red; water is preserved.",
+    fg=text_fg,
+    bg=tool_bg,
+).pack(side=LEFT, padx=8)
+lidarMaskFrame.pack(pady=(0, 5))
+
 lidarConsoleOutput.pack(padx=10, pady=5, fill=tk.BOTH, expand=True)
 
 ## Import Terrain and Features Tab
@@ -1013,10 +1390,25 @@ options_entries_dict["tree"] = tk.BooleanVar()
 treeCheck = Checkbutton(osmSubFrame, text="Import Mapped Woods/Trees", variable=options_entries_dict["tree"], fg=check_fg, bg=check_bg)
 treeCheck.deselect()
 
+options_entries_dict["optimize_osm_spline_points"] = tk.BooleanVar()
+optimizeOSMSplineCheck = Checkbutton(
+    osmSubFrame,
+    text="Optimize OSM Spline Points",
+    variable=options_entries_dict["optimize_osm_spline_points"],
+    fg=check_fg,
+    bg=check_bg
+)
+optimizeOSMSplineCheck.select()
+
 local_osm_var = tk.StringVar()
 options_entries_dict["local_osm_file"] = local_osm_var
 local_osm_entry = tk.Entry(osmSubFrame, width=32, textvariable=local_osm_var)
 local_osm_browse = Button(osmSubFrame, text="Browse...", command=partial(selectLocalOSMFile, local_osm_var))
+cfsAlignmentViewerButton = Button(
+    osmSubFrame,
+    text="CFS Alignment Viewer...",
+    command=partial(openCFSAlignmentViewer, options_entries_dict, coursePrintf)
+)
 
 osmbutton = Button(osmSubFrame, text="Make Flat Course From OSM File", command=partial(importOSMFile, options_entries_dict, coursePrintf))
 
@@ -1031,15 +1423,17 @@ roughCheck.grid(row=7, columnspan=2, sticky=W, padx=5)
 waterCheck.grid(row=8, columnspan=2, sticky=W, padx=5)
 cartpathCheck.grid(row=9, columnspan=2, sticky=W, padx=5)
 pathCheck.grid(row=10, columnspan=2, sticky=W, padx=5)
-holeCheck.grid(row=11, columnspan=2, sticky=W, padx=5)
-Label(osmSubFrame, text="Match Hole Names", fg=check_fg, bg=check_bg).grid(row=12, sticky=W, padx=5)
-osm_hole_filter.grid(row=12, column=1, padx=5)
-buildingCheck.grid(row=13, columnspan=2, sticky=W, padx=5)
-treeCheck.grid(row=14, columnspan=2, sticky=W, padx=5)
-Label(osmSubFrame, text="Local OSM File (blank = online)", fg=check_fg, bg=check_bg).grid(row=15, column=0, sticky=W, padx=5)
-local_osm_entry.grid(row=15, column=1, sticky=W, padx=5)
-local_osm_browse.grid(row=15, column=2, sticky=W, padx=5)
-osmbutton.grid(row=16, columnspan=3)
+holeCheck.grid(row=12, columnspan=2, sticky=W, padx=5)
+Label(osmSubFrame, text="Match Hole Names", fg=check_fg, bg=check_bg).grid(row=13, sticky=W, padx=5)
+osm_hole_filter.grid(row=13, column=1, padx=5)
+buildingCheck.grid(row=14, columnspan=2, sticky=W, padx=5)
+treeCheck.grid(row=15, columnspan=2, sticky=W, padx=5)
+Label(osmSubFrame, text="Local OSM File (blank = online)", fg=check_fg, bg=check_bg).grid(row=16, column=0, sticky=W, padx=5)
+local_osm_entry.grid(row=16, column=1, sticky=W, padx=5)
+local_osm_browse.grid(row=16, column=2, sticky=W, padx=5)
+cfsAlignmentViewerButton.grid(row=16, column=3, sticky=W, padx=5)
+optimizeOSMSplineCheck.grid(row=17, columnspan=3, sticky=W, padx=5, pady=(5,0))
+osmbutton.grid(row=19, columnspan=3)
 
 useOSMCheck.pack(padx=10, pady=10)
 osmSubFrame.pack(padx=5, pady=5)
@@ -1087,6 +1481,36 @@ lidarTreeCheck.deselect()
 options_entries_dict["tree_variety"] = tk.BooleanVar()
 treeVarietyCheck = Checkbutton(courseSubFrame, text="Tree Variety (Lidar and OSM)", variable=options_entries_dict["tree_variety"], fg=check_fg, bg=check_bg)
 treeVarietyCheck.deselect()
+
+options_entries_dict["filter_lidar_trees_50m"] = tk.BooleanVar()
+filterLidarTreesCheck = Checkbutton(
+    courseSubFrame,
+    text="Filter LiDAR Trees: within 50 m of Course Features",
+    variable=options_entries_dict["filter_lidar_trees_50m"],
+    fg=check_fg,
+    bg=check_bg
+)
+filterLidarTreesCheck.select()
+
+options_entries_dict["lidar_buildings"] = tk.BooleanVar()
+lidarBuildingCheck = Checkbutton(
+    courseSubFrame,
+    text="Add Building Footprints From LiDAR (Class 6)",
+    variable=options_entries_dict["lidar_buildings"],
+    fg=check_fg,
+    bg=check_bg
+)
+lidarBuildingCheck.deselect()
+
+options_entries_dict["filter_lidar_buildings_50m"] = tk.BooleanVar()
+filterLidarBuildingsCheck = Checkbutton(
+    courseSubFrame,
+    text="Filter LiDAR Buildings: within 50 m of Course Features",
+    variable=options_entries_dict["filter_lidar_buildings_50m"],
+    fg=check_fg,
+    bg=check_bg
+)
+filterLidarBuildingsCheck.select()
 options_entries_dict["fill_water"] = tk.BooleanVar()
 fillWaterCheck = Checkbutton(courseSubFrame, text="Fill Holes Under Blue Mask", variable=options_entries_dict["fill_water"], fg=check_fg, bg=check_bg)
 fillWaterCheck.deselect()
@@ -1110,18 +1534,6 @@ brush_scale_combo = ttk.Combobox(courseSubFrame, width=8, justify='center',
                                  values=("1", "2", "3", "4", "6"))
 
 
-terrain_mode_var = tk.StringVar()
-terrain_mode_var.set("Dense / Original")
-options_entries_dict["terrain_mode"] = terrain_mode_var
-terrain_mode_combo = ttk.Combobox(
-    courseSubFrame,
-    width=22,
-    justify='center',
-    textvariable=terrain_mode_var,
-    state='readonly',
-    values=("Dense / Original", "Adaptive - Aggressive")
-)
-
 # Pack the osmControlFrame
 courseSubFrame.pack(padx=5, pady=5, fill=X, expand=True)
 backgroundCheck.grid(row=0, columnspan=2, sticky=W, padx=5)
@@ -1132,16 +1544,17 @@ Label(courseSubFrame, text="Purple Background Detail Spacing (m)", fg=check_fg, 
 outside_bg_resolution_entry.grid(row=3, column=1, sticky=W, padx=5)
 lidarTreeCheck.grid(row=4, columnspan=2, sticky=W, padx=5)
 treeVarietyCheck.grid(row=5, columnspan=2, sticky=W, padx=5)
-fillWaterCheck.grid(row=6, columnspan=2, sticky=W, padx=5)
-purgeWaterCheck.grid(row=7, columnspan=2, sticky=W, padx=5)
-Label(courseSubFrame, text="Terrain Brush", fg=check_fg, bg=check_bg).grid(row=9, column=0, pady=(10,3), sticky=W, padx=5)
-brush_type_combo.grid(row=9, column=1, pady=(10,3), sticky=W, padx=5)
-Label(courseSubFrame, text="Brush Size (meters)", fg=check_fg, bg=check_bg).grid(row=10, column=0, pady=3, sticky=W, padx=5)
-brush_scale_combo.grid(row=10, column=1, pady=3, sticky=W, padx=5)
-Label(courseSubFrame, text="Brushes: 72 / 9 / 10 / 15", fg=check_fg, bg=check_bg).grid(row=11, columnspan=2, sticky=W, padx=5)
-Label(courseSubFrame, text="Terrain Generation", fg=check_fg, bg=check_bg).grid(row=12, column=0, pady=(10,3), sticky=W, padx=5)
-terrain_mode_combo.grid(row=12, column=1, pady=(10,3), sticky=W, padx=5)
-Label(courseSubFrame, text="Aggressive mode chooses brush/scale automatically", fg=check_fg, bg=check_bg).grid(row=13, columnspan=2, sticky=W, padx=5)
+filterLidarTreesCheck.grid(row=6, columnspan=2, sticky=W, padx=5)
+lidarBuildingCheck.grid(row=7, columnspan=2, sticky=W, padx=5)
+filterLidarBuildingsCheck.grid(row=8, columnspan=2, sticky=W, padx=5)
+fillWaterCheck.grid(row=9, columnspan=2, sticky=W, padx=5)
+purgeWaterCheck.grid(row=10, columnspan=2, sticky=W, padx=5)
+Label(courseSubFrame, text="Terrain Brush", fg=check_fg, bg=check_bg).grid(row=12, column=0, pady=(10,3), sticky=W, padx=5)
+brush_type_combo.grid(row=12, column=1, pady=(10,3), sticky=W, padx=5)
+Label(courseSubFrame, text="Brush Size (meters)", fg=check_fg, bg=check_bg).grid(row=13, column=0, pady=3, sticky=W, padx=5)
+brush_scale_combo.grid(row=13, column=1, pady=3, sticky=W, padx=5)
+Label(courseSubFrame, text="Brushes: 72 / 9 / 10 / 15", fg=check_fg, bg=check_bg).grid(row=14, columnspan=2, sticky=W, padx=5)
+Label(courseSubFrame, text="Terrain Generation: Dense / Original only", fg=check_fg, bg=check_bg).grid(row=15, columnspan=2, sticky=W, padx=5)
 
 # Pack the two option frames side by side
 osmControlFrame.pack(side=LEFT, anchor=N, padx=5)

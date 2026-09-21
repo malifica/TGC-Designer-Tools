@@ -250,6 +250,10 @@ def print_failure_message(printf=print):
 
 def load_usgs_directory(d, force_epsg=None, force_unit=None, printf=print):
     pc = GeoPointCloud()
+    # LiDAR Fast V1: collect per-tile arrays and concatenate once.  The old
+    # repeated np.vstack path re-copied the entire accumulated cloud for every
+    # additional tile.
+    dataset_chunks = []
 
     # Add current directory to os path to find laszip-cli for laz files
     os.environ["PATH"] += os.pathsep + os.getcwd()
@@ -467,27 +471,46 @@ def load_usgs_directory(d, force_epsg=None, force_unit=None, printf=print):
                 converted_y = scaled_y
                 converted_z = scaled_z
 
-                # Check if coordinate projection needs converted
+                # Check if coordinate projection needs converted.
                 if not pc.proj:
-                    # First dataset will set the coordinate system
+                    # First dataset will set the coordinate system.
                     pc.proj = proj
                 elif str(pc.proj) != str(proj):
-                    printf("Warning: Data has different projection, re-projecting coordinates.  This may take some time.")
-                    
-                    converted_x = []
-                    converted_y = []
-                    converted_z = []
+                    printf(
+                        "Warning: Data has different projection; vectorized "
+                        "reprojection is being used."
+                    )
+                    transformer = pyproj.Transformer.from_proj(
+                        proj,
+                        pc.proj,
+                        always_xy=True,
+                    )
+                    converted_x, converted_y, converted_z = transformer.transform(
+                        scaled_x,
+                        scaled_y,
+                        scaled_z,
+                    )
 
-                    for x, y, z in zip(scaled_x, scaled_y, scaled_z):
-                        x2, y2, z2 = pyproj.transform(proj, pc.proj, x, y, z)
-                        converted_x.append(x2)
-                        converted_y.append(y2)
-                        converted_z.append(z2)
-
-                pc.addDataSet(numpy.array(converted_x), numpy.array(converted_y), numpy.array(converted_z), numpy.array(las.intensity), numpy.array(las.classification).astype(int))
+                dataset_chunks.append(
+                    numpy.column_stack((
+                        numpy.asarray(converted_x),
+                        numpy.asarray(converted_y),
+                        numpy.asarray(converted_z),
+                        numpy.asarray(las.intensity),
+                        numpy.asarray(las.classification).astype(int),
+                    ))
+                )
         except Exception as e:
             print(e)
             printf("Could not load " + filename + " Please report this issue.")
+
+    if dataset_chunks:
+        printf(
+            "Combining " + str(len(dataset_chunks)) +
+            " LiDAR tile array(s) in one pass"
+        )
+        pc.point_matrix = numpy.concatenate(dataset_chunks, axis=0)
+        pc.resetProperties()
 
     if not pc.count:
         printf("No valid lidar files found, no action taken")

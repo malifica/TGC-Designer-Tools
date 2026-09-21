@@ -130,3 +130,13 @@ RESUME_HiCamino_LOCAL_OSM_BUILD_FIXED.bat
 apply_local_osm_patch.py
 BUILD_WINDOWS_LOCAL_OSM.bat
 LOCAL_OSM_CHANGESET.txt
+
+# Beta 3 local build outputs / one-off development helpers
+tgc_lidar_fast_native.dll
+TGC-Designer-Tools-2K25-v0.5.0-2k25-beta3-Windows-x64.zip
+INSTALL_TGC_*.py
+ROLLBACK_TGC_*.py
+REMOVE_TGC_*.py
+RESTORE_TGC_*.py
+PRINT_CFS_MASTER_GRID.py
+tgc_gui.py.ZERO_BYTE_DAMAGED
