@@ -188,7 +188,28 @@ def proj_from_las_header(header, printf=print):
         return None, 0.0, 0.0
 
     try:
-        proj = pyproj.Proj(horizontal_crs, preserve_units=False)
+        # TGC_AUTO_LIDAR_CRS_CANONICAL_EPSG_V2
+        # If the LAS/LAZ header resolves to a canonical horizontal EPSG,
+        # rebuild the working projection from that EPSG definition.
+        #
+        # TGCTool normalizes source LiDAR XY into meters before OSM/CFS
+        # projection. Some WKT-derived US-survey-foot CRS objects can retain
+        # native-foot output even with preserve_units=False. Rebuilding from
+        # the canonical EPSG matches the known-good manual Force EPSG path.
+        if horizontal_epsg is not None:
+            proj = pyproj.Proj(
+                "epsg:" + str(horizontal_epsg),
+                preserve_units=False,
+            )
+            printf(
+                "  Working projection rebuilt from canonical EPSG:"
+                + str(horizontal_epsg)
+            )
+        else:
+            proj = pyproj.Proj(
+                horizontal_crs,
+                preserve_units=False,
+            )
     except Exception as exc:
         printf(
             "Modern LiDAR horizontal CRS could not be converted to a "
