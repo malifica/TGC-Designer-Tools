@@ -1,6 +1,6 @@
 # Windows Build Guide
 
-This guide builds the PGA TOUR 2K25 Beta 3 fork on Windows.
+This guide builds the PGA TOUR 2K25 Beta 3.1 hotfix fork on Windows.
 
 ## Tested development environment
 
@@ -45,11 +45,11 @@ Verify the key DEM dependency:
 python -c "import rasterio; print('Rasterio', rasterio.__version__); print('GDAL', rasterio.__gdal_version__)"
 ```
 
-Beta 3 uses modern `laspy` 2.x. LAZ support is available through `laspy[lazrs]`; the repository also retains the upstream `laszip` tools.
+Beta 3.1 uses modern `laspy` 2.x. LAZ support is available through `laspy[lazrs]`; the repository also retains the upstream `laszip` tools.
 
 ## Syntax check
 
-The Beta 3 build script checks:
+The Beta 3.1 build script checks:
 
 ```text
 tgc_gui.py
@@ -72,32 +72,32 @@ You can also run the application from source before packaging:
 python tgc_gui.py
 ```
 
-## Build Beta 3
+## Build Beta 3.1 hotfix
 
 Run:
 
 ```bat
-BUILD_TGC_2K25_BETA3.bat
+BUILD_TGC_2K25_BETA3_1.bat
 ```
 
 Expected executable:
 
 ```text
-C:\TGC-Designer-Tools\dist\tgc_gui_2k25_beta3.exe
+C:\TGC-Designer-Tools\dist\tgc_gui_2k25_beta3_1.exe
 ```
 
 The script also creates:
 
 ```text
-C:\TGC-Designer-Tools\dist\release_beta3\
-    TGC-Designer-Tools-2K25-v0.5.0-2k25-beta3-Windows-x64.zip
-    tgc_gui_2k25_beta3.exe.sha256.txt
-    TGC-Designer-Tools-2K25-v0.5.0-2k25-beta3-Windows-x64.zip.sha256.txt
+C:\TGC-Designer-Tools\dist\release_beta3_1\
+    TGC-Designer-Tools-2K25-v0.5.0-2k25-beta3.1-Windows-x64.zip
+    tgc_gui_2k25_beta3_1.exe.sha256.txt
+    TGC-Designer-Tools-2K25-v0.5.0-2k25-beta3.1-Windows-x64.zip.sha256.txt
 ```
 
 ## Native LiDAR helper
 
-`BUILD_TGC_2K25_BETA3.bat` attempts to compile:
+`BUILD_TGC_2K25_BETA3_1.bat` attempts to compile:
 
 ```text
 lidar_fast_native.c
@@ -116,13 +116,13 @@ Compiler lookup order:
 3. `x86_64-w64-mingw32-clang.exe` on `PATH`
 4. `x86_64-w64-mingw32-gcc.exe` on `PATH`
 
-The native helper uses generic x86-64 compiler settings. If no compiler is available, or the DLL build fails, the main EXE is still built and uses the exact Python rasterizer fallback.
+The native helper uses generic x86-64 compiler settings. If no compiler is available, or the DLL build fails, the main EXE is still built and uses the exact Python rasterizer fallback. The Beta 3.1 build summary explicitly reports either `LiDAR rasterizer: NATIVE C` or `LiDAR rasterizer: PYTHON FALLBACK` so source builders can tell which path was packaged.
 
 ## Rasterio / GDAL / PROJ packaging
 
 Rasterio Windows wheels include GDAL/PROJ data and DLLs that a minimal PyInstaller build may not discover automatically.
 
-Beta 3 retains:
+Beta 3.1 retains:
 
 ```text
 PyInstaller/hooks/hook-rasterio.py

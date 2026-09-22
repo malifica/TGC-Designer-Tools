@@ -5,6 +5,19 @@ All notable fork-specific changes to `malifica/TGC-Designer-Tools` are documente
 The fork is based on work from `HiCamino/TGC-Designer-Tools`.
 
 
+## [0.5.0-2k25-beta3.1] - Auto LiDAR projection hotfix
+
+### Fixed
+
+- Automatic LAS/LAZ projection now rebuilds the working horizontal projection from the detected canonical EPSG definition whenever an EPSG code is resolvable.
+- Foot-based and US-survey-foot projected CRS metadata no longer leaves OSM/CFS transforms operating in native feet after LiDAR XY has already been normalized to meters.
+- Verified with a compound Colorado State Plane South LAS/LAZ CRS where Auto Detect resolves EPSG:6432; automatic OSM alignment now matches manually forcing EPSG 6432.
+
+### Changed
+
+- Hotfix Windows packaging uses `BUILD_TGC_2K25_BETA3_1.bat`, `tgc_gui_2k25_beta3_1.exe`, and a `v0.5.0-2k25-beta3.1` release archive.
+- The Windows build summary explicitly reports whether the EXE contains the native C LiDAR rasterizer or the exact Python fallback.
+
 ## [0.5.0-2k25-beta3] - CFS alignment, automatic masking, and performance
 
 ### Added

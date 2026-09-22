@@ -2,11 +2,21 @@
 
 A streamlined 2K25-focused fork of **HiCamino/TGC-Designer-Tools** for building real-world courses from **LiDAR, GeoTIFF DEM, and OpenStreetMap data**.
 
-Current release: **v0.5.0-2k25-beta3**
+Current release: **v0.5.0-2k25-beta3.1**
 Maintainer: **malifica**
 Upstream: https://github.com/HiCamino/TGC-Designer-Tools
 
 This project remains under the upstream **Apache License 2.0**.
+
+
+## Beta 3.1 hotfix
+
+Beta 3.1 keeps the Beta 3 feature set and fixes automatic LiDAR projection for LAS/LAZ datasets whose detected projected CRS uses feet or US survey feet.
+
+- Auto-detected horizontal CRS values that resolve to an EPSG code are now rebuilt from the canonical EPSG definition before OSM/CFS projection.
+- This keeps the working projected coordinates meter-normalized, matching TGCTool's meter-normalized LiDAR XY data.
+- Verified against a compound Colorado State Plane South dataset where Auto Detect resolves **EPSG:6432**; automatic alignment now matches manually forcing EPSG 6432.
+- Manual **Force LiDAR Horizontal EPSG** remains available for unusual or incomplete source metadata.
 
 ---
 
@@ -214,24 +224,24 @@ If the native helper cannot be compiled or bundled, the program automatically us
 Use:
 
 ```bat
-BUILD_TGC_2K25_BETA3.bat
+BUILD_TGC_2K25_BETA3_1.bat
 ```
 
 Expected output:
 
 ```text
-C:\TGC-Designer-Tools\dist\tgc_gui_2k25_beta3.exe
+C:\TGC-Designer-Tools\dist\tgc_gui_2k25_beta3_1.exe
 ```
 
 Release package:
 
 ```text
-TGC-Designer-Tools-2K25-v0.5.0-2k25-beta3-Windows-x64.zip
+TGC-Designer-Tools-2K25-v0.5.0-2k25-beta3.1-Windows-x64.zip
 ```
 
 See **[BUILD_WINDOWS.md](BUILD_WINDOWS.md)** for environment details.
 
-Release notes: **[RELEASE_NOTES_v0.5.0-2k25-beta3.md](RELEASE_NOTES_v0.5.0-2k25-beta3.md)**
+Release notes: **[RELEASE_NOTES_v0.5.0-2k25-beta3.1.md](RELEASE_NOTES_v0.5.0-2k25-beta3.1.md)**
 Full change history: **[CHANGELOG.md](CHANGELOG.md)**
 
 ---
