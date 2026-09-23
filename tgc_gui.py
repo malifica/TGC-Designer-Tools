@@ -55,7 +55,15 @@ def drawPlaceholder():
     global root
     global canvas
     global canvas_image
+    # TGC_DYNAMIC_COURSE_PREVIEW_V1
+    # Restore the normal square placeholder while the course preview is busy.
+    try:
+        image_frame.configure(width=image_width, height=image_height)
+        canvas.configure(width=image_width, height=image_height)
+    except Exception:
+        pass
     default_im = ImageTk.PhotoImage(image=iim)
+    canvas.img = default_im
     canvas.itemconfig(canvas_image, image = default_im)
     root.update()
 
@@ -226,9 +234,35 @@ def drawCourse(cjson):
     global course_version
 
     data = drawCourseAsImage(cjson, course_version)
-    im = Image.fromarray((255.0*data).astype(np.uint8), 'RGB').resize((image_width, image_height), Image.NEAREST)
+    if data is None or data.size == 0:
+        return
+
+    # TGC_DYNAMIC_COURSE_PREVIEW_V1
+    # Fit the dynamically sized world preview inside the existing 500x500
+    # display area without distorting its aspect ratio.
+    source_height, source_width = data.shape[:2]
+    display_scale = min(
+        float(image_width) / float(source_width),
+        float(image_height) / float(source_height),
+    )
+    display_width = max(1, int(round(source_width * display_scale)))
+    display_height = max(1, int(round(source_height * display_scale)))
+
+    im = Image.fromarray(
+        (255.0 * data).astype(np.uint8),
+        'RGB'
+    ).resize(
+        (display_width, display_height),
+        Image.NEAREST
+    )
     im = im.transpose(Image.FLIP_TOP_BOTTOM)
     cim = ImageTk.PhotoImage(image=im)
+
+    try:
+        image_frame.configure(width=display_width, height=display_height)
+        canvas.configure(width=display_width, height=display_height)
+    except Exception:
+        pass
 
     canvas.img = cim # Need to save reference to ImageTK
     canvas.itemconfig(canvas_image, image = cim)

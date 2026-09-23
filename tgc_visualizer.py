@@ -10,6 +10,179 @@ from GeoPointCloud import GeoPointCloud
 import tgc_definitions
 import tgc_tools
 
+# TGC_DYNAMIC_COURSE_PREVIEW_V1
+# Preview-only sizing. This does not modify course JSON, terrain stamps, CFS
+# georeferencing, LiDAR/DEM data, or exported course coordinates.
+PREVIEW_MIN_EXTENT_M = 2000.0
+PREVIEW_PADDING_M = 50.0
+PREVIEW_MAX_RASTER_DIM = 2400
+
+
+class _PreviewPointCloud:
+    """Minimal TGC->preview coordinate mapper for arbitrary preview bounds."""
+
+    def __init__(self, min_x, min_z, width, height):
+        self.min_x = float(min_x)
+        self.min_z = float(min_z)
+        self.width = float(width)
+        self.height = float(height)
+
+    def tgcToCV2(self, x, z, image_scale):
+        column = int((float(x) - self.min_x) / float(image_scale))
+        row = int((float(z) - self.min_z) / float(image_scale))
+        return (row, column)
+
+
+def _preview_bounds(course_json, course_version):
+    """Return preview bounds that contain visible course content.
+
+    The old visualizer always rendered -1000..+1000 m in X/Z. Keep a
+    2000x2000 m minimum for normal courses, but grow the preview when terrain,
+    splines, holes, water, OOB/crowd brushes, or objects extend farther.
+    """
+    if course_version not in tgc_definitions.version_tags:
+        return (-1000.0, -1000.0, 1000.0, 1000.0)
+
+    if course_version == 25:
+        layer_json = course_json
+        dim2 = "z"
+    elif course_version == 23:
+        layer_json = course_json["userLayers2"]
+        dim2 = "y"
+    else:
+        layer_json = course_json["userLayers"]
+        dim2 = "y"
+
+    hole_tag = tgc_definitions.version_tags[course_version]["holes"]
+    tee_tag = tgc_definitions.version_tags[course_version]["tees"]
+    crowd_tag = tgc_definitions.version_tags[course_version]["crowd"]
+    spline_tag = tgc_definitions.version_tags[course_version]["splines"]
+    surface_tag = tgc_definitions.version_tags[course_version]["surfaces"]
+    if surface_tag not in course_json:
+        surface_tag += "2"
+    oob_tag = tgc_definitions.version_tags[course_version]["oob"]
+    obj_tag = tgc_definitions.version_tags[course_version]["objects"]
+
+    bounds = [math.inf, math.inf, -math.inf, -math.inf]
+
+    def add_point(x, z, pad_x=0.0, pad_z=0.0):
+        try:
+            x = float(x)
+            z = float(z)
+            pad_x = abs(float(pad_x))
+            pad_z = abs(float(pad_z))
+        except Exception:
+            return
+        if not (math.isfinite(x) and math.isfinite(z)):
+            return
+        bounds[0] = min(bounds[0], x - pad_x)
+        bounds[1] = min(bounds[1], z - pad_z)
+        bounds[2] = max(bounds[2], x + pad_x)
+        bounds[3] = max(bounds[3], z + pad_z)
+
+    def add_brushes(brushes):
+        for brush in brushes or []:
+            if not isinstance(brush, dict):
+                continue
+            position = brush.get("position", {})
+            scale = brush.get("scale", {})
+            add_point(
+                position.get("x", 0.0),
+                position.get("z", 0.0),
+                scale.get("x", 0.0),
+                scale.get("z", 0.0),
+            )
+
+    # Terrain and visible brush layers.
+    add_brushes(layer_json.get("terrainHeight", []))
+    add_brushes(layer_json.get("height", []))
+    add_brushes(layer_json.get("water", []))
+    add_brushes(layer_json.get(surface_tag, []))
+
+    oob_json = layer_json.get(oob_tag, [])
+    crowd_json = layer_json.get(crowd_tag, [])
+    if course_version == 25:
+        if isinstance(oob_json, dict):
+            oob_json = oob_json.get("brushes", [])
+        if isinstance(crowd_json, dict):
+            crowd_json = crowd_json.get("brushes", [])
+    add_brushes(oob_json)
+    add_brushes(crowd_json)
+
+    # Surface splines, including Bezier handles and spline widths.
+    for spline in course_json.get(spline_tag, []) or []:
+        try:
+            spline_pad = abs(float(spline.get("width", 0.0)))
+            spline_pad += max(0.0, abs(float(spline.get("secondaryWidth", 0.0))))
+        except Exception:
+            spline_pad = 0.0
+
+        for wp in spline.get("waypoints", []) or []:
+            for key in ("waypoint", "pointOne", "pointTwo"):
+                point = wp.get(key, {})
+                add_point(
+                    point.get("x", 0.0),
+                    point.get(dim2, 0.0),
+                    spline_pad,
+                    spline_pad,
+                )
+
+    # Hole routes and tee positions.
+    for hole in course_json.get(hole_tag, []) or []:
+        for point in hole.get("waypoints", []) or []:
+            add_point(point.get("x", 0.0), point.get("z", 0.0), 5.0, 5.0)
+
+        for tee in hole.get(tee_tag, []) or []:
+            point = tee.get("position", {}) if course_version == 25 else tee
+            if isinstance(point, dict):
+                add_point(point.get("x", 0.0), point.get("z", 0.0), 5.0, 5.0)
+
+    # Placed objects and clusters.
+    for group in course_json.get(obj_tag, []) or []:
+        value = group.get("Value", {}) if isinstance(group, dict) else {}
+
+        for item in value.get("items", []) or []:
+            position = item.get("position", {})
+            scale = item.get("scale", {})
+            # Object scale is not a reliable meter size, so keep a modest
+            # visual margin while still accounting for larger scales.
+            pad_x = max(5.0, abs(float(scale.get("x", 1.0))) * 5.0)
+            pad_z = max(5.0, abs(float(scale.get("z", 1.0))) * 5.0)
+            add_point(position.get("x", 0.0), position.get("z", 0.0), pad_x, pad_z)
+
+        for cluster in value.get("clusters", []) or []:
+            position = cluster.get("position", {})
+            radius = cluster.get("radius", 0.0)
+            add_point(position.get("x", 0.0), position.get("z", 0.0), radius, radius)
+
+    if not all(math.isfinite(v) for v in bounds):
+        return (-1000.0, -1000.0, 1000.0, 1000.0)
+
+    min_x, min_z, max_x, max_z = bounds
+    min_x -= PREVIEW_PADDING_M
+    min_z -= PREVIEW_PADDING_M
+    max_x += PREVIEW_PADDING_M
+    max_z += PREVIEW_PADDING_M
+
+    width = max_x - min_x
+    height = max_z - min_z
+
+    # Keep the historical 2000 m minimum, centered on the actual course.
+    if width < PREVIEW_MIN_EXTENT_M:
+        center_x = 0.5 * (min_x + max_x)
+        half = 0.5 * PREVIEW_MIN_EXTENT_M
+        min_x = center_x - half
+        max_x = center_x + half
+
+    if height < PREVIEW_MIN_EXTENT_M:
+        center_z = 0.5 * (min_z + max_z)
+        half = 0.5 * PREVIEW_MIN_EXTENT_M
+        min_z = center_z - half
+        max_z = center_z + half
+
+    return (min_x, min_z, max_x, max_z)
+
+
 def drawBrushesOnImage(brushes, color, im, pc, image_scale, fill=True):
     for brush in brushes:
         center = pc.tgcToCV2(brush["position"]["x"], brush["position"]["z"], image_scale)
@@ -150,14 +323,29 @@ def drawHolesOnImage(holes, color, im, pc, image_scale, course_version):
             cv2.line(im, t, first_waypoint, color, thickness=thickness, lineType=cv2.LINE_AA)
 
 def drawCourseAsImage(course_json, course_version):
-    im = np.zeros((2000, 2000, 3), np.float32) # Courses are 2000m x 2000m
-    image_scale = 1.0 # Draw one pixel per meter
-    pc = GeoPointCloud()
-    pc.width = 2000.0
-    pc.height = 2000.0
-
+    # TGC_DYNAMIC_COURSE_PREVIEW_V1
+    # Dynamically size the preview to visible course content. This is strictly
+    # a visualizer change; no course coordinates or terrain data are modified.
     if course_version not in tgc_definitions.version_tags:
         return
+
+    min_x, min_z, max_x, max_z = _preview_bounds(course_json, course_version)
+    world_width = max(1.0, max_x - min_x)
+    world_height = max(1.0, max_z - min_z)
+
+    # Keep memory bounded for unusually large courses while preserving the
+    # correct world aspect ratio.
+    image_scale = max(
+        1.0,
+        world_width / float(PREVIEW_MAX_RASTER_DIM),
+        world_height / float(PREVIEW_MAX_RASTER_DIM),
+    )
+
+    image_width_px = max(1, int(math.ceil(world_width / image_scale)) + 1)
+    image_height_px = max(1, int(math.ceil(world_height / image_scale)) + 1)
+
+    im = np.zeros((image_height_px, image_width_px, 3), np.float32)
+    pc = _PreviewPointCloud(min_x, min_z, world_width, world_height)
 
     hole_tag = tgc_definitions.version_tags[course_version]['holes']
     crowd_tag = tgc_definitions.version_tags[course_version]['crowd']    
