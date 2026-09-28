@@ -798,7 +798,7 @@ def runLidar(scale_entry, epsg_entry, printf, auto_red_mask_var=None, auto_red_m
     root.after(100, pump_worker_messages)
 
 def runDEM(scale_entry, printf, auto_red_mask_var=None, auto_red_mask_buffer_var=None):
-    """Run heavy DEM processing on a worker thread so Tk stays responsive."""
+    """Run DEM preparation/finalization on worker threads so Tk stays responsive."""
     global root
     global dem_processing_active
 
@@ -883,15 +883,33 @@ def runDEM(scale_entry, printf, auto_red_mask_var=None, auto_red_mask_buffer_var
     def worker_printf(message):
         result_queue.put(("log", str(message)))
 
-    def worker():
+    def prepare_worker():
         try:
             prepared = dem_map_api.prepare_dem_previews(
                 selected_files,
                 local_osm_file=local_osm_file,
                 sample_scale=dem_sample_scale,
+                auto_red_mask_enabled=auto_red_enabled,
+                auto_red_mask_buffer_m=auto_red_buffer_m,
                 printf=worker_printf,
             )
-            result_queue.put(("done", prepared))
+            result_queue.put(("prepared", prepared))
+        except Exception:
+            result_queue.put(
+                ("error", traceback.format_exc())
+            )
+
+    def final_worker(prepared, crop):
+        try:
+            dem_map_api.generate_dem_output(
+                prepared,
+                output_dir_path,
+                crop,
+                auto_red_mask_enabled=auto_red_enabled,
+                auto_red_mask_buffer_m=auto_red_buffer_m,
+                printf=worker_printf,
+            )
+            result_queue.put(("final_done", None))
         except Exception:
             result_queue.put(
                 ("error", traceback.format_exc())
@@ -901,6 +919,7 @@ def runDEM(scale_entry, printf, auto_red_mask_var=None, auto_red_mask_buffer_var
         global dem_processing_active
 
         finished = False
+        waiting_for_final = False
 
         while True:
             try:
@@ -923,13 +942,13 @@ def runDEM(scale_entry, printf, auto_red_mask_var=None, auto_red_mask_buffer_var
                 finished = True
                 break
 
-            if kind == "done":
+            if kind == "prepared":
                 printf(
-                    "DEM processing complete. "
+                    "DEM preview preparation complete. "
                     "Opening course-boundary selection."
                 )
                 try:
-                    dem_map_api.show_prepared_dem_preview(
+                    crop = dem_map_api.show_prepared_dem_preview(
                         payload,
                         output_dir_path,
                         auto_red_mask_enabled=auto_red_enabled,
@@ -937,14 +956,38 @@ def runDEM(scale_entry, printf, auto_red_mask_var=None, auto_red_mask_buffer_var
                         printf=printf,
                     )
                 except Exception:
+                    dem_processing_active = False
                     printf("DEM preview/crop failed:")
                     printf(traceback.format_exc())
                     alert(
                         "DEM preview/crop failed. "
                         "See the console for details."
                     )
-                finally:
+                    finished = True
+                    break
+
+                if crop is None:
                     dem_processing_active = False
+                    printf("DEM boundary selection cancelled.")
+                    finished = True
+                    break
+
+                printf(
+                    "Course boundary accepted. "
+                    "Generating final DEM heightmap/mask in background."
+                )
+                threading.Thread(
+                    target=final_worker,
+                    args=(payload, crop),
+                    name="TGC-DEM-Finalize-Worker",
+                    daemon=True,
+                ).start()
+                waiting_for_final = True
+                break
+
+            if kind == "final_done":
+                dem_processing_active = False
+                printf("DEM processing complete.")
                 finished = True
                 break
 
@@ -952,13 +995,12 @@ def runDEM(scale_entry, printf, auto_red_mask_var=None, auto_red_mask_buffer_var
             root.after(100, pump_worker_messages)
 
     threading.Thread(
-        target=worker,
-        name="TGC-DEM-Worker",
+        target=prepare_worker,
+        name="TGC-DEM-Prepare-Worker",
         daemon=True,
     ).start()
 
     root.after(100, pump_worker_messages)
-
 
 def generateCourseFromLidar(options_entries_dict, printf):
     global root
