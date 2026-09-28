@@ -52,6 +52,17 @@ Beta 3.1 now:
 
 The production Auto Red Mask rules themselves are unchanged.
 
+
+## Improved: OSM golf-hole waypoint normalization
+
+OSM golf-hole centerlines are now normalized by par when they are written into the TGC course:
+
+- par 3 routes with two OSM nodes receive a third waypoint 5 m before the pin/end node so TGC gets a distinct green-side middle waypoint;
+- par 4 routes with three OSM nodes are preserved unchanged;
+- par 5 routes with four OSM nodes drop the third OSM node, preserving tee + first middle waypoint + pin/end node.
+
+The source OSM is never modified. Nonstandard node counts retain the historical TGC compatibility fallback.
+
 ## Windows build
 
 Run:
