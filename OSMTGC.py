@@ -1447,6 +1447,86 @@ def addHalfwayPoint(points):
 
     return (first, new_point, last)
 
+
+PAR3_GREEN_WAYPOINT_OFFSET_M = 5.0
+
+
+def normalizeHoleWaypointsForTGC(userpar, points, printf=print, hole_num=None):
+    """Normalize OSM golf=hole nodes to TGC's required three-point route.
+
+    OSM golf-hole mapping convention commonly yields par-1 nodes:
+      par 3 -> tee + green/pin endpoint (2 nodes)
+      par 4 -> tee + middle + green/pin endpoint (3 nodes)
+      par 5 -> tee + two middles + green/pin endpoint (4 nodes)
+
+    TGC expects exactly three route waypoints. Preserve OSM geometry wherever
+    possible while applying deterministic par-aware normalization:
+      * Par 3: add one point just before the pin (normally 5 m back).
+      * Par 4: leave the three OSM nodes unchanged.
+      * Par 5: remove the third OSM node, keeping tee + first middle + pin.
+
+    Malformed/nonstandard node counts are left to newHole()'s historical
+    compatibility fallback so this helper does not make unrelated assumptions.
+    """
+    pts = list(points)
+    label = ("Hole " + str(hole_num)) if hole_num not in (None, -1) else "Hole"
+
+    if userpar == 3 and len(pts) == 2:
+        first = pts[0]
+        last = pts[-1]
+
+        dx = float(last[0]) - float(first[0])
+        dz = float(last[2]) - float(first[2])
+        distance = math.hypot(dx, dz)
+
+        if distance <= 1.0e-6:
+            # Degenerate geometry: retain the old safe midpoint fallback.
+            normalized = list(addHalfwayPoint(pts))
+            printf(
+                label +
+                ": par 3 OSM route had coincident tee/pin nodes; "
+                "used midpoint fallback for TGC."
+            )
+            return normalized
+
+        # Keep the inserted point close to the pin so it sits on the green.
+        # Clamp for pathological short geometries so the point always remains
+        # between tee and pin.
+        offset_m = min(
+            float(PAR3_GREEN_WAYPOINT_OFFSET_M),
+            0.25 * distance,
+        )
+        t = (distance - offset_m) / distance
+
+        inserted = (
+            float(first[0]) + dx * t,
+            float(first[1]) + (float(last[1]) - float(first[1])) * t,
+            float(first[2]) + dz * t,
+        )
+
+        printf(
+            label +
+            ": par 3 OSM route normalized from 2 to 3 TGC waypoints; "
+            "inserted green-side waypoint " +
+            str(round(offset_m, 2)) + " m before pin."
+        )
+        return [first, inserted, last]
+
+    if userpar == 4 and len(pts) == 3:
+        # Already exactly what TGC needs.
+        return pts
+
+    if userpar == 5 and len(pts) == 4:
+        printf(
+            label +
+            ": par 5 OSM route normalized from 4 to 3 TGC waypoints; "
+            "removed third OSM node."
+        )
+        return [pts[0], pts[1], pts[3]]
+
+    return pts
+
+
 def newHole(userpar, points, course_version):
     if course_version not in tgc_definitions.version_tags:
         print("invalid version")
@@ -1712,6 +1792,12 @@ def addOSMToTGC(course_json, geopointcloud, osm_result, x_offset=0.0, y_offset=0
                     printf("ERROR: There is an invalid character saved to OpenStreetMap for par or hole number: " + str(way.tags))
                     par = -1
                     hole_num = -1
+                nds = normalizeHoleWaypointsForTGC(
+                    par,
+                    nds,
+                    printf=printf,
+                    hole_num=hole_num,
+                )
                 hole = newHole(par, nds, course_version)
                 if hole is not None:
                     if hole_num == 0:
