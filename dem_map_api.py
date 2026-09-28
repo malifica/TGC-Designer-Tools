@@ -1,5 +1,6 @@
 import math
 import os
+import time
 import tkinter as tk
 import warnings
 from functools import partial
@@ -42,6 +43,12 @@ DEM_DEFAULT_THREADS = 8
 DEM_DEFAULT_REDUCER_MB = 64
 DEM_DEFAULT_MERGE_MB = 256
 DEM_DEFAULT_WARP_MB = 256
+
+# Boundary-selection performance controls.
+# The selector never needs a production-resolution mask; build a bounded
+# preview first, then render the full-quality mask only for the accepted crop.
+DEM_BOUNDARY_PREVIEW_MAX_DIM = 1200
+DEM_FINAL_MASK_HALO_M = 100.0
 
 
 def _env_positive_int(name, default_value, minimum=1, maximum=4096):
@@ -899,42 +906,263 @@ def _stop_rect(event):
     canvas.coords(rectid, rectx0, recty0, rectx1, recty1)
 
 
-def _write_output(
-    popup,
-    dem,
-    preview_rgb,
+def _prepared_parts(prepared):
+    """Return DEM prepared-data fields while accepting legacy tuple payloads."""
+    if isinstance(prepared, dict):
+        return (
+            prepared["dem"],
+            prepared["image_scale"],
+            prepared["pc"],
+            prepared.get("osm_result"),
+        )
+
+    # Backward compatibility with the historical
+    # (dem, image_scale, pc, osm_result) tuple.
+    return prepared
+
+
+def _build_mask_image(
+    dem_region,
     pc,
     image_scale,
-    output_dir,
-    display_w,
-    display_h,
-    printf,
+    osm_result,
+    auto_red_mask_enabled=False,
+    auto_red_mask_buffer_m=5.0,
+    x_offset=0.0,
+    y_offset=0.0,
+    printf=print,
 ):
-    popup.destroy()
+    """Render the DEM grayscale + OSM + optional Auto Red Mask for one region."""
+    preview_gray = _normalize_image(dem_region)
+    preview_rgb = cv2.cvtColor(preview_gray, cv2.COLOR_GRAY2RGB)
 
+    if osm_result:
+        preview_rgb = OSMTGC.addOSMToImage(
+            osm_result.ways,
+            preview_rgb,
+            pc,
+            image_scale,
+            x_offset=x_offset,
+            y_offset=y_offset,
+            printf=printf,
+        )
+        printf("OSM features rendered into DEM preview/mask.")
+
+        if auto_red_mask_enabled:
+            preview_rgb = auto_red_mask.apply_auto_red_mask(
+                osm_result,
+                preview_rgb,
+                pc,
+                image_scale,
+                buffer_m=auto_red_mask_buffer_m,
+                x_offset=x_offset,
+                y_offset=y_offset,
+                printf=printf,
+            )
+    elif auto_red_mask_enabled:
+        printf(
+            "Auto Red Mask requested, but no OSM result is available; "
+            "leaving DEM mask unchanged."
+        )
+
+    return preview_rgb
+
+
+def _prepare_boundary_preview(
+    dem,
+    pc,
+    image_scale,
+    osm_result,
+    auto_red_mask_enabled=False,
+    auto_red_mask_buffer_m=5.0,
+    printf=print,
+):
+    """Build a bounded-resolution selector preview off the Tk thread."""
+    t0 = time.perf_counter()
     h, w = dem.shape
+
+    max_dim = max(1, int(DEM_BOUNDARY_PREVIEW_MAX_DIM))
+    preview_factor = max(1, int(math.ceil(max(h, w) / float(max_dim))))
+
+    # Integer decimation preserves the same southwest grid origin, which means
+    # OSM can use the normal GeoPointCloud transform with a correspondingly
+    # larger image scale. This is preview-only; final output remains full quality.
+    dem_preview = dem[::preview_factor, ::preview_factor]
+    preview_image_scale = float(image_scale) * float(preview_factor)
+
+    printf(
+        "DEM boundary preview: " +
+        str(dem_preview.shape[1]) + " x " +
+        str(dem_preview.shape[0]) + " px at " +
+        str(round(preview_image_scale, 3)) + " m/px " +
+        "(source " + str(w) + " x " + str(h) + ")."
+    )
+
+    preview_rgb = _build_mask_image(
+        dem_preview,
+        pc,
+        preview_image_scale,
+        osm_result,
+        auto_red_mask_enabled=auto_red_mask_enabled,
+        auto_red_mask_buffer_m=auto_red_mask_buffer_m,
+        printf=printf,
+    )
+
+    printf(
+        "DEM boundary preview prepared in " +
+        str(round(time.perf_counter() - t0, 2)) + " sec."
+    )
+
+    return preview_rgb, preview_factor, preview_image_scale
+
+
+def _display_selection_to_crop(dem_shape, display_w, display_h):
+    """Convert the selector rectangle directly into full-resolution DEM bounds."""
+    h, w = dem_shape
+
     x0, x1 = sorted((rectx0, rectx1))
     y0, y1 = sorted((recty0, recty1))
 
-    if abs(x1 - x0) < 5 or abs(y1 - y0) < 5:
-        printf("No DEM crop rectangle selected; using full DEM.")
-        lower_x, upper_x = 0, w
-        lower_y, upper_y = 0, h
-    else:
-        sx = float(w) / float(display_w)
-        sy = float(h) / float(display_h)
+    if rect is None or abs(x1 - x0) < 5 or abs(y1 - y0) < 5:
+        return (0, 0, w, h)
 
-        lower_x = max(0, min(w, int(math.floor(x0 * sx))))
-        upper_x = max(0, min(w, int(math.ceil(x1 * sx))))
+    sx = float(w) / float(display_w)
+    sy = float(h) / float(display_h)
 
-        top_display = max(0, min(h, int(math.floor(y0 * sy))))
-        bottom_display = max(0, min(h, int(math.ceil(y1 * sy))))
-        lower_y = h - bottom_display
-        upper_y = h - top_display
+    lower_x = max(0, min(w, int(math.floor(x0 * sx))))
+    upper_x = max(0, min(w, int(math.ceil(x1 * sx))))
+
+    top_display = max(0, min(h, int(math.floor(y0 * sy))))
+    bottom_display = max(0, min(h, int(math.ceil(y1 * sy))))
+    lower_y = h - bottom_display
+    upper_y = h - top_display
 
     if upper_x <= lower_x or upper_y <= lower_y:
-        printf("Invalid DEM crop; no files written.")
-        return
+        return None
+
+    return (lower_x, lower_y, upper_x, upper_y)
+
+
+def _request_crop(prepared, printf=print):
+    """Open the lightweight Tk boundary selector and return full DEM crop bounds."""
+    global selection_outline_color
+    global canvas, rect, rectx0, recty0, rectx1, recty1
+
+    dem, _image_scale, _pc, _osm_result = _prepared_parts(prepared)
+
+    if isinstance(prepared, dict) and prepared.get("boundary_preview_rgb") is not None:
+        preview_rgb = prepared["boundary_preview_rgb"]
+        auto_red_mask_enabled = bool(
+            prepared.get("auto_red_mask_enabled", False)
+        )
+    else:
+        # Legacy fallback. New callers always prepare this off-thread.
+        preview_rgb = cv2.cvtColor(
+            _normalize_image(dem),
+            cv2.COLOR_GRAY2RGB,
+        )
+        auto_red_mask_enabled = False
+
+    # TGC_MASK_AWARE_SELECTION_RECT_V1
+    selection_outline_color = (
+        "#000000" if auto_red_mask_enabled else "#ff0000"
+    )
+
+    display_rgb = np.flip(preview_rgb, 0)
+    pil = Image.fromarray(
+        np.clip(display_rgb * 255.0, 0, 255).astype(np.uint8),
+        "RGB",
+    )
+    pil.thumbnail((700, 700), Image.LANCZOS)
+    display_w, display_h = pil.size
+
+    popup = tk.Toplevel()
+    popup.wm_title("Select DEM Course Boundaries")
+    popup.geometry(
+        str(max(display_w + 40, 720)) + "x" + str(display_h + 120)
+    )
+
+    ttk.Label(
+        popup,
+        text=(
+            "Draw a rectangle around the course, then click Accept.\n"
+            "If no rectangle is drawn, the full DEM extent is used."
+        ),
+        justify=tk.CENTER,
+    ).pack(pady=8)
+
+    cim = ImageTk.PhotoImage(image=pil)
+    canvas = tk.Canvas(popup, width=display_w, height=display_h)
+    canvas.create_image(0, 0, image=cim, anchor=tk.NW)
+    canvas.image = cim
+    canvas.pack()
+
+    rect = None
+    rectx0 = 0
+    recty0 = 0
+    rectx1 = display_w
+    recty1 = display_h
+
+    canvas.bind("<Button-1>", _start_rect)
+    canvas.bind("<ButtonRelease-1>", _stop_rect)
+    canvas.bind("<Motion>", _move_rect)
+
+    result = {"accepted": False, "crop": None}
+
+    def accept_selection():
+        crop = _display_selection_to_crop(dem.shape, display_w, display_h)
+        if crop is None:
+            printf("Invalid DEM crop; no files written.")
+            return
+        result["accepted"] = True
+        result["crop"] = crop
+        popup.destroy()
+
+    def cancel_selection():
+        popup.destroy()
+
+    ttk.Button(
+        popup,
+        text="Accept",
+        command=accept_selection,
+    ).pack(pady=8)
+
+    popup.protocol("WM_DELETE_WINDOW", cancel_selection)
+    popup.transient()
+    popup.grab_set()
+    popup.wait_window()
+
+    return result["crop"] if result["accepted"] else None
+
+
+def generate_dem_output(
+    prepared,
+    output_dir,
+    crop_bounds,
+    auto_red_mask_enabled=False,
+    auto_red_mask_buffer_m=5.0,
+    printf=print,
+):
+    """Generate full-quality DEM output only after course bounds are accepted."""
+    t0 = time.perf_counter()
+    dem, image_scale, pc, osm_result = _prepared_parts(prepared)
+    h, w = dem.shape
+
+    if crop_bounds is None:
+        printf("No DEM crop rectangle selected; using full DEM.")
+        lower_x, lower_y, upper_x, upper_y = 0, 0, w, h
+    else:
+        lower_x, lower_y, upper_x, upper_y = [
+            int(v) for v in crop_bounds
+        ]
+
+    lower_x = max(0, min(w, lower_x))
+    upper_x = max(0, min(w, upper_x))
+    lower_y = max(0, min(h, lower_y))
+    upper_y = max(0, min(h, upper_y))
+
+    if upper_x <= lower_x or upper_y <= lower_y:
+        raise ValueError("Invalid DEM crop; no files written.")
 
     crop_w_m = (upper_x - lower_x) * image_scale
     crop_h_m = (upper_y - lower_y) * image_scale
@@ -951,7 +1179,54 @@ def _write_output(
     visual_gray = _normalize_image(dem_crop)
     visual = cv2.cvtColor(visual_gray, cv2.COLOR_GRAY2RGB)
 
-    mask_crop = preview_rgb[lower_y:upper_y, lower_x:upper_x]
+    # Render the production-quality mask only around the accepted crop. A halo
+    # keeps relation geometry and red-mask cleanup from treating the crop edge
+    # as the original DEM edge.
+    halo_m = max(
+        float(DEM_FINAL_MASK_HALO_M),
+        float(auto_red_mask_buffer_m) + 20.0,
+    )
+    halo_px = max(0, int(math.ceil(halo_m / float(image_scale))))
+
+    work_lower_x = max(0, lower_x - halo_px)
+    work_upper_x = min(w, upper_x + halo_px)
+    work_lower_y = max(0, lower_y - halo_px)
+    work_upper_y = min(h, upper_y + halo_px)
+
+    printf(
+        "Generating final DEM mask for selected crop with " +
+        str(round(halo_m, 1)) + " m processing halo."
+    )
+    mask_t0 = time.perf_counter()
+
+    dem_work = dem[
+        work_lower_y:work_upper_y,
+        work_lower_x:work_upper_x,
+    ]
+
+    mask_work = _build_mask_image(
+        dem_work,
+        pc,
+        image_scale,
+        osm_result,
+        auto_red_mask_enabled=auto_red_mask_enabled,
+        auto_red_mask_buffer_m=auto_red_mask_buffer_m,
+        x_offset=-float(work_lower_x) * float(image_scale),
+        y_offset=-float(work_lower_y) * float(image_scale),
+        printf=printf,
+    )
+
+    crop_x0 = lower_x - work_lower_x
+    crop_x1 = crop_x0 + (upper_x - lower_x)
+    crop_y0 = lower_y - work_lower_y
+    crop_y1 = crop_y0 + (upper_y - lower_y)
+    mask_crop = mask_work[crop_y0:crop_y1, crop_x0:crop_x1]
+
+    printf(
+        "Final DEM mask rendered in " +
+        str(round(time.perf_counter() - mask_t0, 2)) + " sec."
+    )
+
     mask_disk = np.flip(mask_crop, 0)
 
     tgc_tools.create_directory(output_dir)
@@ -996,102 +1271,23 @@ def _write_output(
     printf("Saving DEM data as: " + out_base + ".npy")
     np.save(out_base, output_data)
 
-    printf("DEM heightmap generation complete.")
+    printf(
+        "DEM heightmap generation complete in " +
+        str(round(time.perf_counter() - t0, 2)) + " sec after boundary selection."
+    )
     printf("DEM tree list is empty; OSM woods/trees remain available later.")
     printf("Use Import Terrain and Features exactly as with a LiDAR heightmap.")
-
-
-def _request_crop(dem, pc, image_scale, output_dir, osm_result, auto_red_mask_enabled=False, auto_red_mask_buffer_m=5.0, printf=print):
-    global selection_outline_color
-    # TGC_MASK_AWARE_SELECTION_RECT_V1
-    selection_outline_color = "#000000" if bool(auto_red_mask_enabled) else "#ff0000"
-    global canvas, rect, rectx0, recty0, rectx1, recty1
-
-    preview_gray = _normalize_image(dem)
-    preview_rgb = cv2.cvtColor(preview_gray, cv2.COLOR_GRAY2RGB)
-
-    if osm_result:
-        preview_rgb = OSMTGC.addOSMToImage(
-            osm_result.ways,
-            preview_rgb,
-            pc,
-            image_scale,
-            printf=printf,
-        )
-        printf("OSM features rendered into DEM preview/mask.")
-        if auto_red_mask_enabled:
-            preview_rgb = auto_red_mask.apply_auto_red_mask(osm_result, preview_rgb, pc, image_scale, buffer_m=auto_red_mask_buffer_m, printf=printf)
-    elif auto_red_mask_enabled:
-        printf("Auto Red Mask requested, but no OSM result is available; leaving DEM mask unchanged.")
-
-    display_rgb = np.flip(preview_rgb, 0)
-    pil = Image.fromarray(
-        np.clip(display_rgb * 255.0, 0, 255).astype(np.uint8),
-        "RGB",
-    )
-    pil.thumbnail((700, 700), Image.LANCZOS)
-    display_w, display_h = pil.size
-
-    popup = tk.Toplevel()
-    popup.wm_title("Select DEM Course Boundaries")
-    popup.geometry(
-        str(max(display_w + 40, 720)) + "x" + str(display_h + 120)
-    )
-
-    ttk.Label(
-        popup,
-        text=(
-            "Draw a rectangle around the course, then click Accept.\n"
-            "If no rectangle is drawn, the full DEM extent is used."
-        ),
-        justify=tk.CENTER,
-    ).pack(pady=8)
-
-    cim = ImageTk.PhotoImage(image=pil)
-    canvas = tk.Canvas(popup, width=display_w, height=display_h)
-    canvas.create_image(0, 0, image=cim, anchor=tk.NW)
-    canvas.image = cim
-    canvas.pack()
-
-    rect = None
-    rectx0 = 0
-    recty0 = 0
-    rectx1 = display_w
-    recty1 = display_h
-
-    canvas.bind("<Button-1>", _start_rect)
-    canvas.bind("<ButtonRelease-1>", _stop_rect)
-    canvas.bind("<Motion>", _move_rect)
-
-    ttk.Button(
-        popup,
-        text="Accept",
-        command=partial(
-            _write_output,
-            popup,
-            dem,
-            preview_rgb,
-            pc,
-            image_scale,
-            output_dir,
-            display_w,
-            display_h,
-            printf,
-        ),
-    ).pack(pady=8)
-
-    popup.transient()
-    popup.grab_set()
-    popup.wait_window()
 
 
 def prepare_dem_previews(
     dem_files,
     local_osm_file=None,
     sample_scale=None,
+    auto_red_mask_enabled=False,
+    auto_red_mask_buffer_m=5.0,
     printf=print,
 ):
-    """Perform the heavy DEM work without creating Tk widgets."""
+    """Perform DEM loading and lightweight selector-preview work off the Tk thread."""
     printf("Starting DEM / GeoTIFF processing.")
     printf("Rasterio version: " + str(rasterio.__version__))
 
@@ -1113,27 +1309,43 @@ def prepare_dem_previews(
             "no online fallback was used."
         )
 
-    return dem, image_scale, pc, osm_result
+    boundary_preview_rgb, preview_factor, preview_image_scale = (
+        _prepare_boundary_preview(
+            dem,
+            pc,
+            image_scale,
+            osm_result,
+            auto_red_mask_enabled=auto_red_mask_enabled,
+            auto_red_mask_buffer_m=auto_red_mask_buffer_m,
+            printf=printf,
+        )
+    )
+
+    return {
+        "dem": dem,
+        "image_scale": image_scale,
+        "pc": pc,
+        "osm_result": osm_result,
+        "boundary_preview_rgb": boundary_preview_rgb,
+        "boundary_preview_factor": preview_factor,
+        "boundary_preview_image_scale": preview_image_scale,
+        "auto_red_mask_enabled": bool(auto_red_mask_enabled),
+        "auto_red_mask_buffer_m": float(auto_red_mask_buffer_m),
+    }
 
 
 def show_prepared_dem_preview(
     prepared,
-    output_dir_path,
+    output_dir_path=None,
     auto_red_mask_enabled=False,
     auto_red_mask_buffer_m=5.0,
     printf=print,
 ):
-    """Open the crop UI for a prepared DEM result on the Tk main thread."""
-    dem, image_scale, pc, osm_result = prepared
-
-    _request_crop(
-        dem,
-        pc,
-        image_scale,
-        output_dir_path,
-        osm_result,
-        auto_red_mask_enabled=auto_red_mask_enabled,
-        auto_red_mask_buffer_m=auto_red_mask_buffer_m,
+    """Open only the lightweight crop UI on the Tk main thread."""
+    # The auto-mask settings are retained in the prepared preview. The optional
+    # arguments stay in the signature for compatibility with older callers.
+    return _request_crop(
+        prepared,
         printf=printf,
     )
 
@@ -1152,13 +1364,29 @@ def generate_dem_previews(
         dem_files,
         local_osm_file=local_osm_file,
         sample_scale=sample_scale,
+        auto_red_mask_enabled=auto_red_mask_enabled,
+        auto_red_mask_buffer_m=auto_red_mask_buffer_m,
         printf=printf,
     )
 
-    show_prepared_dem_preview(
+    crop = show_prepared_dem_preview(
         prepared,
         output_dir_path,
         auto_red_mask_enabled=auto_red_mask_enabled,
         auto_red_mask_buffer_m=auto_red_mask_buffer_m,
         printf=printf,
     )
+
+    if crop is None:
+        printf("DEM boundary selection cancelled.")
+        return
+
+    generate_dem_output(
+        prepared,
+        output_dir_path,
+        crop,
+        auto_red_mask_enabled=auto_red_mask_enabled,
+        auto_red_mask_buffer_m=auto_red_mask_buffer_m,
+        printf=printf,
+    )
+
