@@ -35,6 +35,23 @@ The console now reports:
 Working projection rebuilt from canonical EPSG:6432
 ```
 
+
+## Improved: DEM course-boundary selection
+
+Large GeoTIFF DEMs no longer run the production-resolution Auto Red Mask on the Tk/UI thread before the course-boundary window appears.
+
+Beta 3.1 now:
+
+- prepares a bounded-resolution DEM/OSM/Auto Red Mask preview in the background;
+- opens the course-boundary selector from that lightweight preview;
+- maps the accepted rectangle back to full DEM coordinates;
+- generates the final full-resolution mask only for the selected course area;
+- includes a 100 m processing halo around the selected crop so multipolygon and cleanup behavior remains stable at the crop edge;
+- performs final mask/heightmap generation on a background worker so the main GUI stays responsive;
+- reports preview and final-mask timing in the processing console.
+
+The production Auto Red Mask rules themselves are unchanged.
+
 ## Windows build
 
 Run:
@@ -59,6 +76,6 @@ The build still attempts to compile and bundle `tgc_lidar_fast_native.dll`. If t
 
 ## Scope
 
-This hotfix does not fold the separate Adaptive Terrain Converter or Course Finisher into the main TGCTool. It does not otherwise change the Beta 3 terrain, masking, OSM optimization, CFS alignment, or LiDAR/DEM performance behavior.
+This hotfix does not fold the separate Adaptive Terrain Converter or Course Finisher into the main TGCTool. It does not change Beta 3 terrain semantics, Auto Red Mask rules, OSM feature semantics, CFS alignment, or LiDAR behavior; the DEM boundary-selection path is optimized as described above.
 
 This project remains an unofficial derivative of HiCamino/TGC-Designer-Tools under the upstream Apache License 2.0.
