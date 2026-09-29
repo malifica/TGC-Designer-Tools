@@ -63,6 +63,23 @@ OSM golf-hole centerlines are now normalized by par when they are written into t
 
 The source OSM is never modified. Nonstandard node counts retain the historical TGC compatibility fallback.
 
+
+## Improved: LiDAR tree playing-surface filter
+
+LiDAR-generated tree candidates are now checked against the imported course
+surface splines before they are written into the course.
+
+- green / tee surfaces reject LiDAR tree candidates;
+- bunker surfaces reject LiDAR tree candidates;
+- explicit rough surfaces are allowed and override an underlying fairway;
+- fairway surfaces reject LiDAR tree candidates when no rough override exists;
+- OSM-mapped trees are unaffected;
+- the existing optional 50 m course-proximity filter remains unchanged.
+
+This allows intentionally mapped rough islands around real fairway trees while
+preventing unclassified/elevated LiDAR returns from populating maintained
+greens, tees, bunkers, and fairways.
+
 ## Windows build
 
 Run:
