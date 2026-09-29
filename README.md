@@ -155,7 +155,9 @@ Walking paths, cart paths, building placeholders, and other utility splines are 
 
 LiDAR tree candidates farther than 50 m from the indexed course geometry are discarded. LiDAR Class-6 building footprints use the same 50 m course-proximity rule before being added to the course.
 
-These filters reduce object count and prevent distant trees/buildings from consuming the PGA TOUR 2K25 course meter.
+LiDAR-generated trees also pass a playing-surface exclusion after OSM/course splines are imported. Green/tee and bunker surfaces always reject LiDAR tree candidates. Explicit rough splines are allowed and override an underlying fairway, so a deliberately mapped rough island can retain a real tree. Fairway candidates are rejected when no rough override exists. OSM-mapped trees are unaffected.
+
+These filters reduce object count and prevent distant trees/buildings or false unclassified LiDAR tree returns from consuming the PGA TOUR 2K25 course meter.
 
 ---
 

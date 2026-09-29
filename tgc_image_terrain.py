@@ -1043,6 +1043,24 @@ def generate_course(course_json, heightmap_dir_path, options_dict={}, printf=pri
                 printf=printf,
             )
 
+        # Always reject LiDAR-generated tree candidates from maintained
+        # playing surfaces.  Explicit rough splines override fairway so a
+        # deliberately mapped rough island around a real fairway tree remains
+        # eligible.  OSM-mapped trees use a separate path and are unaffected.
+        tree_surface_filter = lidar_feature_filter.build_lidar_tree_surface_filter(
+            course_json,
+            course_version,
+            printf=printf,
+        )
+        tree_candidates = (
+            lidar_feature_filter.filter_lidar_tree_candidates_by_playing_surfaces(
+                tree_candidates,
+                pc,
+                tree_surface_filter,
+                printf=printf,
+            )
+        )
+
         if len(tree_candidates) > 0:
             printf("Adding trees from LiDAR candidates")
 
