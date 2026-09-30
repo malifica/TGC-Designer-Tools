@@ -31,6 +31,7 @@ Beta 3.1 keeps the Beta 3 feature set and fixes automatic LiDAR projection for L
 - Conservative mask cleanup: a **2 px minimum red width** plus removal of **enclosed red islands smaller than 25 raster pixels**.
 - Correct **OSM multipolygon outer/inner handling** in the automatic mask.
 - Green preview fill for compound fairway/rough relations and pure-blue relation water.
+- **OSM multipolygon lakes imported into the course**: stitched `natural=water` / `water=*` relations become 2K25 water placeholder splines, with inner islands retained as physical holes and incomplete relations skipped safely.
 - **DEM Fast** vectorized/chunked terrain reduction and threaded heavy processing.
 - **LiDAR Fast** vectorized filtering/reprojection/raster preparation plus an optional exact native-C ground rasterizer and exact Python fallback.
 - Modern LAS/LAZ compound-CRS handling with separate horizontal and vertical units.
