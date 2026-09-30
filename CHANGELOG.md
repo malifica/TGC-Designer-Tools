@@ -17,6 +17,8 @@ The fork is based on work from `HiCamino/TGC-Designer-Tools`.
 
 - Hotfix Windows packaging uses `BUILD_TGC_2K25_BETA3_1.bat`, `tgc_gui_2k25_beta3_1.exe`, and a `v0.5.0-2k25-beta3.1` release archive.
 - The Windows build summary explicitly reports whether the EXE contains the native C LiDAR rasterizer or the exact Python fallback.
+- OSM `natural=water` ways and `type=multipolygon` lake/pond relations are now written into the actual 2K25 course as water placeholder splines, matching the topology already shown correctly by Auto Red Mask.
+- Multipolygon shorelines are stitched from outer/inner member fragments, inner islands are retained as physical holes, and incomplete Local OSM water relations fail closed with a warning.
 
 ## [0.5.0-2k25-beta3] - CFS alignment, automatic masking, and performance
 
