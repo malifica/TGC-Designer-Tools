@@ -2199,14 +2199,28 @@ def addOSMToTGC(course_json, geopointcloud, osm_result, x_offset=0.0, y_offset=0
                 natural_type == "water" and
                 options_dict.get('water', True)
             ):
-                # natural=water is an area even when area=yes is omitted.
-                course_json[spline_tag].append(
-                    newWaterHazard(
-                        nds,
-                        area=True,
-                        course_version=course_version,
-                    )
+                # natural=water is an area even when area=yes is omitted, but
+                # only a genuinely closed way is safe to fill.  Never invent
+                # a shoreline-closing chord for malformed/local OSM extracts.
+                water_way_closed = (
+                    len(nds) >= 4 and
+                    _point_distance_xz(nds[0], nds[-1]) < 0.001
                 )
+
+                if water_way_closed:
+                    course_json[spline_tag].append(
+                        newWaterHazard(
+                            nds,
+                            area=True,
+                            course_version=course_version,
+                        )
+                    )
+                else:
+                    printf(
+                        "Warning: skipping open natural=water way " +
+                        str(way.id) +
+                        " instead of fill-closing it."
+                    )
             elif natural_type == "wood" and options_dict.get('tree', True):
                 course_json[spline_tag].append(newForest(nds, course_version))
         elif highway_type is not None and highway_type not in ["proposed", "construction"]:
