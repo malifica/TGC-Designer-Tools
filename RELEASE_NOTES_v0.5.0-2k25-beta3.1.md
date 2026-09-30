@@ -80,6 +80,21 @@ This allows intentionally mapped rough islands around real fairway trees while
 preventing unclassified/elevated LiDAR returns from populating maintained
 greens, tees, bunkers, and fairways.
 
+## Improved: OSM multipolygon lake course import
+
+The OSM-to-course importer now matches the relation topology already used by
+the Auto Red Mask for standard mapped lakes and ponds.
+
+- closed `natural=water` ways are imported as filled 2K25 water placeholder splines;
+- `type=multipolygon` water relations are reconstructed from unordered or reversed outer/inner member ways;
+- fragmented shoreline ways are stitched by shared endpoint node IDs before a course spline is created;
+- inner islands are preserved as physical holes using the established narrow-neck/lollipop representation required by TGC filled splines;
+- relation member ways are consumed so an open shoreline fragment cannot be independently fill-closed into false water;
+- incomplete Local OSM relations fail closed with a warning instead of inventing a closing chord or filling across a missing island.
+
+The **Auto Red Mask is unchanged** by this point update; its existing
+multipolygon-water rasterization remains the authoritative mask behavior.
+
 ## Windows build
 
 Run:
@@ -104,6 +119,6 @@ The build still attempts to compile and bundle `tgc_lidar_fast_native.dll`. If t
 
 ## Scope
 
-This hotfix does not fold the separate Adaptive Terrain Converter or Course Finisher into the main TGCTool. It does not change Beta 3 terrain semantics, Auto Red Mask rules, OSM feature semantics, CFS alignment, or LiDAR behavior; the DEM boundary-selection path is optimized as described above.
+This hotfix does not fold the separate Adaptive Terrain Converter or Course Finisher into the main TGCTool. It does not change Beta 3 terrain semantics, Auto Red Mask rules, CFS alignment, or LiDAR behavior. The OSM course importer now adds the water/multipolygon behavior described above; the DEM boundary-selection path remains optimized as described above.
 
 This project remains an unofficial derivative of HiCamino/TGC-Designer-Tools under the upstream Apache License 2.0.
