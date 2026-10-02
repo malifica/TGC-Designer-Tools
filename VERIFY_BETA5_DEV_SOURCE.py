@@ -78,6 +78,7 @@ try:
     texas = json.loads(texas_profile.read_text(encoding="utf-8"))
     assert texas.get("enabled") is True
     assert texas.get("visual_material_preset")
+    assert texas.get("visual_material_preset", {}).get("theme") == 10
     assert texas.get("display_name") == "Texas Hill Country"
     assert len(texas.get("assets", [])) == 51
     assert texas.get("excluded_vertical_massing_count") == 1770
@@ -92,6 +93,7 @@ try:
     niagara = json.loads(niagara_profile.read_text(encoding="utf-8"))
     assert niagara.get("enabled") is True
     assert niagara.get("visual_material_preset")
+    assert niagara.get("visual_material_preset", {}).get("theme") == 14
     assert niagara.get("display_name") == "Niagara Escarpment"
     assert niagara.get("weighting_method") == "equal_per_course"
     assert len(niagara.get("assets", [])) == 40
@@ -105,6 +107,7 @@ try:
     virginia = json.loads(virginia_profile.read_text(encoding="utf-8"))
     assert virginia.get("enabled") is True
     assert virginia.get("visual_material_preset")
+    assert virginia.get("visual_material_preset", {}).get("theme") == 11
     assert virginia.get("display_name") == "Virginia Coastal Plain"
     assert virginia.get("natural_reference_tree_count") == 2296
     assert virginia.get("excluded_vertical_massing_count") == 1331
@@ -119,6 +122,7 @@ try:
     carolina = json.loads(carolina_profile.read_text(encoding="utf-8"))
     assert carolina.get("enabled") is True
     assert carolina.get("visual_material_preset")
+    assert carolina.get("visual_material_preset", {}).get("theme") == 14
     assert carolina.get("display_name") == "Carolina Piedmont (Autumn)"
     assert carolina.get("seasonal_character") == "autumn"
     assert len(carolina.get("assets", [])) == 37
@@ -132,6 +136,7 @@ try:
     hudson = json.loads(hudson_profile.read_text(encoding="utf-8"))
     assert hudson.get("enabled") is True
     assert hudson.get("visual_material_preset")
+    assert hudson.get("visual_material_preset", {}).get("theme") == 11
     assert hudson.get("display_name") == "Hudson Valley Mixed Forest"
     assert hudson.get("natural_reference_tree_count") == 1063
     assert hudson.get("excluded_vertical_massing_count") == 2141
@@ -146,6 +151,7 @@ try:
     northern_rockies = json.loads(northern_rockies_profile.read_text(encoding="utf-8"))
     assert northern_rockies.get("enabled") is True
     assert northern_rockies.get("visual_material_preset")
+    assert northern_rockies.get("visual_material_preset", {}).get("theme") == 12
     assert northern_rockies.get("display_name") == "Northern Rockies"
     assert northern_rockies.get("natural_reference_tree_count") == 7219
     assert northern_rockies.get("excluded_vertical_massing_count") == 1831
