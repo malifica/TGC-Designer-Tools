@@ -42,6 +42,7 @@ checks = [
     ("Niagara Escarpment profile file", "BETA5_TREE_PROFILES.md", "Niagara Escarpment"),
     ("Carolina Piedmont Autumn profile file", "BETA5_TREE_PROFILES.md", "Carolina Piedmont (Autumn)"),
     ("Virginia Coastal Plain profile file", "BETA5_TREE_PROFILES.md", "Virginia Coastal Plain"),
+    ("Hudson Valley profile file", "BETA5_TREE_PROFILES.md", "Hudson Valley Mixed Forest"),
     ("Equal multi-course weighting", "tree_profile_analyzer.py", "def equal_course_weight(asset_path):"),
 ]
 
@@ -113,6 +114,19 @@ try:
 except Exception as exc:
     print("FAIL - Carolina Piedmont Autumn enabled profile -", exc)
     failed.append("Carolina Piedmont Autumn enabled profile")
+
+hudson_profile = ROOT / "tree_profiles" / "hudson_valley_mixed_forest.json"
+try:
+    hudson = json.loads(hudson_profile.read_text(encoding="utf-8"))
+    assert hudson.get("enabled") is True
+    assert hudson.get("display_name") == "Hudson Valley Mixed Forest"
+    assert hudson.get("natural_reference_tree_count") == 1063
+    assert hudson.get("excluded_vertical_massing_count") == 2141
+    assert len(hudson.get("assets", [])) == 44
+    print("PASS - Hudson Valley Mixed Forest enabled profile")
+except Exception as exc:
+    print("FAIL - Hudson Valley Mixed Forest enabled profile -", exc)
+    failed.append("Hudson Valley Mixed Forest enabled profile")
 
 template = ROOT / "tree_profiles" / "_template.json"
 try:

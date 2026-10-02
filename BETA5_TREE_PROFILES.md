@@ -135,3 +135,23 @@ terrain-alignment filter:
 Because more than 80% of the retained planting uses explicit fall/autumn asset
 variants, the enabled profile is intentionally named **Carolina Piedmont (Autumn)**
 rather than a generic Carolina Piedmont theme.
+
+
+## Hudson Valley Mixed Forest
+
+**Hudson Valley Mixed Forest** is enabled from `Trump Nat(1).course`, identified
+from its exact hole-par sequence and near-matching championship yardages as Trump
+National Golf Club Hudson Valley in Hopewell Junction, Dutchess County, New York.
+
+The reference contains **3,204** actual SpeedTree tree placements. After Beta 5's
+terrain-alignment filter:
+
+- **1,063** natural / terrain-aligned trees remain;
+- **2,141** buried/raised scenery-massing trees are excluded;
+- the enabled core profile uses **44 prefabs / 1,012 trees / 95.2%** coverage;
+- core scale p10 / p50 / p90 is approximately **1.000 / 1.146 / 1.269**.
+
+The retained visual mix is strongly eastern-deciduous: elm, white oak, red/silver
+maple, ash, birch and beech, with a smaller white-pine/conifer component. Some
+non-local prefab labels are intentionally retained as visual analogs rather than
+literal botanical claims.

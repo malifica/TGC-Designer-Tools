@@ -142,3 +142,18 @@ This profile is explicitly seasonal: **83.6%** of all retained natural placement
 and **86.6%** of the core pool use fall/autumn prefab variants. A future green-leaf
 Carolina Piedmont reference should become a separate non-autumn profile rather than
 silently mixing seasonal asset colors.
+
+
+### Hudson Valley Mixed Forest
+
+**Hudson Valley Mixed Forest** is calibrated from `Trump Nat(1).course`, the
+Hudson Valley course in Hopewell Junction, New York.
+
+After removing vertically manipulated scenery massing, **1,063** natural /
+terrain-aligned trees remain from **3,204** actual SpeedTree placements. The enabled
+core profile uses **44 prefabs**, representing **1,012 placements / 95.2%** of the
+natural reference population.
+
+The profile is dominated by elm, oak, red/silver maple, ash, birch and beech forms,
+with a smaller eastern-white-pine / conifer component. The overall core Designer
+scale p10 / p50 / p90 is approximately **1.000 / 1.146 / 1.269**.
