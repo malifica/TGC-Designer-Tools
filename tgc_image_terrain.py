@@ -740,6 +740,13 @@ def generate_course(course_json, heightmap_dir_path, options_dict={}, printf=pri
         print(course_version)
         return None
 
+    # Regional theme material preset: donor bunker/turf/terrain textures.
+    course_json = tree_profile_manager.apply_visual_material_preset(
+        course_json,
+        options_dict.get('tree_profile'),
+        printf=printf,
+    )
+
     if course_version == 25:
         layer_json = course_json
     elif course_version == 23:
@@ -1223,6 +1230,11 @@ def generate_course(course_json, heightmap_dir_path, options_dict={}, printf=pri
     return course_json
 
 def generate_flat_course(course_json, xml_data, options_dict={}, printf=print, course_version=-1):
+    course_json = tree_profile_manager.apply_visual_material_preset(
+        course_json,
+        options_dict.get('tree_profile'),
+        printf=printf,
+    )
     course_json, osm_trees = OSMTGC.addOSMFromXML(course_json, xml_data, options_dict=options_dict, printf=printf,
         course_version=course_version)
     if course_version not in tgc_definitions.version_tags:
