@@ -17,6 +17,7 @@ sources = {
     "auto_red_mask.py": read("auto_red_mask.py"),
     "osm_alignment_viewer.py": read("osm_alignment_viewer.py"),
     "tgc_image_terrain.py": read("tgc_image_terrain.py"),
+    "tgc_definitions.py": read("tgc_definitions.py"),
     "lidar_feature_filter.py": read("lidar_feature_filter.py"),
     "OSMTGC.py": read("OSMTGC.py"),
     "README.md": read("README.md"),
@@ -56,6 +57,9 @@ checks = [
     ("LiDAR tree playing-surface exclusion", "lidar_feature_filter.py", "def filter_lidar_tree_candidates_by_playing_surfaces("),
     ("LiDAR rough overrides fairway", "lidar_feature_filter.py", "rough_overrides += 1"),
     ("Terrain import applies LiDAR tree surface filter", "tgc_image_terrain.py", "build_lidar_tree_surface_filter("),
+    ("Fjordland theme id", "tgc_definitions.py", '54: "fjordland"'),
+    ("Fjordland normal 2K tree palette", "tgc_definitions.py", "# Fjordland (theme 54) - broad-canopy / wider forms"),
+    ("Fjordland skinny 2K tree palette", "tgc_definitions.py", "# Fjordland (theme 54) - narrow / columnar / conifer forms"),
     ("README 5-30 m mask", "README.md", '**5–30 m**'),
     ("README 2 px cleanup", "README.md", '**2 px minimum red width**'),
     ("README 25 px cleanup", "README.md", '**25-pixel enclosed-island minimum**'),
@@ -104,6 +108,7 @@ compile_files = [
     "osm_alignment_viewer.py",
     "OSMTGC.py",
     "tgc_image_terrain.py",
+    "tgc_definitions.py",
     "usgs_lidar_parser.py",
 ]
 
