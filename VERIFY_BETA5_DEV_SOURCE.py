@@ -28,6 +28,8 @@ checks = [
     ("Profile loader", "tree_profile_manager.py", "def load_profiles("),
     ("Weighted asset selection", "tree_profile_manager.py", "rng.choices("),
     ("Reference quantile scaling", "tree_profile_manager.py", "def scale_for_asset("),
+    ("Uniform profile scale support", "tree_profile_manager.py", 'asset.get("uniform_scale")'),
+    ("Analyzer excludes detail-tree props", "tree_profile_analyzer.py", '"/Foliage/SpeedTree" not in asset_path'),
     ("Course analyzer", "tree_profile_analyzer.py", "def analyze(paths, display_name):"),
     ("Runtime custom profile builder", "tgc_image_terrain.py", "def _get_profile_trees("),
     ("Profile option plumbing", "tgc_image_terrain.py", "tree_profile=options_dict.get('tree_profile')"),

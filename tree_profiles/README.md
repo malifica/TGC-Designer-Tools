@@ -20,3 +20,14 @@ LiDAR candidates use their relative radius/height rank to map into the reference
 course's Designer scale distribution. OSM tree nodes use the weighted profile mix
 and median reference scale because current OSM tree nodes do not carry reliable
 physical dimensions.
+
+
+## Uniform Designer scaling
+
+If a finished reference course uses the same X/Y/Z scale for a prefab instance,
+the analyzer writes a compact `uniform_scale` p10/p50/p90 distribution. The
+runtime applies that distribution to all three axes while still mapping LiDAR
+radius and height percentiles independently.
+
+The analyzer only treats actual `Assets/Foliage/SpeedTree...` tree prefabs as
+tree samples. Course-detail props such as fallen logs are excluded.

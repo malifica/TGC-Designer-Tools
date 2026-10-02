@@ -82,7 +82,7 @@ def analyze(paths, display_name):
         groups = course.get("placedObjects4", course.get("placedObjects3", course.get("placedObjects2", []))) or []
         for group in groups:
             asset_path = str((group.get("Key", {}) or {}).get("path", ""))
-            if "/Trees/" not in asset_path or "/Bushes/" in asset_path:
+            if "/Foliage/SpeedTree" not in asset_path or "/Trees/" not in asset_path or "/Bushes/" in asset_path:
                 continue
             for item in (group.get("Value", {}) or {}).get("items", []) or []:
                 scale = item.get("scale", {}) or {}
@@ -109,17 +109,29 @@ def analyze(paths, display_name):
         shape = _shape_for_path(path, normal_paths, skinny_paths)
         if shape == "review":
             review_count += 1
-        assets.append({
+        asset = {
             "path": path,
             "shape": shape,
             "weight": len(vals["y"]),
             "count": len(vals["y"]),
-            "scale": {
+        }
+
+        # Designer tree instances are frequently scaled uniformly.  Preserve a
+        # compact single distribution when X/Y/Z are effectively identical;
+        # otherwise retain independent axis statistics.
+        uniform = (
+            np.allclose(vals["x"], vals["y"], rtol=1e-6, atol=1e-6)
+            and np.allclose(vals["x"], vals["z"], rtol=1e-6, atol=1e-6)
+        )
+        if uniform:
+            asset["uniform_scale"] = _quantiles(vals["y"])
+        else:
+            asset["scale"] = {
                 "x": _quantiles(vals["x"]),
                 "y": _quantiles(vals["y"]),
                 "z": _quantiles(vals["z"]),
-            },
-        })
+            }
+        assets.append(asset)
 
     return {
         "id": _slug(display_name),

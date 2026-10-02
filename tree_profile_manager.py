@@ -104,11 +104,22 @@ def _validate_profile(profile, source_name):
                     "p50": float(stats["p50"]),
                     "p90": float(stats["p90"]),
                 }
+
+        uniform_scale = asset.get("uniform_scale")
+        clean_uniform_scale = None
+        if _valid_scale_stats(uniform_scale):
+            clean_uniform_scale = {
+                "p10": float(uniform_scale["p10"]),
+                "p50": float(uniform_scale["p50"]),
+                "p90": float(uniform_scale["p90"]),
+            }
+
         clean_assets.append({
             "path": path,
             "shape": shape,
             "weight": weight,
             "scale": clean_scale,
+            "uniform_scale": clean_uniform_scale,
         })
 
     if not clean_assets:
@@ -218,7 +229,8 @@ def scale_for_asset(profile, asset, radius_percentile=0.5, height_percentile=0.5
     defaults = dict(_HEROIC_DEFAULTS)
     defaults.update(profile.get("scale_defaults", {}) or {})
     scale = asset.get("scale", {}) or {}
-    sx = _interpolate_stats(scale.get("x"), radius_percentile, defaults["x"])
-    sy = _interpolate_stats(scale.get("y"), height_percentile, defaults["y"])
-    sz = _interpolate_stats(scale.get("z"), radius_percentile, defaults["z"])
+    uniform_scale = asset.get("uniform_scale")
+    sx = _interpolate_stats(scale.get("x") or uniform_scale, radius_percentile, defaults["x"])
+    sy = _interpolate_stats(scale.get("y") or uniform_scale, height_percentile, defaults["y"])
+    sz = _interpolate_stats(scale.get("z") or uniform_scale, radius_percentile, defaults["z"])
     return sx, sy, sz
