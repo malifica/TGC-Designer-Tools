@@ -29,6 +29,16 @@ The historical LiDAR mapping used approximately X/Z **0.20–1.50** and Y
 The first Beta 5 Heroic test mapping is X/Z **0.70–1.65** and Y **0.85–1.55**.
 Legacy LiDAR scaling remains selectable while we tune this.
 
+## Excluding scenery-massing trees
+
+Real-world profile calibration now distinguishes normal planted trees from a common
+Designer scenery technique: oversized trees/foliage translated downward into the
+terrain to form dense off-course overgrowth, hedges, or unmanaged forest walls.
+
+These vertically manipulated objects are excluded by default. Terrain-snapped trees
+remain eligible; finite-Y trees must be within **±0.75 m** of reconstructed terrain.
+This rule applies to Texas Hill Country and to all future reference-course analyses.
+
 ## Calibrating a real-life profile
 
 ```bat
@@ -53,14 +63,13 @@ Enabled JSON profiles in `tree_profiles\` automatically appear in the GUI's
 
 Reference: `Canyon Springs SATX (L).course`
 
-- 2,668 planted tree instances represented in the initial profile
-- 51 core tree prefabs
-- 90.4% coverage of the retained non-ornamental reference population
-- overall Designer scale p10 / p50 / p90: **0.530 / 1.000 / 1.286**
-- oak-dominant weighted mix, with mesquite and drought-tolerant accent forms
+- **1,181** natural / terrain-aligned non-ornamental reference trees retained
+- **1,770** vertically manipulated boundary/scenery tree placements excluded
+- **1,064** placements in the 51-prefab first-test pool
+- **90.1%** coverage of the natural retained population
+- core Designer scale p10 / p50 / p90: **0.500 / 1.000 / 1.347**
 - contextual Crape Myrtle, Chinese Fan Palm and Silver Maple placements excluded
   from random LiDAR/OSM distribution
 
-This is intentionally a first-pass regional planting profile for in-game testing.
 After we inspect the generated result, we can split a dedicated skinny/juniper pool,
-adjust species weights, or bring selected rare assets back into the profile.
+adjust species weights, or bring selected rare natural assets back into the profile.

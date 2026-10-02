@@ -30,6 +30,8 @@ checks = [
     ("Reference quantile scaling", "tree_profile_manager.py", "def scale_for_asset("),
     ("Uniform profile scale support", "tree_profile_manager.py", 'asset.get("uniform_scale")'),
     ("Analyzer excludes detail-tree props", "tree_profile_analyzer.py", '"/Foliage/SpeedTree" not in asset_path'),
+    ("Analyzer buried scenery filter", "tree_profile_analyzer.py", "DEFAULT_VERTICAL_TOLERANCE_M = 0.75"),
+    ("Analyzer terrain replay", "tree_profile_analyzer.py", "class _TerrainPointSampler:"),
     ("Course analyzer", "tree_profile_analyzer.py", "def analyze(paths, display_name):"),
     ("Runtime custom profile builder", "tgc_image_terrain.py", "def _get_profile_trees("),
     ("Profile option plumbing", "tgc_image_terrain.py", "tree_profile=options_dict.get('tree_profile')"),
@@ -62,6 +64,8 @@ try:
     assert texas.get("enabled") is True
     assert texas.get("display_name") == "Texas Hill Country"
     assert len(texas.get("assets", [])) == 51
+    assert texas.get("excluded_vertical_massing_count") == 1770
+    assert texas.get("natural_reference_tree_count") == 1181
     print("PASS - Texas Hill Country enabled profile")
 except Exception as exc:
     print("FAIL - Texas Hill Country enabled profile -", exc)

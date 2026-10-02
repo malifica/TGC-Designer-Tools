@@ -22,6 +22,19 @@ and median reference scale because current OSM tree nodes do not carry reliable
 physical dimensions.
 
 
+## Buried / raised scenery filtering
+
+Finished Designer courses often use oversized trees or foliage partially buried
+under terrain to create dense off-course forest/hedge boundaries. Those objects are
+scenery construction, not representative individual trees, and are excluded by
+default from future theme calibration.
+
+Terrain-snapped objects (`position.y = -Infinity`) are retained. Finite-Y objects
+are compared with reconstructed detailed terrain and background+detail terrain; if
+neither is within the default **0.75 m** tolerance, the object is excluded from the
+theme's prefab weights and scale statistics. Use `--keep-manual-height` only for
+diagnostics or an intentional exception.
+
 ## Uniform Designer scaling
 
 If a finished reference course uses the same X/Y/Z scale for a prefab instance,
@@ -38,10 +51,18 @@ tree samples. Course-detail props such as fallen logs are excluded.
 The first enabled Beta 5 real-life test profile is **Texas Hill Country**, calibrated
 from `Canyon Springs SATX (L).course`.
 
-The test pool uses the 51 most-used non-ornamental foliage prefabs, representing
-**2,668 placements / 90.4%** of the retained planted-tree population. Contextual
-Crape Myrtle, Chinese Fan Palm, Silver Maple, fallen-tree detail props, and the
-long tail of very rare assets are excluded from the first random LiDAR/OSM test.
+The recalibrated reference contains **1,181 natural / terrain-aligned non-ornamental
+tree placements**. The first test pool uses the 51 most-used prefabs, representing
+**1,064 placements / 90.1%** of that natural reference population.
 
-The profile preserves the reference course's observed per-prefab uniform scale
-p10/p50/p90 values and raw usage counts as selection weights.
+A major reference-course bias was removed: **1,770 vertically manipulated tree
+placements** were identified as buried/raised scenery or off-course boundary massing
+and are excluded from the regional theme calculation. Finite-Y tree objects must be
+within **±0.75 m** of reconstructed terrain to count as natural planting. Normal
+terrain-snapped (`-Infinity` Y) trees remain eligible.
+
+Contextual Crape Myrtle, Chinese Fan Palm, and Silver Maple placements are also
+excluded from random Texas Hill Country LiDAR/OSM distribution.
+
+The revised core profile's overall Designer scale p10 / p50 / p90 is approximately
+**0.500 / 1.000 / 1.347**.
