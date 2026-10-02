@@ -281,3 +281,18 @@ as the authoritative donor environment and sets `tree_generation = "none"`.
 This matches the course's exposed links character while leaving coastal heath,
 scrub, pigface and dune-grass generation for the future massing/scrub system rather
 than misclassifying those forms as specimen trees.
+
+
+## Separate root and tree themes
+
+A regional profile may set `tree_generation` to `"designer_theme"` and provide
+a separate `tree_theme_id`. This allows the root Designer environment to come
+from one theme while automatic tree generation uses another theme's 2K25 tree
+palette.
+
+Example: `visual_material_preset.theme = 14` keeps Autumn procedural/background
+grass and unnamed visual defaults, while `tree_theme_id = 54` generates trees
+from the full Fjordland tree lists.
+
+The packed course still has only one root Designer theme ID. The split is performed
+by TGCTool because generated trees are explicit `placedObjects4` prefab paths.

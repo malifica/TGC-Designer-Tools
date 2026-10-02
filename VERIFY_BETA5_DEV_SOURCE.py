@@ -26,7 +26,9 @@ checks = [
     ("Tree scale GUI selector", "tgc_gui.py", 'text="Tree Scale"'),
     ("Heroic default", "tgc_gui.py", 'tree_scale_mode_var.set(tree_profile_manager.HEROIC_SCALE_MODE)'),
     ("Profile loader", "tree_profile_manager.py", "def load_profiles("),
-    ("No-tree profile support", "tree_profile_manager.py", 'tree_generation not in ("profile", "none")'),
+    ("No-tree / hybrid profile support", "tree_profile_manager.py", 'tree_generation not in ("profile", "none", "designer_theme")'),
+    ("Separate Designer tree theme ID", "tree_profile_manager.py", '"tree_theme_id": tree_theme_id'),
+    ("Hybrid tree runtime", "tgc_image_terrain.py", 'tree_generation == "designer_theme"'),
     ("Material preset loader", "tree_profile_manager.py", "visual_material_preset"),
     ("Material preset apply helper", "tree_profile_manager.py", "def apply_visual_material_preset("),
     ("Designer theme profile support", "tree_profile_manager.py", 'target_json["courseTheme"]'),
@@ -283,6 +285,45 @@ try:
 except Exception as exc:
     print("FAIL - regional Designer theme override -", exc)
     failed.append("regional Designer theme override")
+
+try:
+    import tgc_image_terrain
+    import tgc_definitions
+    import tree_profile_manager
+
+    original_get_profile = tree_profile_manager.get_profile
+    try:
+        tree_profile_manager.get_profile = lambda _choice: {
+            "tree_generation": "designer_theme",
+            "tree_theme_id": 54,
+            "assets": [],
+        }
+        hybrid_groups = tgc_image_terrain.get_trees(
+            14,
+            False,
+            [(0.0, 0.0, 2.0, 8.0), (10.0, 10.0, 1.5, 12.0)],
+            course_version=25,
+            tree_profile="__hybrid_test__",
+            tree_scale_mode=tree_profile_manager.HEROIC_SCALE_MODE,
+            tree_source="lidar",
+        )
+        fjord_ids = set(
+            tgc_definitions.normal_trees_2k.get(54, [])
+            + tgc_definitions.skinny_trees_2k.get(54, [])
+        )
+        fjord_paths = {
+            tgc_definitions.trees_2k[i]
+            for i in fjord_ids
+            if 0 <= i < len(tgc_definitions.trees_2k)
+        }
+        assert hybrid_groups
+        assert all(group["Key"]["path"] in fjord_paths for group in hybrid_groups)
+        print("PASS - Autumn root with Fjordland tree palette")
+    finally:
+        tree_profile_manager.get_profile = original_get_profile
+except Exception as exc:
+    print("FAIL - hybrid Designer root/tree theme behavior -", exc)
+    failed.append("hybrid Designer root/tree theme behavior")
 
 template = ROOT / "tree_profiles" / "_template.json"
 try:

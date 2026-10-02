@@ -314,3 +314,33 @@ The enabled profile therefore uses:
 This is intended to represent exposed Bass Strait links terrain until Beta 5 gains
 a dedicated coastal-heath/scrub palette for low shrubs, pigface, grasses and other
 wind-pruned vegetation.
+
+
+## Hybrid Designer-theme environments
+
+The 2K25 course data still has one authoritative root Designer `theme` value.
+Beta 5 therefore does **not** attempt to write two root theme IDs into one course.
+
+Instead, regional profiles can now deliberately separate the visual environment
+from the tree-palette source:
+
+```json
+{
+  "tree_generation": "designer_theme",
+  "tree_theme_id": 54,
+  "visual_material_preset": {
+    "theme": 14
+  }
+}
+```
+
+In that example the generated course uses **Autumn (14)** as its root Designer
+theme, so Autumn controls procedural/background grass and unnamed theme-default
+materials. LiDAR/OSM tree candidates are generated from the full **Fjordland (54)**
+2K25 tree lists instead.
+
+This works because 2K25 trees are written as explicit `placedObjects4` prefab
+paths. Their prefab path does not need to match the course's root Designer theme.
+Existing calibrated `tree_generation = "profile"` themes continue to use their
+own weighted tree matrices, while `tree_generation = "none"` continues to suppress
+automatic tree generation.
