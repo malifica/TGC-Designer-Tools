@@ -177,3 +177,26 @@ country with lodgepole pine and aspen. The course's Norway Spruce and Scots Pine
 prefabs are therefore treated as visual stand-ins rather than literal local species.
 Rare dead-tree forms are retained at their observed low weights as appropriate
 mountain-forest snags.
+
+
+## Regional themes now include materials
+
+Beta 5 regional themes are no longer tree-only. The selected donor course also
+supplies the visible playing-surface and terrain material set. TGCTool applies the
+donor `surfaces2`, `secondarySurfaces`, cart-path texture and tee texture to
+the target course.
+
+That includes bunker, green, fringe, fairway, light rough, heavy rough, and all
+four terrain/splat channels (the general soil/dirt/topsoil-style terrain texture
+slots). The packed CourseMetadata is synchronized at export.
+
+Existing enabled regional profiles were retrofitted from their original donors.
+For Niagara Escarpment, Devil's Paintbrush is currently the material donor.
+
+## Monterey Bay Coast
+
+Pasatiempo Golf Club in Santa Cruz, California is the first regional theme built
+after donor materials became part of the profile. Its reference retains **2,221**
+natural trees, excludes **505** scenery-massing trees, and uses a
+**49-prefab / 95.0%** tree core. Pasatiempo's bunker/turf/terrain texture set is
+stored in the profile and applied together with its tree palette.
