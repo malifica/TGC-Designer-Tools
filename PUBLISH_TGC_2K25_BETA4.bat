@@ -2,6 +2,7 @@
 setlocal EnableExtensions
 cd /d C:\TGC-Designer-Tools
 
+set REPO=malifica/TGC-Designer-Tools
 set TAG=v0.5.0-2k25-beta4
 set TITLE=TGC Designer Tools 2K25 - Beta 4
 set EXENAME=tgc_gui_2k25_beta4
@@ -25,6 +26,14 @@ if errorlevel 1 (
 gh auth status
 if errorlevel 1 goto :fail
 
+echo.
+echo === Verify GitHub repository ===
+gh repo view "%REPO%" >nul
+if errorlevel 1 (
+  echo ERROR: GitHub CLI cannot access %REPO%.
+  goto :fail
+)
+
 if not exist "dist\%EXENAME%.exe" (
   echo ERROR: missing dist\%EXENAME%.exe
   echo Run BUILD_TGC_2K25_BETA4.bat first.
@@ -46,7 +55,7 @@ if errorlevel 1 goto :fail
 
 echo.
 echo === Check whether the release already exists ===
-gh release view "%TAG%" >nul 2>nul
+gh release view "%TAG%" --repo "%REPO%" >nul 2>nul
 if not errorlevel 1 (
   echo ERROR: GitHub release %TAG% already exists.
   echo Delete/edit the existing release manually if you intend to replace it.
