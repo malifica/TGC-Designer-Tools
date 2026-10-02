@@ -1,12 +1,13 @@
 """Beta 5 real-life tree profile support.
 
 Custom profiles are JSON files stored in ./tree_profiles. They describe a
-real-world planting style: prefab mix, usage weights, shape class, and the scale
-distribution measured from finished Designer-planted reference courses.
+real-world course style: tree prefab mix/scale plus the donor course's surface
+and terrain material selections.
 """
 
 from __future__ import annotations
 
+import copy
 import json
 import math
 import random
@@ -137,6 +138,22 @@ def _validate_profile(profile, source_name):
                     "p90": float(defaults[axis]["p90"]),
                 }
 
+    raw_visual_material_preset = profile.get("visual_material_preset", {})
+    clean_visual_material_preset = {}
+    if isinstance(raw_visual_material_preset, dict):
+        source_course = str(raw_visual_material_preset.get("source_course", "")).strip()
+        if source_course:
+            clean_visual_material_preset["source_course"] = source_course
+        for key in ("surfaces2", "secondarySurfaces"):
+            value = raw_visual_material_preset.get(key)
+            if isinstance(value, list) and value:
+                clean_visual_material_preset[key] = copy.deepcopy(value)
+        for key in ("cartPathTexture", "teeTexture"):
+            if key in raw_visual_material_preset:
+                clean_visual_material_preset[key] = copy.deepcopy(
+                    raw_visual_material_preset[key]
+                )
+
     return {
         "id": profile_id,
         "display_name": display_name,
@@ -144,6 +161,7 @@ def _validate_profile(profile, source_name):
         "reference_courses": list(profile.get("reference_courses", []) or []),
         "assets": clean_assets,
         "scale_defaults": clean_defaults,
+        "visual_material_preset": clean_visual_material_preset,
         "_source": source_name,
     }
 
@@ -184,6 +202,58 @@ def get_profile(choice):
 def profile_load_errors():
     load_profiles()
     return list(_PROFILE_ERRORS)
+
+
+def apply_visual_material_preset(target_json, choice, printf=print, metadata=False):
+    """Apply a selected real-life theme's donor surface/terrain materials."""
+    profile = get_profile(choice)
+    if profile is None:
+        return target_json
+
+    preset = profile.get("visual_material_preset", {}) or {}
+    if not preset:
+        return target_json
+
+    keys = ("surfaces2",) if metadata else (
+        "surfaces2",
+        "secondarySurfaces",
+        "cartPathTexture",
+        "teeTexture",
+    )
+    applied = []
+    for key in keys:
+        if key in preset:
+            target_json[key] = copy.deepcopy(preset[key])
+            applied.append(key)
+
+    if applied and not metadata:
+        surfaces = preset.get("surfaces2", []) or []
+        slot_labels = {
+            0: "bunker",
+            6: "green",
+            7: "fringe",
+            8: "fairway",
+            9: "rough",
+            10: "heavy rough",
+            11: "terrain 0",
+            12: "terrain 1",
+            13: "terrain 2",
+            14: "terrain 3",
+        }
+        names = []
+        for index, label in slot_labels.items():
+            if index < len(surfaces):
+                item = surfaces[index]
+                if isinstance(item, dict) and item.get("name"):
+                    names.append(label + "=" + str(item["name"]))
+        source = preset.get("source_course", profile.get("_source", "profile"))
+        printf(
+            "Regional theme materials applied from "
+            + str(source)
+            + (": " + ", ".join(names) if names else "")
+        )
+
+    return target_json
 
 
 def _pool(profile, shape=None, source_kind="lidar"):
