@@ -1,0 +1,103 @@
+name: Build Beta 5 Development EXE
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/build-beta5-dev.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11.6 x64
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11.6"
+          architecture: "x64"
+          cache: "pip"
+
+      - name: Install Python dependencies
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+
+      - name: Verify Beta 5 source
+        shell: pwsh
+        run: |
+          python --version
+          python VERIFY_BETA5_DEV_SOURCE.py
+          python -m py_compile tgc_gui.py dem_map_api.py lidar_map_api.py lidar_fast_native.py usgs_lidar_parser.py infill_image.py tgc_image_terrain.py tgc_definitions.py tree_profile_manager.py tree_profile_analyzer.py OSMTGC.py auto_red_mask.py cfs_georef.py lidar_feature_filter.py osm_alignment_viewer.py
+          python -c "import rasterio; print('Rasterio', rasterio.__version__); print('GDAL', rasterio.__gdal_version__)"
+
+      - name: Install MinGW-w64
+        shell: pwsh
+        run: |
+          choco install mingw -y --no-progress
+          $gcc = Get-ChildItem -Path "C:\ProgramData\chocolatey","C:\ProgramData\mingw64","C:\tools" -Filter gcc.exe -Recurse -ErrorAction SilentlyContinue | Where-Object { $_.FullName -match "mingw64.*bin.*gcc\.exe$" } | Select-Object -First 1
+          if (-not $gcc) {
+            $cmd = Get-Command gcc.exe -ErrorAction SilentlyContinue
+            if ($cmd) { $gcc = Get-Item $cmd.Source }
+          }
+          if (-not $gcc) { throw "MinGW-w64 gcc.exe was not found after installation." }
+          "TGC_CC=$($gcc.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host "Using MinGW-w64 compiler: $($gcc.FullName)"
+
+      - name: Compile native LiDAR rasterizer
+        shell: pwsh
+        run: |
+          & "$env:TGC_CC" -O3 -shared -std=c11 -s -o tgc_lidar_fast_native.dll lidar_fast_native.c -lm
+          if ($LASTEXITCODE -ne 0) { throw "Native LiDAR compile failed." }
+          if (-not (Test-Path "tgc_lidar_fast_native.dll")) { throw "Native LiDAR DLL was not created." }
+          Write-Host "Native LiDAR DLL size:" (Get-Item "tgc_lidar_fast_native.dll").Length
+
+      - name: Build Beta 5 EXE
+        shell: pwsh
+        run: |
+          python -m PyInstaller --noconfirm --clean --onefile --name "tgc_gui_2k25_beta5_dev" --add-binary "./laszip/laszip-cli.exe;laszip" --add-binary "tgc_lidar_fast_native.dll;." --additional-hooks-dir "./PyInstaller/hooks/" --runtime-hook "./PyInstaller/rthook_rasterio.py" --add-data "./tree_profiles;tree_profiles" tgc_gui.py
+          if ($LASTEXITCODE -ne 0) { throw "PyInstaller failed." }
+          if (-not (Test-Path "dist\tgc_gui_2k25_beta5_dev.exe")) { throw "Expected EXE was not created." }
+
+      - name: Package testing build
+        shell: pwsh
+        run: |
+          $pkg = "TGC-Designer-Tools-2K25-v0.5.0-2k25-beta5-dev-Windows-x64"
+          $base = "dist\dev_beta5"
+          $dir = Join-Path $base $pkg
+          New-Item -ItemType Directory -Force -Path $dir | Out-Null
+          Copy-Item "dist\tgc_gui_2k25_beta5_dev.exe" $dir
+          Copy-Item "LICENSE" $dir
+          Copy-Item "README.md" $dir
+          Copy-Item "CHANGELOG.md" $dir
+          Copy-Item "BUILD_WINDOWS.md" $dir
+          Copy-Item "BETA5_TREE_PROFILES.md" $dir
+          Copy-Item "tree_profiles" (Join-Path $dir "tree_profiles") -Recurse
+          Compress-Archive -Path "$dir\*" -DestinationPath "$base\$pkg.zip" -Force
+          $exeHash = (Get-FileHash "dist\tgc_gui_2k25_beta5_dev.exe" -Algorithm SHA256).Hash
+          "$exeHash  tgc_gui_2k25_beta5_dev.exe" | Out-File "$base\tgc_gui_2k25_beta5_dev.exe.sha256.txt" -Encoding ascii
+          $zipHash = (Get-FileHash "$base\$pkg.zip" -Algorithm SHA256).Hash
+          "$zipHash  $pkg.zip" | Out-File "$base\$pkg.zip.sha256.txt" -Encoding ascii
+          Write-Host "EXE SHA256: $exeHash"
+          Write-Host "ZIP SHA256: $zipHash"
+
+      - name: Upload Beta 5 testing artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: TGC-Designer-Tools-Beta5-Windows-x64
+          if-no-files-found: error
+          compression-level: 0
+          path: |
+            dist/tgc_gui_2k25_beta5_dev.exe
+            dist/dev_beta5/*.zip
+            dist/dev_beta5/*.sha256.txt
