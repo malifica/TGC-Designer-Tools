@@ -200,3 +200,33 @@ after donor materials became part of the profile. Its reference retains **2,221*
 natural trees, excludes **505** scenery-massing trees, and uses a
 **49-prefab / 95.0%** tree core. Pasatiempo's bunker/turf/terrain texture set is
 stored in the profile and applied together with its tree palette.
+
+
+## South Carolina Lowcountry
+
+**South Carolina Lowcountry** is calibrated from Caledonia Golf & Fish Club in
+Pawleys Island, South Carolina. The donor is an 18-hole, par-70 course using the
+Delta base theme, but its tree palette is read from actual placed SpeedTree objects
+rather than from the built-in theme.
+
+The reference contains **2,729** SpeedTree tree placements. After the Beta 5
+terrain-alignment filter:
+
+- **1,694** natural / terrain-aligned trees remain;
+- **1,035** buried/raised scenery-massing trees are excluded;
+- the enabled core uses **34 prefabs / 1,611 trees / 95.1%** coverage;
+- fallback Designer scale p10 / p50 / p90 is approximately
+  **0.763 / 1.080 / 1.541**.
+
+The retained mix is strongly Lowcountry: about **67% pine/conifer visual forms**
+and **33% live-oak/oak forms**, with numerous Spanish-moss live-oak assets. This
+matches Caledonia's real Pawleys Island character of mature live oaks and Southern
+pines.
+
+Caledonia explicitly supplies **Sand34_DetroitGC** bunkers,
+**Green46_Pinehurst** greens, **Fringe46_Pinehurst**,
+**Fairway46_Pinehurst**, **LightRough43_RenaissanceClub**, and
+**HeavyRough19_TPC_Boston**. Its terrain/splat slots 11-14 are unnamed and
+therefore depend on the donor's Delta theme defaults. Beta 5 preserves the exact
+slot structures but deliberately does not change a target course's root Designer
+theme just to resolve those unnamed terrain defaults.

@@ -202,3 +202,22 @@ Its donor materials are preserved with the regional theme: **Sand07** bunkers,
 **Green10** greens, **Fringe10**, **Fairway10**, **LightRough46_Pinehurst**,
 **HeavyRough09**, and the terrain channels **Splat0_TorreyPines /
 Splat1_Steppe / Splat2_TorreyPines / Splat3_Harvest**.
+
+
+### South Carolina Lowcountry
+
+**South Carolina Lowcountry** is calibrated from `Caledonia 2K25_Standard.course`,
+representing Caledonia Golf & Fish Club in Pawleys Island, South Carolina.
+
+After scenery-massing filtering, **1,694** natural trees remain from **2,729**
+SpeedTree placements and **1,035** buried/raised trees are excluded. The enabled
+core uses **34 prefabs / 1,611 trees / 95.1%** coverage, with fallback Designer
+scale p10 / p50 / p90 of approximately **0.763 / 1.080 / 1.541**.
+
+The retained palette is dominated by Southern-pine analogs and Spanish-moss
+Southern-live-oak forms, making it intentionally distinct from Virginia Coastal
+Plain and Carolina Piedmont (Autumn).
+
+Caledonia provides explicit bunker and turf material names. Its four terrain/splat
+slots are unnamed Delta-theme defaults, so the profile records and copies the exact
+slot structures without changing the target course's root Designer theme.

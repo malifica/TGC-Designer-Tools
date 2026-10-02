@@ -47,6 +47,7 @@ checks = [
     ("Virginia Coastal Plain profile file", "BETA5_TREE_PROFILES.md", "Virginia Coastal Plain"),
     ("Hudson Valley profile file", "BETA5_TREE_PROFILES.md", "Hudson Valley Mixed Forest"),
     ("Monterey Bay Coast profile file", "BETA5_TREE_PROFILES.md", "Monterey Bay Coast"),
+    ("South Carolina Lowcountry profile file", "BETA5_TREE_PROFILES.md", "South Carolina Lowcountry"),
     ("Equal multi-course weighting", "tree_profile_analyzer.py", "def equal_course_weight(asset_path):"),
 ]
 
@@ -137,7 +138,7 @@ except Exception as exc:
     print("FAIL - Hudson Valley Mixed Forest enabled profile -", exc)
     failed.append("Hudson Valley Mixed Forest enabled profile")
 
-northern_rockies_profile = ROOT / "tree_profiles" / "northern_rockies_montane.json"
+northern_rockies_profile = ROOT / "tree_profiles" / "northern_rockies.json"
 try:
     northern_rockies = json.loads(northern_rockies_profile.read_text(encoding="utf-8"))
     assert northern_rockies.get("enabled") is True
@@ -168,6 +169,23 @@ try:
 except Exception as exc:
     print("FAIL - Monterey Bay Coast enabled profile -", exc)
     failed.append("Monterey Bay Coast enabled profile")
+
+south_carolina_profile = ROOT / "tree_profiles" / "south_carolina_lowcountry.json"
+try:
+    south_carolina = json.loads(south_carolina_profile.read_text(encoding="utf-8"))
+    assert south_carolina.get("enabled") is True
+    assert south_carolina.get("display_name") == "South Carolina Lowcountry"
+    assert south_carolina.get("natural_reference_tree_count") == 1694
+    assert south_carolina.get("excluded_vertical_massing_count") == 1035
+    assert len(south_carolina.get("assets", [])) == 34
+    materials = south_carolina.get("visual_material_preset", {})
+    assert materials.get("surfaces2", [])[0].get("name") == "Sand34_DetroitGC"
+    assert materials.get("surfaces2", [])[6].get("name") == "Green46_Pinehurst"
+    assert materials.get("surfaces2", [])[8].get("name") == "Fairway46_Pinehurst"
+    print("PASS - South Carolina Lowcountry enabled profile + donor materials")
+except Exception as exc:
+    print("FAIL - South Carolina Lowcountry enabled profile -", exc)
+    failed.append("South Carolina Lowcountry enabled profile")
 
 template = ROOT / "tree_profiles" / "_template.json"
 try:
