@@ -1,0 +1,24 @@
+{
+  "id": "example_real_life_theme",
+  "display_name": "Example Real-Life Theme",
+  "enabled": false,
+  "description": "Copy this file to a non-underscore filename and replace the example values.",
+  "reference_courses": ["Example Course.course"],
+  "scale_defaults": {
+    "x": {"p10": 0.8, "p50": 1.1, "p90": 1.5},
+    "y": {"p10": 0.9, "p50": 1.2, "p90": 1.6},
+    "z": {"p10": 0.8, "p50": 1.1, "p90": 1.5}
+  },
+  "assets": [
+    {
+      "path": "Assets/Foliage/SpeedTree8/Trees/Example/Prefabs/Example_001",
+      "shape": "normal",
+      "weight": 10,
+      "scale": {
+        "x": {"p10": 0.8, "p50": 1.1, "p90": 1.5},
+        "y": {"p10": 0.9, "p50": 1.2, "p90": 1.6},
+        "z": {"p10": 0.8, "p50": 1.1, "p90": 1.5}
+      }
+    }
+  ]
+}

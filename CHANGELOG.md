@@ -5,6 +5,23 @@ All notable fork-specific changes to `malifica/TGC-Designer-Tools` are documente
 The fork is based on work from `HiCamino/TGC-Designer-Tools`.
 
 
+## [Unreleased - 0.5.0-2k25-beta5] - Real-life tree planting profiles
+
+### Added
+
+- Beta 5 Tree Planting Theme selector for source Designer theme vs calibrated real-life profiles.
+- JSON-backed `tree_profiles` directory for biome/location-based planting styles.
+- Finished-course analyzer for prefab usage and X/Y/Z p10/p50/p90 scale distributions.
+- Weighted custom-profile tree assignment for LiDAR and OSM candidates.
+- **Heroic (Beta 5)** scale mode with **Legacy LiDAR** retained for comparison.
+- Beta 5 development build and verifier scripts.
+
+### Changed
+
+- Custom profiles are independent of the source course's built-in Designer theme.
+- LiDAR custom-profile trees map detected size percentiles into reference-course Designer scale distributions.
+- OSM custom-profile trees use weighted mix plus median reference scale.
+
 ## [0.5.0-2k25-beta4] - Preview, OSM, LiDAR-tree, water, and Fjordland update
 
 ### Added

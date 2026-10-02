@@ -17,6 +17,7 @@ from PIL import Image, ImageTk
 import string
 
 import tgc_definitions
+import tree_profile_manager
 import tgc_tools
 import osm_alignment_viewer
 import lidar_map_api
@@ -25,8 +26,8 @@ import tgc_image_terrain
 from tgc_visualizer import drawCourseAsImage
 import OSMTGC
 
-TGC_GUI_VERSION = "v0.5.0-2k25-beta4"
-TGC_APP_TITLE = "TGC Designer Tools 2K25 - Beta 4"
+TGC_GUI_VERSION = "v0.5.0-2k25-beta5-dev"
+TGC_APP_TITLE = "TGC Designer Tools 2K25 - Beta 5 Development"
 
 AUTO_RED_MASK_BUFFER_MIN_M = 5.0
 AUTO_RED_MASK_BUFFER_MAX_M = 30.0
@@ -1555,8 +1556,38 @@ options_entries_dict["lidar_trees"] = tk.BooleanVar()
 lidarTreeCheck = Checkbutton(courseSubFrame, text="Add Trees From Lidar (Experimental)", variable=options_entries_dict["lidar_trees"], fg=check_fg, bg=check_bg)
 lidarTreeCheck.deselect()
 options_entries_dict["tree_variety"] = tk.BooleanVar()
-treeVarietyCheck = Checkbutton(courseSubFrame, text="Tree Variety (Lidar and OSM)", variable=options_entries_dict["tree_variety"], fg=check_fg, bg=check_bg)
+treeVarietyCheck = Checkbutton(
+    courseSubFrame,
+    text="Tree Variety (Designer themes; custom profiles use calibrated mix)",
+    variable=options_entries_dict["tree_variety"],
+    fg=check_fg,
+    bg=check_bg
+)
 treeVarietyCheck.deselect()
+
+tree_profile_var = tk.StringVar()
+tree_profile_var.set(tree_profile_manager.DESIGNER_THEME_LABEL)
+options_entries_dict["tree_profile"] = tree_profile_var
+treeProfileCombo = ttk.Combobox(
+    courseSubFrame,
+    width=31,
+    justify='left',
+    textvariable=tree_profile_var,
+    state='readonly',
+    values=tuple(tree_profile_manager.get_profile_choices())
+)
+
+tree_scale_mode_var = tk.StringVar()
+tree_scale_mode_var.set(tree_profile_manager.HEROIC_SCALE_MODE)
+options_entries_dict["tree_scale_mode"] = tree_scale_mode_var
+treeScaleModeCombo = ttk.Combobox(
+    courseSubFrame,
+    width=20,
+    justify='left',
+    textvariable=tree_scale_mode_var,
+    state='readonly',
+    values=(tree_profile_manager.HEROIC_SCALE_MODE, tree_profile_manager.LEGACY_SCALE_MODE)
+)
 
 options_entries_dict["filter_lidar_trees_50m"] = tk.BooleanVar()
 filterLidarTreesCheck = Checkbutton(
@@ -1620,17 +1651,21 @@ Label(courseSubFrame, text="Purple Background Detail Spacing (m)", fg=check_fg, 
 outside_bg_resolution_entry.grid(row=3, column=1, sticky=W, padx=5)
 lidarTreeCheck.grid(row=4, columnspan=2, sticky=W, padx=5)
 treeVarietyCheck.grid(row=5, columnspan=2, sticky=W, padx=5)
-filterLidarTreesCheck.grid(row=6, columnspan=2, sticky=W, padx=5)
-lidarBuildingCheck.grid(row=7, columnspan=2, sticky=W, padx=5)
-filterLidarBuildingsCheck.grid(row=8, columnspan=2, sticky=W, padx=5)
-fillWaterCheck.grid(row=9, columnspan=2, sticky=W, padx=5)
-purgeWaterCheck.grid(row=10, columnspan=2, sticky=W, padx=5)
-Label(courseSubFrame, text="Terrain Brush", fg=check_fg, bg=check_bg).grid(row=12, column=0, pady=(10,3), sticky=W, padx=5)
-brush_type_combo.grid(row=12, column=1, pady=(10,3), sticky=W, padx=5)
-Label(courseSubFrame, text="Brush Size (meters)", fg=check_fg, bg=check_bg).grid(row=13, column=0, pady=3, sticky=W, padx=5)
-brush_scale_combo.grid(row=13, column=1, pady=3, sticky=W, padx=5)
-Label(courseSubFrame, text="Brushes: 72 / 9 / 10 / 15", fg=check_fg, bg=check_bg).grid(row=14, columnspan=2, sticky=W, padx=5)
-Label(courseSubFrame, text="Terrain Generation: Dense / Original only", fg=check_fg, bg=check_bg).grid(row=15, columnspan=2, sticky=W, padx=5)
+Label(courseSubFrame, text="Tree Planting Theme", fg=check_fg, bg=check_bg).grid(row=6, column=0, sticky=W, padx=5, pady=(5,0))
+treeProfileCombo.grid(row=6, column=1, sticky=W, padx=5, pady=(5,0))
+Label(courseSubFrame, text="Tree Scale", fg=check_fg, bg=check_bg).grid(row=7, column=0, sticky=W, padx=5)
+treeScaleModeCombo.grid(row=7, column=1, sticky=W, padx=5)
+filterLidarTreesCheck.grid(row=8, columnspan=2, sticky=W, padx=5)
+lidarBuildingCheck.grid(row=9, columnspan=2, sticky=W, padx=5)
+filterLidarBuildingsCheck.grid(row=10, columnspan=2, sticky=W, padx=5)
+fillWaterCheck.grid(row=11, columnspan=2, sticky=W, padx=5)
+purgeWaterCheck.grid(row=12, columnspan=2, sticky=W, padx=5)
+Label(courseSubFrame, text="Terrain Brush", fg=check_fg, bg=check_bg).grid(row=14, column=0, pady=(10,3), sticky=W, padx=5)
+brush_type_combo.grid(row=14, column=1, pady=(10,3), sticky=W, padx=5)
+Label(courseSubFrame, text="Brush Size (meters)", fg=check_fg, bg=check_bg).grid(row=15, column=0, pady=3, sticky=W, padx=5)
+brush_scale_combo.grid(row=15, column=1, pady=3, sticky=W, padx=5)
+Label(courseSubFrame, text="Brushes: 72 / 9 / 10 / 15", fg=check_fg, bg=check_bg).grid(row=16, columnspan=2, sticky=W, padx=5)
+Label(courseSubFrame, text="Terrain Generation: Dense / Original only", fg=check_fg, bg=check_bg).grid(row=17, columnspan=2, sticky=W, padx=5)
 
 # Pack the two option frames side by side
 osmControlFrame.pack(side=LEFT, anchor=N, padx=5)

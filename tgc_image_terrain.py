@@ -17,6 +17,7 @@ import OSMTGC
 import cfs_georef
 import tgc_definitions
 import tgc_tools
+import tree_profile_manager
 
 status_print_duration = 1.0 # Print progress every n seconds
 
@@ -496,27 +497,86 @@ def get_placed_object(course_version=-1):
     return json.loads('{"Key":'+key+',"Value":{"items":[],"clusters":[]}}')
 
 
-def get_trees(theme, tree_variety, trees, course_version=-1):
-    # Get possible trees for this theme.  User can't easily change theme after this
-    # But it's easy to rerun the import tool
-    # Default to the default tree 0 if empty or not found
+def _population_percentile(values, value):
+    if not values or len(values) <= 1:
+        return 0.5
+    ordered = np.sort(np.asarray(values, dtype=np.float64))
+    rank = int(np.searchsorted(ordered, float(value), side='left'))
+    return max(0.0, min(1.0, float(rank) / float(len(ordered) - 1)))
+
+
+def _get_profile_trees(profile, trees, course_version=-1, tree_source="lidar"):
+    if course_version < 23 or not trees:
+        return []
+
+    radii = [float(t[2]) for t in trees]
+    heights = [float(t[3]) for t in trees]
+    groups = {}
+    has_skinny = any(a.get("shape") == "skinny" for a in profile.get("assets", []))
+
+    for tree in trees:
+        easting, northing, r, h = tree
+        shape = "normal"
+        if tree_source != "osm" and has_skinny and r > 0.001 and h / r >= 2.5:
+            shape = "skinny"
+
+        asset = tree_profile_manager.choose_asset(profile, shape=shape, source_kind=tree_source)
+        if asset is None:
+            continue
+
+        path = asset["path"]
+        if path not in groups:
+            group = get_placed_object(course_version)
+            group['Key']['path'] = path
+            groups[path] = group
+
+        if tree_source == "osm":
+            radius_percentile = 0.5
+            height_percentile = 0.5
+        else:
+            radius_percentile = _population_percentile(radii, r)
+            height_percentile = _population_percentile(heights, h)
+
+        sx, sy, sz = tree_profile_manager.scale_for_asset(
+            profile, asset,
+            radius_percentile=radius_percentile,
+            height_percentile=height_percentile,
+        )
+
+        item = get_object_item(easting, northing, random.randrange(0, 359))
+        item['scale']['x'] = sx
+        item['scale']['y'] = sy
+        item['scale']['z'] = sz
+        groups[path]['Value']['items'].append(item)
+
+    return [g for g in groups.values() if len(g['Value']['items']) > 0]
+
+
+def get_trees(theme, tree_variety, trees, course_version=-1,
+              tree_profile=None, tree_scale_mode=None, tree_source="lidar"):
+    if not trees:
+        return []
+
+    if course_version >= 23:
+        profile = tree_profile_manager.get_profile(tree_profile)
+        if profile is not None:
+            return _get_profile_trees(
+                profile, trees,
+                course_version=course_version,
+                tree_source=tree_source,
+            )
+
     if course_version >= 23:
         normal_tree_ids = tgc_definitions.normal_trees_2k.get(theme, [0])
         if len(normal_tree_ids) == 0:
             normal_tree_ids = [0]
-
-        # 2K tree ids index a GLOBAL asset-path list.
-        # With variety off, use the first tree from this theme's palette,
-        # not global asset index 0.
         if not tree_variety:
             normal_tree_ids = [normal_tree_ids[0]]
     else:
         normal_tree_ids = tgc_definitions.normal_trees.get(theme, [0])
-        # Legacy numeric type 0 remains theme-relative.
         if (not tree_variety) or len(normal_tree_ids) == 0:
             normal_tree_ids = [0]
 
-    # Default to the normal trees if empty or not found
     if course_version >= 23:
         skinny_tree_ids = tgc_definitions.skinny_trees_2k.get(theme, normal_tree_ids)
     else:
@@ -525,7 +585,6 @@ def get_trees(theme, tree_variety, trees, course_version=-1):
     if (not tree_variety) or len(skinny_tree_ids) == 0:
         skinny_tree_ids = []
 
-    # Make an group for each type of tree, even if they may not be used
     normal_trees = []
     for tree_id in normal_tree_ids:
         p = get_placed_object(course_version)
@@ -535,6 +594,7 @@ def get_trees(theme, tree_variety, trees, course_version=-1):
             p['Key']['category'] = 0
             p['Key']['type'] = tree_id
         normal_trees.append(p)
+
     skinny_trees = []
     for tree_id in skinny_tree_ids:
         p = get_placed_object(course_version)
@@ -545,11 +605,20 @@ def get_trees(theme, tree_variety, trees, course_version=-1):
             p['Key']['type'] = tree_id
         skinny_trees.append(p)
 
-    # Scale trees based on relative sizes
-    min_radius_scale = 0.2
-    radius_scale_range = 1.5 - min_radius_scale
-    min_height_scale = 0.5
-    height_scale_range = 1.2 - min_height_scale
+    heroic = tree_scale_mode == tree_profile_manager.HEROIC_SCALE_MODE
+    if heroic:
+        min_radius_scale = 0.70
+        max_radius_scale = 1.65
+        min_height_scale = 0.85
+        max_height_scale = 1.55
+    else:
+        min_radius_scale = 0.20
+        max_radius_scale = 1.50
+        min_height_scale = 0.50
+        max_height_scale = 1.20
+
+    radius_scale_range = max_radius_scale - min_radius_scale
+    height_scale_range = max_height_scale - min_height_scale
 
     min_tree_radius = min(trees, key=lambda x: x[2])[2]
     max_tree_radius = max(trees, key=lambda x: x[2])[2]
@@ -557,41 +626,39 @@ def get_trees(theme, tree_variety, trees, course_version=-1):
     if tree_radius_range > 0.01:
         radius_multiplier = radius_scale_range / tree_radius_range
     else:
-        # All nearly same radius, scale to 1.0
-        min_radius_scale = 1.0
+        min_radius_scale = 1.10 if heroic else 1.0
         radius_multiplier = 0.0
+
     min_tree_height = min(trees, key=lambda x: x[3])[3]
     max_tree_height = max(trees, key=lambda x: x[3])[3]
     tree_height_range = max_tree_height - min_tree_height
     if tree_height_range > 0.01:
         height_multiplier = height_scale_range / tree_height_range
     else:
-        # All nearly same height, scale to 1.0
-        min_height_scale = 1.0
+        min_height_scale = 1.15 if heroic else 1.0
         height_multiplier = 0.0
 
     for tree in trees:
         easting, northing, r, h = tree
         t = get_object_item(easting, northing, random.randrange(0, 359))
-
         t['scale']['y'] = (h-min_tree_height)*height_multiplier + min_height_scale
         t['scale']['x'] = (r-min_tree_radius)*radius_multiplier + min_radius_scale
         t['scale']['z'] = (r-min_tree_radius)*radius_multiplier + min_radius_scale
 
-        if h / r < 2.5 or len(skinny_trees) == 0: # Normal Tree
+        if h / r < 2.5 or len(skinny_trees) == 0:
             group = random.choice(normal_trees)
-        else: # Skinny tree
+        else:
             group = random.choice(skinny_trees)
         group['Value']['items'].append(t)
 
-    # Remove empty groups
     output = []
     for g in itertools.chain(normal_trees, skinny_trees):
         if len(g['Value']['items']) > 0:
             output.append(g)
     return output
 
-def get_lidar_trees(theme, tree_variety, lidar_trees, pc, mask, mask_pc, image_scale, course_version=-1):
+
+def get_lidar_trees(theme, tree_variety, lidar_trees, pc, mask, mask_pc, image_scale, course_version=-1, tree_profile=None, tree_scale_mode=None):
     # Convert to TGC coordinates
     trees = []
     for tree in lidar_trees:
@@ -612,7 +679,15 @@ def get_lidar_trees(theme, tree_variety, lidar_trees, pc, mask, mask_pc, image_s
             x, y, z = pc.projToTGC(easting, northing, 0.0)
             trees.append((x, z, r, h))
 
-    return get_trees(theme, tree_variety, trees, course_version)
+    return get_trees(
+        theme,
+        tree_variety,
+        trees,
+        course_version,
+        tree_profile=tree_profile,
+        tree_scale_mode=tree_scale_mode,
+        tree_source="lidar",
+    )
 
 # Set various constants that we need
 def set_constants(course_json, flatten_fairways=False, flatten_greens=False, course_latitude=None, printf=print):
@@ -995,7 +1070,15 @@ def generate_course(course_json, heightmap_dir_path, options_dict={}, printf=pri
 
         if len(osm_trees) > 0:
             printf("Adding trees from OpenStreetMap")
-            for o in get_trees(course_json['theme'], options_dict.get('tree_variety', False), osm_trees, course_version):
+            for o in get_trees(
+                course_json['theme'],
+                options_dict.get('tree_variety', False),
+                osm_trees,
+                course_version,
+                tree_profile=options_dict.get('tree_profile'),
+                tree_scale_mode=options_dict.get('tree_scale_mode'),
+                tree_source="osm",
+            ):
                 course_json[obj_tag].append(o)
 
         if (
@@ -1081,6 +1164,8 @@ def generate_course(course_json, heightmap_dir_path, options_dict={}, printf=pri
                 mask_pc,
                 image_scale,
                 course_version,
+                tree_profile=options_dict.get('tree_profile'),
+                tree_scale_mode=options_dict.get('tree_scale_mode'),
             )
 
             lidar_tree_items = sum(
@@ -1149,7 +1234,15 @@ def generate_flat_course(course_json, xml_data, options_dict={}, printf=print, c
 
     if len(osm_trees) > 0:
         printf("Adding trees from OpenStreetMap")
-        for o in get_trees(course_json['theme'], options_dict.get('tree_variety', False), osm_trees, course_version):
+        for o in get_trees(
+                course_json['theme'],
+                options_dict.get('tree_variety', False),
+                osm_trees,
+                course_version,
+                tree_profile=options_dict.get('tree_profile'),
+                tree_scale_mode=options_dict.get('tree_scale_mode'),
+                tree_source="osm",
+            ):
             course_json[obj_tag].append(o)
 
     return course_json

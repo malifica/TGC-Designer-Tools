@@ -9,6 +9,16 @@ Upstream: https://github.com/HiCamino/TGC-Designer-Tools
 This project remains under the upstream **Apache License 2.0**.
 
 
+## Beta 5 development
+
+The published release remains **v0.5.0-2k25-beta4**. Current `main` development has moved to **Beta 5**.
+
+Beta 5 begins a real-life tree planting-profile system for LiDAR/OSM vegetation. It adds a selectable **Heroic** tree scale and JSON-backed custom profiles measured from fully planted Designer reference courses. Planned profile families include Piney Woods, Monterey Peninsula, Upstate New York, Scotland, and Florida.
+
+See `BETA5_TREE_PROFILES.md`.
+
+
+
 ## Beta 4
 
 Beta 4 rolls the post-Beta-3.1 work on `main` into a new Windows prerelease.
