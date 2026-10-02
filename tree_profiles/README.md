@@ -99,3 +99,10 @@ After removing vertically buried/raised scenery-massing trees:
 
 Conifer, pine, spruce, and Lombardy-poplar forms are initially treated as skinny;
 broadleaf birch, maple, ash, aspen, elm, plane, beech and similar forms are normal.
+
+
+## Reference-course acceptance log
+
+Courses that have been geographically identified and inspected but rejected or
+deferred as tree-profile calibration sources are tracked in
+`tree_profiles/REFERENCE_COURSE_REVIEWS.md`.
