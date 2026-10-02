@@ -116,3 +116,22 @@ vertically manipulated scenery-massing trees, and uses a **36-prefab** core
 representing **95.5%** of the natural population. The profile is visual rather
 than taxonomically literal: visually useful non-local prefab labels are allowed
 when they reproduce the regional pine-hardwood character in-game.
+
+
+## Carolina Piedmont (Autumn)
+
+Tot Hill Farm is used as the first Carolina Piedmont/Uwharrie reference. The course
+sits in Asheboro, North Carolina and its natural planting mix is visually consistent
+with the region's pine-hardwood / oak-hickory character.
+
+The reference contains **3,044** actual SpeedTree tree objects. After Beta 5's
+terrain-alignment filter:
+
+- **837** natural / terrain-aligned trees remain;
+- **2,207** buried/raised scenery-massing trees are excluded;
+- the core profile uses **37 prefabs / 799 trees / 95.5%** coverage;
+- core scale p10 / p50 / p90 is approximately **0.696 / 1.064 / 1.787**.
+
+Because more than 80% of the retained planting uses explicit fall/autumn asset
+variants, the enabled profile is intentionally named **Carolina Piedmont (Autumn)**
+rather than a generic Carolina Piedmont theme.

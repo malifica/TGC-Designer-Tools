@@ -126,3 +126,19 @@ The profile intentionally treats the course as a **visual pine-hardwood regional
 reference**, not a literal botanical inventory. Some game prefab names such as
 Scots Pine, Slash Pine, Monterey Cypress or Southern Live Oak are retained where
 their in-game form contributes convincingly to the Virginia Coastal Plain look.
+
+
+### Carolina Piedmont (Autumn)
+
+**Carolina Piedmont (Autumn)** is calibrated from Tot Hill Farm in Asheboro,
+North Carolina, in the Uwharrie / Carolina Piedmont landscape.
+
+After removing vertically manipulated scenery massing, the reference contributes
+**837 natural / terrain-aligned trees**. The enabled core profile uses the **37**
+most-used prefabs, representing **799 placements / 95.5%** of the natural
+reference population.
+
+This profile is explicitly seasonal: **83.6%** of all retained natural placements
+and **86.6%** of the core pool use fall/autumn prefab variants. A future green-leaf
+Carolina Piedmont reference should become a separate non-autumn profile rather than
+silently mixing seasonal asset colors.

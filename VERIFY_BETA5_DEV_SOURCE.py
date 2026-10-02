@@ -40,6 +40,7 @@ checks = [
     ("Heroic height target", "tgc_image_terrain.py", "max_height_scale = 1.55"),
     ("Texas Hill Country profile file", "BETA5_TREE_PROFILES.md", "Texas Hill Country"),
     ("Niagara Escarpment profile file", "BETA5_TREE_PROFILES.md", "Niagara Escarpment"),
+    ("Carolina Piedmont Autumn profile file", "BETA5_TREE_PROFILES.md", "Carolina Piedmont (Autumn)"),
     ("Virginia Coastal Plain profile file", "BETA5_TREE_PROFILES.md", "Virginia Coastal Plain"),
     ("Equal multi-course weighting", "tree_profile_analyzer.py", "def equal_course_weight(asset_path):"),
 ]
@@ -100,6 +101,18 @@ try:
 except Exception as exc:
     print("FAIL - Virginia Coastal Plain enabled profile -", exc)
     failed.append("Virginia Coastal Plain enabled profile")
+
+carolina_profile = ROOT / "tree_profiles" / "carolina_piedmont_autumn.json"
+try:
+    carolina = json.loads(carolina_profile.read_text(encoding="utf-8"))
+    assert carolina.get("enabled") is True
+    assert carolina.get("display_name") == "Carolina Piedmont (Autumn)"
+    assert carolina.get("seasonal_character") == "autumn"
+    assert len(carolina.get("assets", [])) == 37
+    print("PASS - Carolina Piedmont Autumn enabled profile")
+except Exception as exc:
+    print("FAIL - Carolina Piedmont Autumn enabled profile -", exc)
+    failed.append("Carolina Piedmont Autumn enabled profile")
 
 template = ROOT / "tree_profiles" / "_template.json"
 try:
