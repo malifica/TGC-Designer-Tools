@@ -279,3 +279,38 @@ The donor explicitly supplies **Green50_StAndrews**, **Fringe50_StAndrews**,
 **Splat1_EastLakeGC / Splat2_RivieraCC / Splat3_Swiss**. Bunker slot 0 and
 terrain slot 11 remain unnamed theme defaults, so the copied **Steppe (13)** root
 Designer theme is required for the complete donor look.
+
+
+## Intentional no-tree regional themes
+
+Some real coastal courses are not tree landscapes at all. Beta 5 now supports
+`"tree_generation": "none"` for reviewed regional profiles whose donor and
+real-world environment are intentionally open, treeless links/heath.
+
+These profiles still apply the donor root Designer theme and material structures,
+but automatic LiDAR/OSM tree candidates do not become tree prefabs. This avoids
+inventing a specimen-tree palette merely to satisfy the profile schema. Low scrub,
+heath, dune grasses and similar vegetation remain a separate future massing/scrub
+system.
+
+## Bass Strait Coastal Links
+
+**Bass Strait Coastal Links** is calibrated from Cape Wickham Golf Links on King
+Island, Tasmania. The donor is an 18-hole, par-72 course using Designer theme
+**15 (Highlands)**.
+
+The course file contains **zero placed tree objects** and no explicitly named
+`surfaces2` or `secondarySurfaces` material names. That result is treated as
+intentional rather than as a failed tree donor because Cape Wickham is a pure,
+windswept coastal links environment.
+
+The enabled profile therefore uses:
+
+- `tree_generation = "none"`;
+- **Highlands (15)** as the authoritative root Designer theme;
+- the donor's exact default `surfaces2` / `secondarySurfaces` structures;
+- no invented tree assets.
+
+This is intended to represent exposed Bass Strait links terrain until Beta 5 gains
+a dedicated coastal-heath/scrub palette for low shrubs, pigface, grasses and other
+wind-pruned vegetation.

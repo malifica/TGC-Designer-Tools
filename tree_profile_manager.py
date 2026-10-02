@@ -76,11 +76,16 @@ def _validate_profile(profile, source_name):
     profile_id = str(profile.get("id", "")).strip()
     display_name = str(profile.get("display_name", "")).strip()
     assets = profile.get("assets", [])
+    tree_generation = str(profile.get("tree_generation", "profile")).strip().lower()
+    if tree_generation not in ("profile", "none"):
+        raise ValueError("tree_generation must be 'profile' or 'none'")
     if not profile_id:
         raise ValueError("missing profile id")
     if not display_name:
         raise ValueError("missing display_name")
-    if not isinstance(assets, list) or not assets:
+    if not isinstance(assets, list):
+        raise ValueError("assets must be a list")
+    if not assets and tree_generation != "none":
         raise ValueError("enabled profile must contain at least one asset")
 
     clean_assets = []
@@ -124,7 +129,7 @@ def _validate_profile(profile, source_name):
             "uniform_scale": clean_uniform_scale,
         })
 
-    if not clean_assets:
+    if not clean_assets and tree_generation != "none":
         raise ValueError("enabled profile contains no usable assets")
 
     defaults = profile.get("scale_defaults", {})
@@ -166,6 +171,7 @@ def _validate_profile(profile, source_name):
         "display_name": display_name,
         "description": str(profile.get("description", "")).strip(),
         "reference_courses": list(profile.get("reference_courses", []) or []),
+        "tree_generation": tree_generation,
         "assets": clean_assets,
         "scale_defaults": clean_defaults,
         "visual_material_preset": clean_visual_material_preset,

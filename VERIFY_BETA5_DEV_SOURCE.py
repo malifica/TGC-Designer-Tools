@@ -26,6 +26,7 @@ checks = [
     ("Tree scale GUI selector", "tgc_gui.py", 'text="Tree Scale"'),
     ("Heroic default", "tgc_gui.py", 'tree_scale_mode_var.set(tree_profile_manager.HEROIC_SCALE_MODE)'),
     ("Profile loader", "tree_profile_manager.py", "def load_profiles("),
+    ("No-tree profile support", "tree_profile_manager.py", 'tree_generation not in ("profile", "none")'),
     ("Material preset loader", "tree_profile_manager.py", "visual_material_preset"),
     ("Material preset apply helper", "tree_profile_manager.py", "def apply_visual_material_preset("),
     ("Designer theme profile support", "tree_profile_manager.py", 'target_json["courseTheme"]'),
@@ -51,6 +52,7 @@ checks = [
     ("Monterey Bay Coast profile file", "BETA5_TREE_PROFILES.md", "Monterey Bay Coast"),
     ("Georgia Piedmont profile file", "BETA5_TREE_PROFILES.md", "Georgia Piedmont"),
     ("San Francisco Peninsula profile file", "BETA5_TREE_PROFILES.md", "San Francisco Peninsula"),
+    ("Bass Strait Coastal Links profile file", "BETA5_TREE_PROFILES.md", "Bass Strait Coastal Links"),
     ("South Carolina Lowcountry profile file", "BETA5_TREE_PROFILES.md", "South Carolina Lowcountry"),
     ("Equal multi-course weighting", "tree_profile_analyzer.py", "def equal_course_weight(asset_path):"),
 ]
@@ -234,6 +236,35 @@ try:
 except Exception as exc:
     print("FAIL - San Francisco Peninsula enabled profile -", exc)
     failed.append("San Francisco Peninsula enabled profile")
+
+bass_strait_profile = ROOT / "tree_profiles" / "bass_strait_coastal_links.json"
+try:
+    bass_strait = json.loads(bass_strait_profile.read_text(encoding="utf-8"))
+    assert bass_strait.get("enabled") is True
+    assert bass_strait.get("display_name") == "Bass Strait Coastal Links"
+    assert bass_strait.get("tree_generation") == "none"
+    assert bass_strait.get("all_speedtree_tree_count") == 0
+    assert bass_strait.get("assets") == []
+    materials = bass_strait.get("visual_material_preset", {})
+    assert materials.get("theme") == 15
+    assert len(materials.get("surfaces2", [])) == 15
+    print("PASS - Bass Strait Coastal Links intentional no-tree profile")
+except Exception as exc:
+    print("FAIL - Bass Strait Coastal Links profile -", exc)
+    failed.append("Bass Strait Coastal Links profile")
+
+try:
+    import tree_profile_manager
+    tree_profile_manager.load_profiles(force=True)
+    no_tree = tree_profile_manager.get_profile("Bass Strait Coastal Links")
+    assert no_tree is not None
+    assert no_tree.get("tree_generation") == "none"
+    assert no_tree.get("assets") == []
+    assert tree_profile_manager.choose_asset(no_tree) is None
+    print("PASS - no-tree regional profile runtime behavior")
+except Exception as exc:
+    print("FAIL - no-tree regional profile runtime behavior -", exc)
+    failed.append("no-tree regional profile runtime behavior")
 
 try:
     import tree_profile_manager

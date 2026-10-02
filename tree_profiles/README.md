@@ -258,3 +258,26 @@ Its natural core is approximately **98% pine/cypress visual forms**, with Monter
 Cypress especially prominent. The profile applies the donor's **Steppe (theme 13)**
 root Designer theme as well as its explicit turf and terrain materials, ensuring
 unnamed theme-default slots do not depend on the starting template.
+
+
+## Intentional no-tree profiles
+
+A reviewed regional profile may set `"tree_generation": "none"` and use an empty
+`assets` array. This is reserved for environments that are intentionally not
+tree landscapes, such as exposed coastal links/heath. The profile still applies
+the donor Designer theme and materials; automatic LiDAR/OSM tree candidates are
+suppressed instead of being mapped to a fabricated tree palette.
+
+### Bass Strait Coastal Links
+
+**Bass Strait Coastal Links** is calibrated from
+`Cape Wickham 1.0 Adaptive(3).course`, identified as Cape Wickham Golf Links on
+King Island, Tasmania.
+
+The donor contains **0 placed SpeedTree trees**, and its surface/terrain material
+slots are unnamed defaults. The profile therefore applies **Highlands (theme 15)**
+as the authoritative donor environment and sets `tree_generation = "none"`.
+
+This matches the course's exposed links character while leaving coastal heath,
+scrub, pigface and dune-grass generation for the future massing/scrub system rather
+than misclassifying those forms as specimen trees.

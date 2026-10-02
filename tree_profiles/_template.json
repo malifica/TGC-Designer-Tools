@@ -49,5 +49,6 @@
   ],
   "visual_material_preset": {
     "theme": 7
-  }
+  },
+  "tree_generation": "profile"
 }
