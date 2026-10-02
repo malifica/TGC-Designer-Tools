@@ -45,3 +45,22 @@ scale because our OSM tree nodes do not currently carry trustworthy dimensions.
 
 Enabled JSON profiles in `tree_profiles\` automatically appear in the GUI's
 **Tree Planting Theme** selector.
+
+
+## First calibrated test profile
+
+**Texas Hill Country** is now enabled for Beta 5 development testing.
+
+Reference: `Canyon Springs SATX (L).course`
+
+- 2,668 planted tree instances represented in the initial profile
+- 51 core tree prefabs
+- 90.4% coverage of the retained non-ornamental reference population
+- overall Designer scale p10 / p50 / p90: **0.530 / 1.000 / 1.286**
+- oak-dominant weighted mix, with mesquite and drought-tolerant accent forms
+- contextual Crape Myrtle, Chinese Fan Palm and Silver Maple placements excluded
+  from random LiDAR/OSM distribution
+
+This is intentionally a first-pass regional planting profile for in-game testing.
+After we inspect the generated result, we can split a dedicated skinny/juniper pool,
+adjust species weights, or bring selected rare assets back into the profile.

@@ -34,6 +34,7 @@ checks = [
     ("Runtime custom profile builder", "tgc_image_terrain.py", "def _get_profile_trees("),
     ("Profile option plumbing", "tgc_image_terrain.py", "tree_profile=options_dict.get('tree_profile')"),
     ("Heroic height target", "tgc_image_terrain.py", "max_height_scale = 1.55"),
+    ("Texas Hill Country profile file", "BETA5_TREE_PROFILES.md", "Texas Hill Country"),
 ]
 
 failed = []
@@ -54,6 +55,17 @@ for name in [
     except Exception as exc:
         print("FAIL - py_compile", name, "-", exc)
         failed.append("py_compile " + name)
+
+texas_profile = ROOT / "tree_profiles" / "texas_hill_country.json"
+try:
+    texas = json.loads(texas_profile.read_text(encoding="utf-8"))
+    assert texas.get("enabled") is True
+    assert texas.get("display_name") == "Texas Hill Country"
+    assert len(texas.get("assets", [])) == 51
+    print("PASS - Texas Hill Country enabled profile")
+except Exception as exc:
+    print("FAIL - Texas Hill Country enabled profile -", exc)
+    failed.append("Texas Hill Country enabled profile")
 
 template = ROOT / "tree_profiles" / "_template.json"
 try:

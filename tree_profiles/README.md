@@ -31,3 +31,17 @@ radius and height percentiles independently.
 
 The analyzer only treats actual `Assets/Foliage/SpeedTree...` tree prefabs as
 tree samples. Course-detail props such as fallen logs are excluded.
+
+
+### Texas Hill Country
+
+The first enabled Beta 5 real-life test profile is **Texas Hill Country**, calibrated
+from `Canyon Springs SATX (L).course`.
+
+The test pool uses the 51 most-used non-ornamental foliage prefabs, representing
+**2,668 placements / 90.4%** of the retained planted-tree population. Contextual
+Crape Myrtle, Chinese Fan Palm, Silver Maple, fallen-tree detail props, and the
+long tail of very rare assets are excluded from the first random LiDAR/OSM test.
+
+The profile preserves the reference course's observed per-prefab uniform scale
+p10/p50/p90 values and raw usage counts as selection weights.
