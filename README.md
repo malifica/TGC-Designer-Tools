@@ -368,3 +368,19 @@ writes those candidates into the DEM heightmap package. The DEM elevation
 array, DEM mask, image scale and master grid are not replaced. A one-time
 `heightmap_before_lidar_trees.npy` backup is created before the tree layer is
 attached.
+
+
+### Epic tree scale
+
+Beta 5's **Tree Scale** selector now includes **Epic** in addition to the
+existing Heroic and Legacy LiDAR modes.
+
+- **Heroic (Beta 5)** remains unchanged and remains the default.
+- **Epic** preserves the same tree mix and relative size distribution but
+  multiplies the final X/Y/Z tree scale by **1.20**.
+- **Legacy LiDAR** remains unchanged.
+
+For calibrated Regional Themes, Epic scales the donor-calibrated prefab
+distribution rather than replacing it with generic scale values. For built-in
+Designer-theme trees, Epic is the same 20% step above the existing Heroic
+radius/height ranges.

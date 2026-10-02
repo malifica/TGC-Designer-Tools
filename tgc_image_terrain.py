@@ -505,7 +505,13 @@ def _population_percentile(values, value):
     return max(0.0, min(1.0, float(rank) / float(len(ordered) - 1)))
 
 
-def _get_profile_trees(profile, trees, course_version=-1, tree_source="lidar"):
+def _get_profile_trees(
+    profile,
+    trees,
+    course_version=-1,
+    tree_source="lidar",
+    tree_scale_mode=None,
+):
     if course_version < 23 or not trees:
         return []
 
@@ -538,9 +544,11 @@ def _get_profile_trees(profile, trees, course_version=-1, tree_source="lidar"):
             height_percentile = _population_percentile(heights, h)
 
         sx, sy, sz = tree_profile_manager.scale_for_asset(
-            profile, asset,
+            profile,
+            asset,
             radius_percentile=radius_percentile,
             height_percentile=height_percentile,
+            tree_scale_mode=tree_scale_mode,
         )
 
         item = get_object_item(easting, northing, random.randrange(0, 359))
@@ -561,9 +569,11 @@ def get_trees(theme, tree_variety, trees, course_version=-1,
         profile = tree_profile_manager.get_profile(tree_profile)
         if profile is not None:
             return _get_profile_trees(
-                profile, trees,
+                profile,
+                trees,
                 course_version=course_version,
                 tree_source=tree_source,
+                tree_scale_mode=tree_scale_mode,
             )
 
     if course_version >= 23:
@@ -605,8 +615,16 @@ def get_trees(theme, tree_variety, trees, course_version=-1,
             p['Key']['type'] = tree_id
         skinny_trees.append(p)
 
+    epic = tree_scale_mode == tree_profile_manager.EPIC_SCALE_MODE
     heroic = tree_scale_mode == tree_profile_manager.HEROIC_SCALE_MODE
-    if heroic:
+
+    if epic:
+        # Epic is exactly one 20% step above the current Heroic population.
+        min_radius_scale = 0.70 * tree_profile_manager.EPIC_SCALE_MULTIPLIER
+        max_radius_scale = 1.65 * tree_profile_manager.EPIC_SCALE_MULTIPLIER
+        min_height_scale = 0.85 * tree_profile_manager.EPIC_SCALE_MULTIPLIER
+        max_height_scale = 1.55 * tree_profile_manager.EPIC_SCALE_MULTIPLIER
+    elif heroic:
         min_radius_scale = 0.70
         max_radius_scale = 1.65
         min_height_scale = 0.85
@@ -626,7 +644,10 @@ def get_trees(theme, tree_variety, trees, course_version=-1,
     if tree_radius_range > 0.01:
         radius_multiplier = radius_scale_range / tree_radius_range
     else:
-        min_radius_scale = 1.10 if heroic else 1.0
+        if epic:
+            min_radius_scale = 1.10 * tree_profile_manager.EPIC_SCALE_MULTIPLIER
+        else:
+            min_radius_scale = 1.10 if heroic else 1.0
         radius_multiplier = 0.0
 
     min_tree_height = min(trees, key=lambda x: x[3])[3]
@@ -635,7 +656,10 @@ def get_trees(theme, tree_variety, trees, course_version=-1,
     if tree_height_range > 0.01:
         height_multiplier = height_scale_range / tree_height_range
     else:
-        min_height_scale = 1.15 if heroic else 1.0
+        if epic:
+            min_height_scale = 1.15 * tree_profile_manager.EPIC_SCALE_MULTIPLIER
+        else:
+            min_height_scale = 1.15 if heroic else 1.0
         height_multiplier = 0.0
 
     for tree in trees:

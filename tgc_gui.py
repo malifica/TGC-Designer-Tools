@@ -2146,7 +2146,11 @@ treeScaleModeCombo = ttk.Combobox(
     justify='left',
     textvariable=tree_scale_mode_var,
     state='readonly',
-    values=(tree_profile_manager.HEROIC_SCALE_MODE, tree_profile_manager.LEGACY_SCALE_MODE)
+    values=(
+        tree_profile_manager.HEROIC_SCALE_MODE,
+        tree_profile_manager.EPIC_SCALE_MODE,
+        tree_profile_manager.LEGACY_SCALE_MODE,
+    )
 )
 
 options_entries_dict["filter_lidar_trees_50m"] = tk.BooleanVar()

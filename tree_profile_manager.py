@@ -16,7 +16,9 @@ from pathlib import Path
 
 DESIGNER_THEME_LABEL = "Designer Theme (source course)"
 HEROIC_SCALE_MODE = "Heroic (Beta 5)"
+EPIC_SCALE_MODE = "Epic"
 LEGACY_SCALE_MODE = "Legacy LiDAR"
+EPIC_SCALE_MULTIPLIER = 1.20
 
 PLANNED_PROFILE_NAMES = (
     "Piney Woods",
@@ -319,12 +321,38 @@ _HEROIC_DEFAULTS = {
 }
 
 
-def scale_for_asset(profile, asset, radius_percentile=0.5, height_percentile=0.5):
+def scale_for_asset(
+    profile,
+    asset,
+    radius_percentile=0.5,
+    height_percentile=0.5,
+    tree_scale_mode=None,
+):
     defaults = dict(_HEROIC_DEFAULTS)
     defaults.update(profile.get("scale_defaults", {}) or {})
     scale = asset.get("scale", {}) or {}
     uniform_scale = asset.get("uniform_scale")
-    sx = _interpolate_stats(scale.get("x") or uniform_scale, radius_percentile, defaults["x"])
-    sy = _interpolate_stats(scale.get("y") or uniform_scale, height_percentile, defaults["y"])
-    sz = _interpolate_stats(scale.get("z") or uniform_scale, radius_percentile, defaults["z"])
+    sx = _interpolate_stats(
+        scale.get("x") or uniform_scale,
+        radius_percentile,
+        defaults["x"],
+    )
+    sy = _interpolate_stats(
+        scale.get("y") or uniform_scale,
+        height_percentile,
+        defaults["y"],
+    )
+    sz = _interpolate_stats(
+        scale.get("z") or uniform_scale,
+        radius_percentile,
+        defaults["z"],
+    )
+
+    # Epic preserves the donor-calibrated/profile-relative proportions while
+    # making the entire tree population one clear step larger than Heroic.
+    if tree_scale_mode == EPIC_SCALE_MODE:
+        sx *= EPIC_SCALE_MULTIPLIER
+        sy *= EPIC_SCALE_MULTIPLIER
+        sz *= EPIC_SCALE_MULTIPLIER
+
     return sx, sy, sz
