@@ -103,3 +103,16 @@ A course with fewer than 25% natural tree objects is also flagged as
 **scenery-massing dominant**. That warning does not automatically exclude a course
 if it still has at least 25 valid natural trees; Devil's Paintbrush is an example
 where enough genuine trees remain despite extensive off-course massing.
+
+
+## Virginia Coastal Plain
+
+**Virginia Coastal Plain** is enabled from Royal New Kent in Providence Forge,
+Virginia. Royal New Kent's natural retained planting matrix is strongly mixed
+pine/hardwood, matching the real New Kent County Coastal Plain landscape.
+
+The Beta 5 calibration retains **2,296** natural trees, excludes **1,331**
+vertically manipulated scenery-massing trees, and uses a **36-prefab** core
+representing **95.5%** of the natural population. The profile is visual rather
+than taxonomically literal: visually useful non-local prefab labels are allowed
+when they reproduce the regional pine-hardwood character in-game.

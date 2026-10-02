@@ -40,6 +40,7 @@ checks = [
     ("Heroic height target", "tgc_image_terrain.py", "max_height_scale = 1.55"),
     ("Texas Hill Country profile file", "BETA5_TREE_PROFILES.md", "Texas Hill Country"),
     ("Niagara Escarpment profile file", "BETA5_TREE_PROFILES.md", "Niagara Escarpment"),
+    ("Virginia Coastal Plain profile file", "BETA5_TREE_PROFILES.md", "Virginia Coastal Plain"),
     ("Equal multi-course weighting", "tree_profile_analyzer.py", "def equal_course_weight(asset_path):"),
 ]
 
@@ -86,6 +87,19 @@ try:
 except Exception as exc:
     print("FAIL - Niagara Escarpment enabled profile -", exc)
     failed.append("Niagara Escarpment enabled profile")
+
+virginia_profile = ROOT / "tree_profiles" / "virginia_coastal_plain.json"
+try:
+    virginia = json.loads(virginia_profile.read_text(encoding="utf-8"))
+    assert virginia.get("enabled") is True
+    assert virginia.get("display_name") == "Virginia Coastal Plain"
+    assert virginia.get("natural_reference_tree_count") == 2296
+    assert virginia.get("excluded_vertical_massing_count") == 1331
+    assert len(virginia.get("assets", [])) == 36
+    print("PASS - Virginia Coastal Plain enabled profile")
+except Exception as exc:
+    print("FAIL - Virginia Coastal Plain enabled profile -", exc)
+    failed.append("Virginia Coastal Plain enabled profile")
 
 template = ROOT / "tree_profiles" / "_template.json"
 try:

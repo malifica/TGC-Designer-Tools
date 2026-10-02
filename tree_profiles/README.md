@@ -106,3 +106,23 @@ broadleaf birch, maple, ash, aspen, elm, plane, beech and similar forms are norm
 Courses that have been geographically identified and inspected but rejected or
 deferred as tree-profile calibration sources are tracked in
 `tree_profiles/REFERENCE_COURSE_REVIEWS.md`.
+
+
+### Virginia Coastal Plain
+
+**Virginia Coastal Plain** is the third enabled Beta 5 regional profile, calibrated
+from `RNK(3).course` / Royal New Kent in Providence Forge, Virginia.
+
+After filtering buried/raised scenery-massing trees:
+
+- **2,296** natural / terrain-aligned tree placements are retained;
+- **1,331** vertically manipulated scenery-massing tree placements are excluded;
+- the enabled core profile uses **36 prefabs** representing **2,193 trees / 95.5%**
+  of the natural retained population;
+- core Designer scale p10 / p50 / p90 is approximately
+  **0.811 / 1.202 / 1.649**.
+
+The profile intentionally treats the course as a **visual pine-hardwood regional
+reference**, not a literal botanical inventory. Some game prefab names such as
+Scots Pine, Slash Pine, Monterey Cypress or Southern Live Oak are retained where
+their in-game form contributes convincingly to the Virginia Coastal Plain look.
