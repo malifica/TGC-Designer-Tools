@@ -247,25 +247,29 @@ def analyze(
     display_name,
     vertical_tolerance_m=DEFAULT_VERTICAL_TOLERANCE_M,
     keep_manual_height=False,
+    min_natural_trees=25,
+    allow_low_sample_reference=False,
 ):
     normal_paths, skinny_paths = _tree_shape_reference()
-    by_path = defaultdict(lambda: {"x": [], "y": [], "z": []})
-    all_scales = {"x": [], "y": [], "z": []}
     references = []
-    course_asset_counts = []
-    course_scale_values = []
+    reference_stats = []
+    course_records = []
 
     total_speedtree_items = 0
     excluded_vertical = 0
     excluded_vertical_by_asset = Counter()
-    retained_ground_aligned = 0
 
     for filename in paths:
         course = _decode_course(filename)
-        references.append(Path(filename).name)
+        file_name = Path(filename).name
+        references.append(file_name)
         sampler = None if keep_manual_height else _TerrainPointSampler(course)
+
         this_course_counts = Counter()
+        this_course_values = defaultdict(lambda: {"x": [], "y": [], "z": []})
         this_course_scales = {"x": [], "y": [], "z": []}
+        this_total = 0
+        this_excluded = 0
 
         groups = course.get(
             "placedObjects4",
@@ -283,6 +287,7 @@ def analyze(
 
             for item in (group.get("Value", {}) or {}).get("items", []) or []:
                 total_speedtree_items += 1
+                this_total += 1
 
                 if sampler is not None:
                     aligned, _offset = _item_is_ground_aligned(
@@ -290,6 +295,7 @@ def analyze(
                     )
                     if not aligned:
                         excluded_vertical += 1
+                        this_excluded += 1
                         excluded_vertical_by_asset[asset_path] += 1
                         continue
 
@@ -301,31 +307,97 @@ def analyze(
                 except (TypeError, ValueError):
                     continue
 
-                retained_ground_aligned += 1
                 this_course_counts[asset_path] += 1
+                this_course_values[asset_path]["x"].append(sx)
+                this_course_values[asset_path]["y"].append(sy)
+                this_course_values[asset_path]["z"].append(sz)
                 this_course_scales["x"].append(sx)
                 this_course_scales["y"].append(sy)
                 this_course_scales["z"].append(sz)
-                by_path[asset_path]["x"].append(sx)
-                by_path[asset_path]["y"].append(sy)
-                by_path[asset_path]["z"].append(sz)
-                all_scales["x"].append(sx)
-                all_scales["y"].append(sy)
-                all_scales["z"].append(sz)
 
-        course_asset_counts.append(this_course_counts)
-        course_scale_values.append(this_course_scales)
+        natural_count = sum(this_course_counts.values())
+        natural_fraction = (
+            float(natural_count) / float(this_total)
+            if this_total > 0 else 0.0
+        )
+        eligible = (
+            allow_low_sample_reference
+            or natural_count >= int(min_natural_trees)
+        )
 
-    total = sum(len(v["y"]) for v in by_path.values())
-    if total == 0:
-        raise ValueError("No usable placed tree items were found in the supplied course file(s).")
+        warnings = []
+        if natural_count < int(min_natural_trees):
+            warnings.append(
+                "too few natural/terrain-aligned tree samples for reliable theme calibration"
+            )
+        if this_total > 0 and natural_fraction < 0.25:
+            warnings.append(
+                "scenery-massing-dominant course: fewer than 25% of tree objects are natural/terrain-aligned"
+            )
+
+        reference_stats.append({
+            "file": file_name,
+            "all_speedtree_tree_count": int(this_total),
+            "natural_reference_tree_count": int(natural_count),
+            "excluded_vertical_massing_count": int(this_excluded),
+            "natural_fraction": round(natural_fraction, 6),
+            "calibration_eligible": bool(eligible),
+            "warnings": warnings,
+        })
+
+        course_records.append({
+            "file": file_name,
+            "eligible": bool(eligible),
+            "counts": this_course_counts,
+            "values": this_course_values,
+            "scales": this_course_scales,
+        })
+
+    eligible_records = [record for record in course_records if record["eligible"]]
+    if not eligible_records:
+        return {
+            "id": _slug(display_name),
+            "display_name": display_name,
+            "enabled": False,
+            "description": (
+                "Reference-course analysis completed, but no supplied course "
+                "contains enough natural/terrain-aligned tree samples to build "
+                "a reliable real-life tree profile."
+            ),
+            "reference_courses": references,
+            "reference_course_stats": reference_stats,
+            "all_speedtree_tree_count": int(total_speedtree_items),
+            "natural_reference_tree_count": int(sum(
+                stat["natural_reference_tree_count"] for stat in reference_stats
+            )),
+            "excluded_vertical_massing_count": int(excluded_vertical),
+            "terrain_alignment_tolerance_m": (
+                None if keep_manual_height else float(vertical_tolerance_m)
+            ),
+            "minimum_natural_trees_per_reference": int(min_natural_trees),
+            "calibration_status": "insufficient_reference_quality",
+            "weighting_method": "none",
+            "review_asset_count": 0,
+            "scale_defaults": {},
+            "assets": [],
+        }
+
+    by_path = defaultdict(lambda: {"x": [], "y": [], "z": []})
+    for record in eligible_records:
+        for path, vals in record["values"].items():
+            by_path[path]["x"].extend(vals["x"])
+            by_path[path]["y"].extend(vals["y"])
+            by_path[path]["z"].extend(vals["z"])
 
     def equal_course_weight(asset_path):
         proportions = []
-        for counts in course_asset_counts:
+        for record in eligible_records:
+            counts = record["counts"]
             course_total = sum(counts.values())
             if course_total > 0:
-                proportions.append(float(counts.get(asset_path, 0)) / float(course_total))
+                proportions.append(
+                    float(counts.get(asset_path, 0)) / float(course_total)
+                )
         if not proportions:
             return 0.0
         return sum(proportions) / float(len(proportions))
@@ -348,7 +420,8 @@ def analyze(
             "weight": equal_course_weight(path),
             "count": len(vals["y"]),
             "course_counts": [
-                int(counts.get(path, 0)) for counts in course_asset_counts
+                int(record["counts"].get(path, 0))
+                for record in eligible_records
             ],
         }
 
@@ -366,6 +439,21 @@ def analyze(
             }
         assets.append(asset)
 
+    scale_defaults = {}
+    for axis in ("x", "y", "z"):
+        course_quantiles = [
+            _quantiles(record["scales"][axis])
+            for record in eligible_records
+            if record["scales"][axis]
+        ]
+        scale_defaults[axis] = {
+            key: round(
+                float(np.mean([stats[key] for stats in course_quantiles])),
+                6,
+            )
+            for key in ("p10", "p50", "p90")
+        }
+
     result = {
         "id": _slug(display_name),
         "display_name": display_name,
@@ -375,31 +463,30 @@ def analyze(
             "Designer-planted reference course(s). Review before enabling."
         ),
         "reference_courses": references,
-        "all_speedtree_tree_count": total_speedtree_items,
-        "natural_reference_tree_count": total,
-        "excluded_vertical_massing_count": excluded_vertical,
+        "reference_course_stats": reference_stats,
+        "eligible_reference_courses": [
+            record["file"] for record in eligible_records
+        ],
+        "all_speedtree_tree_count": int(total_speedtree_items),
+        "natural_reference_tree_count": int(sum(
+            stat["natural_reference_tree_count"] for stat in reference_stats
+        )),
+        "eligible_natural_tree_count": int(sum(
+            sum(record["counts"].values()) for record in eligible_records
+        )),
+        "excluded_vertical_massing_count": int(excluded_vertical),
         "terrain_alignment_tolerance_m": (
             None if keep_manual_height else float(vertical_tolerance_m)
         ),
+        "minimum_natural_trees_per_reference": int(min_natural_trees),
+        "calibration_status": "ready_for_review",
         "review_asset_count": review_count,
         "weighting_method": (
-            "equal_per_course" if len(course_asset_counts) > 1
-            else "single_course_frequency"
+            "equal_per_eligible_course"
+            if len(eligible_records) > 1
+            else "single_eligible_course_frequency"
         ),
-        "scale_defaults": {
-            axis: {
-                key: round(
-                    float(np.mean([
-                        _quantiles(values[axis])[key]
-                        for values in course_scale_values
-                        if values[axis]
-                    ])),
-                    6,
-                )
-                for key in ("p10", "p50", "p90")
-            }
-            for axis in ("x", "y", "z")
-        },
+        "scale_defaults": scale_defaults,
         "assets": assets,
     }
 
@@ -435,6 +522,23 @@ def main():
         action="store_true",
         help="Disable the buried/raised foliage filter for special diagnostics.",
     )
+    parser.add_argument(
+        "--min-natural-trees",
+        type=int,
+        default=25,
+        help=(
+            "Minimum natural/terrain-aligned tree samples required for a "
+            "reference course to contribute to theme calibration (default: 25)."
+        ),
+    )
+    parser.add_argument(
+        "--allow-low-sample-reference",
+        action="store_true",
+        help=(
+            "Allow sparse reference courses below the minimum sample count to "
+            "contribute. Use only for deliberate expert overrides."
+        ),
+    )
     args = parser.parse_args()
 
     result = analyze(
@@ -442,6 +546,8 @@ def main():
         args.name,
         vertical_tolerance_m=args.vertical_tolerance,
         keep_manual_height=args.keep_manual_height,
+        min_natural_trees=args.min_natural_trees,
+        allow_low_sample_reference=args.allow_low_sample_reference,
     )
     output = (
         Path(args.output)
@@ -458,6 +564,11 @@ def main():
     print("Excluded buried/raised scenery samples:", result["excluded_vertical_massing_count"])
     print("Unique retained tree prefabs:", len(result["assets"]))
     print("Weighting method:", result["weighting_method"])
+    print("Calibration status:", result["calibration_status"])
+    for stat in result.get("reference_course_stats", []):
+        print("Reference:", stat["file"], "-", "ELIGIBLE" if stat["calibration_eligible"] else "EXCLUDED", "-", stat["natural_reference_tree_count"], "natural samples")
+        for warning in stat.get("warnings", []):
+            print("  WARNING:", warning)
     print("Assets needing normal/skinny review:", result["review_asset_count"])
     print("Set enabled=true only after the profile has been reviewed.")
 

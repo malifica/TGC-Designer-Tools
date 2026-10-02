@@ -85,3 +85,21 @@ The second enabled regional test profile is **Niagara Escarpment**, built from
 The Pulpit Club's Devil's Paintbrush and Devil's Pulpit. Buried/raised scenery
 massing is excluded from both courses before the two natural planting matrices are
 combined 50/50.
+
+
+## Reference-course sample guard
+
+Beta 5 now prevents a visually elaborate but scenery-massing-dominant course from
+silently becoming a regional **tree** profile when it contains too few genuine
+terrain-aligned specimen trees.
+
+By default a reference course needs at least **25 natural / terrain-aligned tree
+instances** to contribute to the theme matrix. Courses below that threshold are
+still analyzed and reported, but their prefab mix and scale values are excluded
+from calibration unless an expert deliberately uses
+`--allow-low-sample-reference`.
+
+A course with fewer than 25% natural tree objects is also flagged as
+**scenery-massing dominant**. That warning does not automatically exclude a course
+if it still has at least 25 valid natural trees; Devil's Paintbrush is an example
+where enough genuine trees remain despite extensive off-course massing.
