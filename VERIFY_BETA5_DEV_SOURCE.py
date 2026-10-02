@@ -170,6 +170,7 @@ try:
     assert monterey.get("excluded_vertical_massing_count") == 505
     assert len(monterey.get("assets", [])) == 49
     materials = monterey.get("visual_material_preset", {})
+    assert materials.get("theme") == 5
     assert materials.get("surfaces2", [])[0].get("name") == "Sand07"
     assert materials.get("surfaces2", [])[6].get("name") == "Green10"
     assert materials.get("surfaces2", [])[8].get("name") == "Fairway10"
@@ -214,6 +215,24 @@ try:
 except Exception as exc:
     print("FAIL - Georgia Piedmont enabled profile -", exc)
     failed.append("Georgia Piedmont enabled profile")
+
+try:
+    import tree_profile_manager
+    tree_profile_manager.load_profiles(force=True)
+    test_course = {"theme": 2}
+    tree_profile_manager.apply_visual_material_preset(
+        test_course, "Georgia Piedmont", printf=lambda *_args: None
+    )
+    assert test_course.get("theme") == 7
+    test_metadata = {"courseTheme": 2}
+    tree_profile_manager.apply_visual_material_preset(
+        test_metadata, "Georgia Piedmont", printf=lambda *_args: None, metadata=True
+    )
+    assert test_metadata.get("courseTheme") == 7
+    print("PASS - regional theme overrides source Designer theme")
+except Exception as exc:
+    print("FAIL - regional Designer theme override -", exc)
+    failed.append("regional Designer theme override")
 
 template = ROOT / "tree_profiles" / "_template.json"
 try:
