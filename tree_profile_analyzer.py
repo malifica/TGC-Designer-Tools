@@ -252,6 +252,8 @@ def analyze(
     by_path = defaultdict(lambda: {"x": [], "y": [], "z": []})
     all_scales = {"x": [], "y": [], "z": []}
     references = []
+    course_asset_counts = []
+    course_scale_values = []
 
     total_speedtree_items = 0
     excluded_vertical = 0
@@ -262,6 +264,8 @@ def analyze(
         course = _decode_course(filename)
         references.append(Path(filename).name)
         sampler = None if keep_manual_height else _TerrainPointSampler(course)
+        this_course_counts = Counter()
+        this_course_scales = {"x": [], "y": [], "z": []}
 
         groups = course.get(
             "placedObjects4",
@@ -298,6 +302,10 @@ def analyze(
                     continue
 
                 retained_ground_aligned += 1
+                this_course_counts[asset_path] += 1
+                this_course_scales["x"].append(sx)
+                this_course_scales["y"].append(sy)
+                this_course_scales["z"].append(sz)
                 by_path[asset_path]["x"].append(sx)
                 by_path[asset_path]["y"].append(sy)
                 by_path[asset_path]["z"].append(sz)
@@ -305,16 +313,31 @@ def analyze(
                 all_scales["y"].append(sy)
                 all_scales["z"].append(sz)
 
+        course_asset_counts.append(this_course_counts)
+        course_scale_values.append(this_course_scales)
+
     total = sum(len(v["y"]) for v in by_path.values())
     if total == 0:
         raise ValueError("No usable placed tree items were found in the supplied course file(s).")
 
+    def equal_course_weight(asset_path):
+        proportions = []
+        for counts in course_asset_counts:
+            course_total = sum(counts.values())
+            if course_total > 0:
+                proportions.append(float(counts.get(asset_path, 0)) / float(course_total))
+        if not proportions:
+            return 0.0
+        return sum(proportions) / float(len(proportions))
+
     assets = []
     review_count = 0
-    for path, vals in sorted(
-        by_path.items(),
-        key=lambda kv: (-len(kv[1]["y"]), kv[0]),
-    ):
+    weighted_paths = sorted(
+        by_path.keys(),
+        key=lambda path: (-equal_course_weight(path), path),
+    )
+    for path in weighted_paths:
+        vals = by_path[path]
         shape = _shape_for_path(path, normal_paths, skinny_paths)
         if shape == "review":
             review_count += 1
@@ -322,8 +345,11 @@ def analyze(
         asset = {
             "path": path,
             "shape": shape,
-            "weight": len(vals["y"]),
+            "weight": equal_course_weight(path),
             "count": len(vals["y"]),
+            "course_counts": [
+                int(counts.get(path, 0)) for counts in course_asset_counts
+            ],
         }
 
         uniform = (
@@ -356,10 +382,23 @@ def analyze(
             None if keep_manual_height else float(vertical_tolerance_m)
         ),
         "review_asset_count": review_count,
+        "weighting_method": (
+            "equal_per_course" if len(course_asset_counts) > 1
+            else "single_course_frequency"
+        ),
         "scale_defaults": {
-            "x": _quantiles(all_scales["x"]),
-            "y": _quantiles(all_scales["y"]),
-            "z": _quantiles(all_scales["z"]),
+            axis: {
+                key: round(
+                    float(np.mean([
+                        _quantiles(values[axis])[key]
+                        for values in course_scale_values
+                        if values[axis]
+                    ])),
+                    6,
+                )
+                for key in ("p10", "p50", "p90")
+            }
+            for axis in ("x", "y", "z")
         },
         "assets": assets,
     }
@@ -418,6 +457,7 @@ def main():
     print("Natural/terrain-aligned samples:", result["natural_reference_tree_count"])
     print("Excluded buried/raised scenery samples:", result["excluded_vertical_massing_count"])
     print("Unique retained tree prefabs:", len(result["assets"]))
+    print("Weighting method:", result["weighting_method"])
     print("Assets needing normal/skinny review:", result["review_asset_count"])
     print("Set enabled=true only after the profile has been reviewed.")
 

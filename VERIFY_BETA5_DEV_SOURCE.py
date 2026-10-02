@@ -37,6 +37,8 @@ checks = [
     ("Profile option plumbing", "tgc_image_terrain.py", "tree_profile=options_dict.get('tree_profile')"),
     ("Heroic height target", "tgc_image_terrain.py", "max_height_scale = 1.55"),
     ("Texas Hill Country profile file", "BETA5_TREE_PROFILES.md", "Texas Hill Country"),
+    ("Niagara Escarpment profile file", "BETA5_TREE_PROFILES.md", "Niagara Escarpment"),
+    ("Equal multi-course weighting", "tree_profile_analyzer.py", "def equal_course_weight(asset_path):"),
 ]
 
 failed = []
@@ -70,6 +72,18 @@ try:
 except Exception as exc:
     print("FAIL - Texas Hill Country enabled profile -", exc)
     failed.append("Texas Hill Country enabled profile")
+
+niagara_profile = ROOT / "tree_profiles" / "niagara_escarpment.json"
+try:
+    niagara = json.loads(niagara_profile.read_text(encoding="utf-8"))
+    assert niagara.get("enabled") is True
+    assert niagara.get("display_name") == "Niagara Escarpment"
+    assert niagara.get("weighting_method") == "equal_per_course"
+    assert len(niagara.get("assets", [])) == 40
+    print("PASS - Niagara Escarpment enabled profile")
+except Exception as exc:
+    print("FAIL - Niagara Escarpment enabled profile -", exc)
+    failed.append("Niagara Escarpment enabled profile")
 
 template = ROOT / "tree_profiles" / "_template.json"
 try:

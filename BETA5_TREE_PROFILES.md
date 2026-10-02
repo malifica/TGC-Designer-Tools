@@ -73,3 +73,15 @@ Reference: `Canyon Springs SATX (L).course`
 
 After we inspect the generated result, we can split a dedicated skinny/juniper pool,
 adjust species weights, or bring selected rare natural assets back into the profile.
+
+
+## Multi-course regional profiles
+
+For regional themes built from multiple courses, Beta 5 uses **equal per-course
+weighting** for the prefab-use matrix. This is important when reference courses have
+very different planting densities or design styles.
+
+The second enabled regional test profile is **Niagara Escarpment**, built from
+The Pulpit Club's Devil's Paintbrush and Devil's Pulpit. Buried/raised scenery
+massing is excluded from both courses before the two natural planting matrices are
+combined 50/50.

@@ -66,3 +66,36 @@ excluded from random Texas Hill Country LiDAR/OSM distribution.
 
 The revised core profile's overall Designer scale p10 / p50 / p90 is approximately
 **0.500 / 1.000 / 1.347**.
+
+
+## Multi-course profile weighting
+
+When more than one finished course is supplied for a regional profile, each course
+contributes **equally** to the prefab-use matrix before the final weights are
+combined. This prevents a densely planted course from overwhelming a more sparsely
+planted reference course simply because it contains more tree objects.
+
+Per-prefab scale statistics still use the valid natural placements of that prefab.
+The profile-level fallback p10/p50/p90 scale values are averaged across the
+reference courses so one dense course does not dominate fallback scale behavior.
+
+
+### Niagara Escarpment
+
+**Niagara Escarpment** is the second enabled Beta 5 regional test profile, calibrated
+from The Pulpit Club's Devil's Paintbrush and Devil's Pulpit courses.
+
+The two courses use dramatically different golf/planting styles, so their tree-use
+matrices are combined with **50/50 per-course weighting** rather than pooling raw
+tree counts.
+
+After removing vertically buried/raised scenery-massing trees:
+
+- Devil's Paintbrush contributes **57** natural / terrain-aligned trees from **14** prefabs;
+- Devil's Pulpit contributes **534** natural / terrain-aligned trees from **54** prefabs;
+- **326** Paintbrush and **1,480** Pulpit vertically manipulated scenery trees are excluded;
+- the enabled core profile uses **40 prefabs**, covering **95.6%** of the equal-weighted combined mix;
+- the equal-course fallback Designer scale p10 / p50 / p90 is approximately **0.821 / 1.611 / 2.397**.
+
+Conifer, pine, spruce, and Lombardy-poplar forms are initially treated as skinny;
+broadleaf birch, maple, ash, aspen, elm, plane, beech and similar forms are normal.
