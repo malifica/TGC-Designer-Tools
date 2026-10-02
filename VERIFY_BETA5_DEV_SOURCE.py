@@ -132,14 +132,14 @@ northern_rockies_profile = ROOT / "tree_profiles" / "northern_rockies_montane.js
 try:
     northern_rockies = json.loads(northern_rockies_profile.read_text(encoding="utf-8"))
     assert northern_rockies.get("enabled") is True
-    assert northern_rockies.get("display_name") == "Northern Rockies Montane"
+    assert northern_rockies.get("display_name") == "Northern Rockies"
     assert northern_rockies.get("natural_reference_tree_count") == 7219
     assert northern_rockies.get("excluded_vertical_massing_count") == 1831
     assert len(northern_rockies.get("assets", [])) == 19
-    print("PASS - Northern Rockies Montane enabled profile")
+    print("PASS - Northern Rockies enabled profile")
 except Exception as exc:
-    print("FAIL - Northern Rockies Montane enabled profile -", exc)
-    failed.append("Northern Rockies Montane enabled profile")
+    print("FAIL - Northern Rockies enabled profile -", exc)
+    failed.append("Northern Rockies enabled profile")
 
 template = ROOT / "tree_profiles" / "_template.json"
 try:

@@ -157,9 +157,9 @@ non-local prefab labels are intentionally retained as visual analogs rather than
 literal botanical claims.
 
 
-## Northern Rockies Montane
+## Northern Rockies
 
-**Northern Rockies Montane** is enabled from `Moonlight Basin.course`, identified
+**Northern Rockies** is enabled from `Moonlight Basin.course`, identified
 as The Reserve at Moonlight Basin in Big Sky, Montana.
 
 The reference contains **9,050** actual SpeedTree tree placements. After Beta 5's

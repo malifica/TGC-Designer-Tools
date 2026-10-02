@@ -159,7 +159,7 @@ with a smaller eastern-white-pine / conifer component. The overall core Designer
 scale p10 / p50 / p90 is approximately **1.000 / 1.146 / 1.269**.
 
 
-### Northern Rockies Montane
+### Northern Rockies
 
 Calibrated from The Reserve at Moonlight Basin in Big Sky, Montana. The enabled
 profile retains **7,219** natural / terrain-aligned trees and excludes **1,831**
