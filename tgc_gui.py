@@ -882,8 +882,9 @@ def showAwsEptDatasetChooser(candidates):
         "aws",
         "project",
     )
+    table_frame = Frame(popup)
     tree = ttk.Treeview(
-        popup,
+        table_frame,
         columns=columns,
         show="headings",
         selectmode="browse",
@@ -919,12 +920,12 @@ def showAwsEptDatasetChooser(candidates):
         )
 
     yscroll = ttk.Scrollbar(
-        popup,
+        table_frame,
         orient=VERTICAL,
         command=tree.yview,
     )
     xscroll = ttk.Scrollbar(
-        popup,
+        table_frame,
         orient=HORIZONTAL,
         command=tree.xview,
     )
@@ -933,10 +934,9 @@ def showAwsEptDatasetChooser(candidates):
         xscrollcommand=xscroll.set,
     )
 
-    table_frame = Frame(popup)
-    tree.grid(in_=table_frame, row=0, column=0, sticky="nsew")
-    yscroll.grid(in_=table_frame, row=0, column=1, sticky="ns")
-    xscroll.grid(in_=table_frame, row=1, column=0, sticky="ew")
+    tree.grid(row=0, column=0, sticky="nsew")
+    yscroll.grid(row=0, column=1, sticky="ns")
+    xscroll.grid(row=1, column=0, sticky="ew")
     table_frame.grid_rowconfigure(0, weight=1)
     table_frame.grid_columnconfigure(0, weight=1)
     table_frame.pack(fill=BOTH, expand=True, padx=10)
