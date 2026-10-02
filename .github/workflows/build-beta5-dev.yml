@@ -38,7 +38,7 @@ jobs:
         run: |
           python --version
           python VERIFY_BETA5_DEV_SOURCE.py
-          python -m py_compile tgc_gui.py dem_map_api.py lidar_map_api.py lidar_fast_native.py usgs_lidar_parser.py infill_image.py tgc_image_terrain.py tgc_definitions.py tree_profile_manager.py tree_profile_analyzer.py OSMTGC.py auto_red_mask.py cfs_georef.py lidar_feature_filter.py osm_alignment_viewer.py
+          python -m py_compile tgc_gui.py dem_map_api.py lidar_map_api.py lidar_fast_native.py usgs_lidar_parser.py usgs_ept_downloader.py infill_image.py tgc_image_terrain.py tgc_definitions.py tree_profile_manager.py tree_profile_analyzer.py OSMTGC.py auto_red_mask.py cfs_georef.py lidar_feature_filter.py osm_alignment_viewer.py
           python -c "import rasterio; print('Rasterio', rasterio.__version__); print('GDAL', rasterio.__gdal_version__)"
 
       - name: Install MinGW-w64

@@ -16,6 +16,7 @@ sources = {
     "tgc_image_terrain.py": read("tgc_image_terrain.py"),
     "tree_profile_manager.py": read("tree_profile_manager.py"),
     "tree_profile_analyzer.py": read("tree_profile_analyzer.py"),
+    "usgs_ept_downloader.py": read("usgs_ept_downloader.py"),
     "BETA5_TREE_PROFILES.md": read("BETA5_TREE_PROFILES.md"),
 }
 
@@ -55,6 +56,11 @@ checks = [
     ("Coastal Links profile file", "BETA5_TREE_PROFILES.md", "Coastal Links"),
     ("South Carolina Lowcountry profile file", "BETA5_TREE_PROFILES.md", "South Carolina Lowcountry"),
     ("Equal multi-course weighting", "tree_profile_analyzer.py", "def equal_course_weight(asset_path):"),
+    ("AWS EPT GUI button", "tgc_gui.py", 'text="USGS AWS EPT From Local OSM"'),
+    ("AWS EPT runtime integration", "tgc_gui.py", "def runAwsEptLidar("),
+    ("AWS EPT OSM downloader", "usgs_ept_downloader.py", "def download_osm_ept_laz("),
+    ("AWS EPT TNM discovery", "usgs_ept_downloader.py", "tnmaccess.nationalmap.gov/api/v1/products"),
+    ("AWS EPT public mirror", "usgs_ept_downloader.py", "usgs-lidar-public"),
 ]
 
 failed = []
@@ -67,7 +73,8 @@ for label, filename, needle in checks:
 
 for name in [
     "tgc_gui.py", "tgc_image_terrain.py", "tree_profile_manager.py",
-    "tree_profile_analyzer.py", "tgc_definitions.py", "OSMTGC.py"
+    "tree_profile_analyzer.py", "tgc_definitions.py", "OSMTGC.py",
+    "usgs_ept_downloader.py"
 ]:
     try:
         py_compile.compile(str(ROOT / name), doraise=True)

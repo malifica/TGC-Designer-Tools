@@ -311,3 +311,27 @@ The project also relies on OpenStreetMap, GDAL/PROJ, Rasterio, laspy, NumPy, Ope
 Apache License 2.0. See **[LICENSE](LICENSE)**.
 
 This software is unofficial and is not affiliated with or endorsed by HB Studios, 2K, PGA TOUR, OpenStreetMap Foundation, USGS, or other referenced organizations.
+
+
+## Beta 5 USGS AWS EPT From Local OSM
+
+Beta 5 can stream a course-sized subset of the public USGS 3DEP AWS EPT point
+cloud and feed it into the existing LiDAR pipeline as normal LAZ chunks.
+
+Workflow:
+
+1. Select the course directory.
+2. Select the normal **Local OSM File** on the Import Terrain and Features tab.
+3. On **Process LiDAR / DEM**, click **USGS AWS EPT From Local OSM**.
+4. TGCTool uses the explicit golf-course boundary when present, otherwise the
+   local OSM extent, and adds a 150 m safety buffer.
+5. The National Map API is queried for intersecting LAS/LAZ projects. Beta 5
+   prefers the newest candidate that is completely available in the public
+   `usgs-lidar-public` EPT mirror.
+6. Only overlapping EPT LAZ nodes are downloaded and cropped. The resulting
+   chunks are written to `USGS_AWS_EPT_LAZ` in the selected course directory.
+7. The normal Beta 5 LiDAR preview, classifications, tree detection, masks,
+   native fast rasterizer and terrain processing run unchanged.
+
+The public EPT route does **not** require an AWS account or Requester Pays
+credentials. The manual local LAS/LAZ workflow remains unchanged.

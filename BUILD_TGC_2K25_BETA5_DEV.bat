@@ -84,6 +84,7 @@ python -m py_compile ^
  lidar_map_api.py ^
  lidar_fast_native.py ^
  usgs_lidar_parser.py ^
+ usgs_ept_downloader.py ^
  infill_image.py ^
  tgc_image_terrain.py ^
  tgc_definitions.py ^
