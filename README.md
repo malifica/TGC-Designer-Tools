@@ -160,6 +160,29 @@ LiDAR-generated trees also pass a playing-surface exclusion after OSM/course spl
 
 These filters reduce object count and prevent distant trees/buildings or false unclassified LiDAR tree returns from consuming the PGA TOUR 2K25 course meter.
 
+### 2K25 theme tree palettes
+
+TGCTool has explicit 2K25 tree-asset palettes for the following themes:
+
+- Desert
+- Boreal
+- Tropical
+- Countryside
+- Harvest
+- Winter
+- Delta
+- Rustic
+- Swiss
+- Steppe
+- Autumn
+- Highlands
+- Temperate
+- Fjordland
+
+Fjordland is theme ID **54**. Its palette was mapped from a reference course containing the complete Fjordland theme-tree set: **44 actual tree prefabs** are supported, split into broad/wider and narrow/columnar groups for the existing LiDAR tree-shape selection logic. Theme shrub/bush assets are deliberately excluded from LiDAR tree placement.
+
+For themes without a dedicated narrow-tree subset, TGCTool falls back to the normal theme palette.
+
 ---
 
 ## Terrain generation and background terrain
