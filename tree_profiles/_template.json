@@ -50,6 +50,5 @@
   "visual_material_preset": {
     "theme": 7
   },
-  "tree_generation": "profile",
-  "tree_theme_id": null
+  "tree_generation": "profile"
 }

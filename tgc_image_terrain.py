@@ -560,20 +560,11 @@ def get_trees(theme, tree_variety, trees, course_version=-1,
     if course_version >= 23:
         profile = tree_profile_manager.get_profile(tree_profile)
         if profile is not None:
-            tree_generation = profile.get("tree_generation", "profile")
-            if tree_generation == "none":
-                return []
-            if tree_generation == "designer_theme":
-                theme = int(profile["tree_theme_id"])
-                # A regional hybrid theme means the whole donor tree palette,
-                # not the legacy single-tree "variety off" behavior.
-                tree_variety = True
-            else:
-                return _get_profile_trees(
-                    profile, trees,
-                    course_version=course_version,
-                    tree_source=tree_source,
-                )
+            return _get_profile_trees(
+                profile, trees,
+                course_version=course_version,
+                tree_source=tree_source,
+            )
 
     if course_version >= 23:
         normal_tree_ids = tgc_definitions.normal_trees_2k.get(theme, [0])
