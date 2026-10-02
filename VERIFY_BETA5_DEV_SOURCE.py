@@ -18,6 +18,7 @@ sources = {
     "tree_profile_analyzer.py": read("tree_profile_analyzer.py"),
     "lidar_map_api.py": read("lidar_map_api.py"),
     "usgs_ept_downloader.py": read("usgs_ept_downloader.py"),
+    "OSMTGC.py": read("OSMTGC.py"),
     "BETA5_TREE_PROFILES.md": read("BETA5_TREE_PROFILES.md"),
 }
 
