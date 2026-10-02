@@ -240,3 +240,21 @@ buried/raised scenery trees are excluded. The enabled core uses **42 prefabs /
 The palette is strongly pine-led with a smaller mature hardwood component. The
 profile also applies Peachtree's **Countryside (theme 7)** root Designer theme,
 making its unnamed terrain/splat defaults independent of the starting template.
+
+
+### San Francisco Peninsula
+
+**San Francisco Peninsula** is calibrated from `Cali Club (1)(1).course`,
+identified as California Golf Club of San Francisco in South San Francisco,
+California.
+
+The donor contains **1,353** SpeedTree placements. After scenery-massing
+filtering, **751** natural trees remain and **602** buried/raised trees are
+excluded. The enabled core uses **40 prefabs / 715 trees / 95.2%** coverage,
+with fallback scale p10 / p50 / p90 of approximately
+**0.715 / 0.985 / 1.360**.
+
+Its natural core is approximately **98% pine/cypress visual forms**, with Monterey
+Cypress especially prominent. The profile applies the donor's **Steppe (theme 13)**
+root Designer theme as well as its explicit turf and terrain materials, ensuring
+unnamed theme-default slots do not depend on the starting template.

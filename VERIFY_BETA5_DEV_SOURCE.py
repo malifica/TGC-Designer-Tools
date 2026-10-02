@@ -50,6 +50,7 @@ checks = [
     ("Hudson Valley profile file", "BETA5_TREE_PROFILES.md", "Hudson Valley Mixed Forest"),
     ("Monterey Bay Coast profile file", "BETA5_TREE_PROFILES.md", "Monterey Bay Coast"),
     ("Georgia Piedmont profile file", "BETA5_TREE_PROFILES.md", "Georgia Piedmont"),
+    ("San Francisco Peninsula profile file", "BETA5_TREE_PROFILES.md", "San Francisco Peninsula"),
     ("South Carolina Lowcountry profile file", "BETA5_TREE_PROFILES.md", "South Carolina Lowcountry"),
     ("Equal multi-course weighting", "tree_profile_analyzer.py", "def equal_course_weight(asset_path):"),
 ]
@@ -215,6 +216,24 @@ try:
 except Exception as exc:
     print("FAIL - Georgia Piedmont enabled profile -", exc)
     failed.append("Georgia Piedmont enabled profile")
+
+san_francisco_profile = ROOT / "tree_profiles" / "san_francisco_peninsula.json"
+try:
+    san_francisco = json.loads(san_francisco_profile.read_text(encoding="utf-8"))
+    assert san_francisco.get("enabled") is True
+    assert san_francisco.get("display_name") == "San Francisco Peninsula"
+    assert san_francisco.get("natural_reference_tree_count") == 751
+    assert san_francisco.get("excluded_vertical_massing_count") == 602
+    assert len(san_francisco.get("assets", [])) == 40
+    materials = san_francisco.get("visual_material_preset", {})
+    assert materials.get("theme") == 13
+    assert materials.get("surfaces2", [])[6].get("name") == "Green50_StAndrews"
+    assert materials.get("surfaces2", [])[8].get("name") == "Fairway50_StAndrews"
+    assert materials.get("surfaces2", [])[12].get("name") == "Splat1_EastLakeGC"
+    print("PASS - San Francisco Peninsula enabled profile + donor Designer theme/materials")
+except Exception as exc:
+    print("FAIL - San Francisco Peninsula enabled profile -", exc)
+    failed.append("San Francisco Peninsula enabled profile")
 
 try:
     import tree_profile_manager

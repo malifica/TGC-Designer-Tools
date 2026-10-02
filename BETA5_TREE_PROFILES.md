@@ -251,3 +251,31 @@ explicit materials are **Sand17**, **Green40_TorreyPines**,
 **Fringe40_TorreyPines**, **Fairway40_TorreyPines**, **LightRough06**, and
 **HeavyRough06**. Its unnamed terrain/splat slots now resolve under the copied
 Countryside root theme rather than the starting template's theme.
+
+
+## San Francisco Peninsula
+
+**San Francisco Peninsula** is calibrated from California Golf Club of San
+Francisco in South San Francisco, California. The donor is an 18-hole, par-72
+course using Designer theme **13 (Steppe)**, and the regional preset carries that
+root theme together with the donor's tree matrix and material selections.
+
+The reference contains **1,353** SpeedTree tree placements. After Beta 5's
+terrain-alignment filter:
+
+- **751** natural / terrain-aligned trees remain;
+- **602** buried/raised scenery-massing trees are excluded;
+- the enabled core uses **40 prefabs / 715 trees / 95.2%** coverage;
+- fallback Designer scale p10 / p50 / p90 is approximately
+  **0.715 / 0.985 / 1.360**.
+
+The retained core is approximately **98% pine/cypress visual forms**, including a
+substantial Monterey-cypress component. That makes this intentionally distinct from
+the broader **Monterey Bay Coast** profile derived from Pasatiempo.
+
+The donor explicitly supplies **Green50_StAndrews**, **Fringe50_StAndrews**,
+**Fairway50_StAndrews**, **LightRough46_Pinehurst** and
+**HeavyRough50_StAndrews**. It also explicitly selects
+**Splat1_EastLakeGC / Splat2_RivieraCC / Splat3_Swiss**. Bunker slot 0 and
+terrain slot 11 remain unnamed theme defaults, so the copied **Steppe (13)** root
+Designer theme is required for the complete donor look.
