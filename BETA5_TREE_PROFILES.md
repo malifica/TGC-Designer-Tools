@@ -155,3 +155,25 @@ The retained visual mix is strongly eastern-deciduous: elm, white oak, red/silve
 maple, ash, birch and beech, with a smaller white-pine/conifer component. Some
 non-local prefab labels are intentionally retained as visual analogs rather than
 literal botanical claims.
+
+
+## Northern Rockies Montane
+
+**Northern Rockies Montane** is enabled from `Moonlight Basin.course`, identified
+as The Reserve at Moonlight Basin in Big Sky, Montana.
+
+The reference contains **9,050** actual SpeedTree tree placements. After Beta 5's
+terrain-alignment filter:
+
+- **7,219** natural / terrain-aligned trees remain;
+- **1,831** buried/raised scenery-massing trees are excluded;
+- all **19** retained natural-placement prefabs are kept because the palette is
+  already highly concentrated;
+- the three Norway Spruce prefabs account for about **95.8%** of natural placements;
+- scale p10 / p50 / p90 is approximately **0.837 / 0.999 / 1.171**.
+
+The real Big Sky / Northern Rockies montane forest is spruce-fir-pine / Douglas-fir
+country with lodgepole pine and aspen. The course's Norway Spruce and Scots Pine
+prefabs are therefore treated as visual stand-ins rather than literal local species.
+Rare dead-tree forms are retained at their observed low weights as appropriate
+mountain-forest snags.

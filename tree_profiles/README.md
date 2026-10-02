@@ -157,3 +157,15 @@ natural reference population.
 The profile is dominated by elm, oak, red/silver maple, ash, birch and beech forms,
 with a smaller eastern-white-pine / conifer component. The overall core Designer
 scale p10 / p50 / p90 is approximately **1.000 / 1.146 / 1.269**.
+
+
+### Northern Rockies Montane
+
+Calibrated from The Reserve at Moonlight Basin in Big Sky, Montana. The enabled
+profile retains **7,219** natural / terrain-aligned trees and excludes **1,831**
+vertically manipulated scenery-massing trees. The natural palette is extremely
+focused: three Norway Spruce prefab variants account for about **95.8%** of the
+retained planting, with smaller Douglas-fir, Scots-pine, generic-conifer,
+deciduous/aspen-like analog, and dead-snag components.
+
+All **19** retained natural-placement prefabs are preserved in the profile.
