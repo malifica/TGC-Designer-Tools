@@ -32,16 +32,17 @@ _PROFILE_ERRORS = []
 def _profile_directories():
     roots = []
 
-    # For a one-file PyInstaller build, allow a user-editable tree_profiles
-    # directory next to the EXE to override/extend the bundled profiles.
-    if getattr(sys, "frozen", False):
-        roots.append(Path(sys.executable).resolve().parent / "tree_profiles")
-
+    # Load bundled/source profiles first. For a one-file PyInstaller build,
+    # append the user-editable directory next to the EXE last so a profile with
+    # the same display_name intentionally overrides the bundled copy.
     bundle_root = getattr(sys, "_MEIPASS", None)
     if bundle_root:
         roots.append(Path(bundle_root) / "tree_profiles")
 
     roots.append(Path(__file__).resolve().parent / "tree_profiles")
+
+    if getattr(sys, "frozen", False):
+        roots.append(Path(sys.executable).resolve().parent / "tree_profiles")
     output = []
     seen = set()
     for root in roots:

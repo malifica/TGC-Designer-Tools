@@ -17,6 +17,8 @@ Beta 5 begins a real-life tree planting-profile system for LiDAR/OSM vegetation.
 
 See `BETA5_TREE_PROFILES.md`.
 
+**Texas Hill Country** is the first enabled real-life profile for Beta 5 testing, calibrated from `Canyon Springs SATX (L).course`.
+
 
 
 ## Beta 4

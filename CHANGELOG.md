@@ -15,6 +15,7 @@ The fork is based on work from `HiCamino/TGC-Designer-Tools`.
 - Weighted custom-profile tree assignment for LiDAR and OSM candidates.
 - **Heroic (Beta 5)** scale mode with **Legacy LiDAR** retained for comparison.
 - Beta 5 development build and verifier scripts.
+- **Texas Hill Country** calibrated profile from `Canyon Springs SATX (L).course`, using the 51 highest-use non-ornamental prefabs (2,668 placements / 90.4% of the retained reference population).
 
 ### Changed
 
