@@ -169,3 +169,36 @@ retained planting, with smaller Douglas-fir, Scots-pine, generic-conifer,
 deciduous/aspen-like analog, and dead-snag components.
 
 All **19** retained natural-placement prefabs are preserved in the profile.
+
+
+## Donor surface and terrain materials
+
+Beta 5 regional profiles now carry the donor course's visible material selection,
+not just its tree mix. Selecting a regional theme applies the donor's bunker,
+green, fringe, fairway, rough, heavy-rough and terrain/splat materials.
+
+The runtime copies `surfaces2`, `secondarySurfaces`, `cartPathTexture`, and
+`teeTexture` into the target CourseDescription. At export it mirrors
+`surfaces2` into CourseMetadata so the packed course remains consistent.
+
+For 2K25 `surfaces2`, the material slots used by the regional-theme system are:
+0 bunker; 6 green; 7 fringe; 8 fairway; 9 light rough; 10 heavy rough; and 11-14
+the four general terrain/splat channels used for soil/dirt/topsoil-style terrain
+textures.
+
+All existing Beta 5 regional themes have been retrofitted from their original
+donor courses. Niagara Escarpment currently uses Devil's Paintbrush as its
+material donor while its tree matrix still uses both Paintbrush and Pulpit.
+
+
+### Monterey Bay Coast
+
+**Monterey Bay Coast** is calibrated from Pasatiempo Golf Club in Santa Cruz,
+California. The reference retains **2,221** natural / terrain-aligned trees,
+excludes **505** vertically manipulated scenery-massing trees, and uses a
+**49-prefab / 2,111-tree / 95.0%** core.
+
+Its donor materials are preserved with the regional theme: **Sand07** bunkers,
+**Green10** greens, **Fringe10**, **Fairway10**, **LightRough46_Pinehurst**,
+**HeavyRough09**, and the terrain channels **Splat0_TorreyPines /
+Splat1_Steppe / Splat2_TorreyPines / Splat3_Harvest**.
