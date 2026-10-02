@@ -376,6 +376,27 @@ def exportCourseAction():
         if len(new_course_name) > 0:
             course_json["name"] = new_course_name
             tgc_tools.set_course_metadata_name(root.filename, course_json["name"])
+
+        # Regional theme material metadata sync.
+        try:
+            profile_var = options_entries_dict.get("tree_profile")
+            profile_choice = profile_var.get() if profile_var is not None else None
+            course_json = tree_profile_manager.apply_visual_material_preset(
+                course_json,
+                profile_choice,
+                printf=print,
+            )
+            metadata_json = tgc_tools.get_metadata_json(root.filename)
+            metadata_json = tree_profile_manager.apply_visual_material_preset(
+                metadata_json,
+                profile_choice,
+                printf=print,
+                metadata=True,
+            )
+            tgc_tools.write_metadata_json(root.filename, metadata_json)
+        except Exception as exc:
+            print("Warning: could not sync regional theme material metadata:", exc)
+
         drawPlaceholder()
         tgc_tools.pack_course_file(root.filename, None, dest_file, course_json, course_version)
         drawCourse(course_json)
@@ -1651,7 +1672,7 @@ Label(courseSubFrame, text="Purple Background Detail Spacing (m)", fg=check_fg, 
 outside_bg_resolution_entry.grid(row=3, column=1, sticky=W, padx=5)
 lidarTreeCheck.grid(row=4, columnspan=2, sticky=W, padx=5)
 treeVarietyCheck.grid(row=5, columnspan=2, sticky=W, padx=5)
-Label(courseSubFrame, text="Tree Planting Theme", fg=check_fg, bg=check_bg).grid(row=6, column=0, sticky=W, padx=5, pady=(5,0))
+Label(courseSubFrame, text="Regional Theme (Trees + Materials)", fg=check_fg, bg=check_bg).grid(row=6, column=0, sticky=W, padx=5, pady=(5,0))
 treeProfileCombo.grid(row=6, column=1, sticky=W, padx=5, pady=(5,0))
 Label(courseSubFrame, text="Tree Scale", fg=check_fg, bg=check_bg).grid(row=7, column=0, sticky=W, padx=5)
 treeScaleModeCombo.grid(row=7, column=1, sticky=W, padx=5)
