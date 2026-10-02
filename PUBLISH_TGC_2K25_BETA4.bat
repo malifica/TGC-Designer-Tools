@@ -64,7 +64,7 @@ if not errorlevel 1 (
 
 echo.
 echo === Create Beta 4 prerelease ===
-gh release create "%TAG%" ^
+gh release create "%TAG%" --repo "%REPO%" ^
  "dist\%EXENAME%.exe" ^
  "%RELEASEBASE%\%EXENAME%.exe.sha256.txt" ^
  "%RELEASEBASE%\%PKG%.zip" ^
