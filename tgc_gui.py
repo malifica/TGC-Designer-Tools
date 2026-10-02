@@ -21,6 +21,7 @@ import tree_profile_manager
 import tgc_tools
 import osm_alignment_viewer
 import lidar_map_api
+import usgs_ept_downloader
 import dem_map_api
 import tgc_image_terrain
 from tgc_visualizer import drawCourseAsImage
@@ -32,6 +33,7 @@ TGC_APP_TITLE = "TGC Designer Tools 2K25 - Beta 5 Development"
 AUTO_RED_MASK_BUFFER_MIN_M = 5.0
 AUTO_RED_MASK_BUFFER_MAX_M = 30.0
 AUTO_RED_MASK_BUFFER_DEFAULT_M = 5.0
+AWS_EPT_OSM_BUFFER_M = 150.0
 
 image_width = 500
 image_height = 500
@@ -630,7 +632,15 @@ def getAutoRedMaskSettings(auto_red_mask_var=None, auto_red_mask_buffer_var=None
 
     return enabled, buffer_m
 
-def runLidar(scale_entry, epsg_entry, printf, auto_red_mask_var=None, auto_red_mask_buffer_var=None):
+def runLidar(
+    scale_entry,
+    epsg_entry,
+    printf,
+    auto_red_mask_var=None,
+    auto_red_mask_buffer_var=None,
+    lidar_dir_path_override=None,
+    ignore_force_epsg=False,
+):
     """Run heavy LiDAR preparation and terrain rasterization off the Tk thread."""
     global root
     global lidar_processing_active
@@ -650,13 +660,14 @@ def runLidar(scale_entry, epsg_entry, printf, auto_red_mask_var=None, auto_red_m
         return
 
     force_epsg = None
-    try:
-        epsg_raw = epsg_entry.get()
-        if epsg_raw:
-            force_epsg = int(epsg_raw)
-    except Exception:
-        alert("No action taken: Could not get valid force epsg from entry")
-        return
+    if not ignore_force_epsg:
+        try:
+            epsg_raw = epsg_entry.get()
+            if epsg_raw:
+                force_epsg = int(epsg_raw)
+        except Exception:
+            alert("No action taken: Could not get valid force epsg from entry")
+            return
 
     auto_red_settings = getAutoRedMaskSettings(
         auto_red_mask_var,
@@ -666,12 +677,16 @@ def runLidar(scale_entry, epsg_entry, printf, auto_red_mask_var=None, auto_red_m
         return
     auto_red_enabled, auto_red_buffer_m = auto_red_settings
 
-    lidar_dir_path = tk.filedialog.askdirectory(
-        initialdir=root.filename,
-        title="Select las/laz files directory",
-    )
-    if not lidar_dir_path:
-        return
+    if lidar_dir_path_override:
+        lidar_dir_path = str(lidar_dir_path_override)
+        printf("Using LiDAR directory: " + lidar_dir_path)
+    else:
+        lidar_dir_path = tk.filedialog.askdirectory(
+            initialdir=root.filename,
+            title="Select las/laz files directory",
+        )
+        if not lidar_dir_path:
+            return
 
     local_osm_file = ""
     try:
@@ -818,6 +833,140 @@ def runLidar(scale_entry, epsg_entry, printf, auto_red_mask_var=None, auto_red_m
         daemon=True,
     ).start()
     root.after(100, pump_worker_messages)
+
+def runAwsEptLidar(
+    scale_entry,
+    epsg_entry,
+    printf,
+    auto_red_mask_var=None,
+    auto_red_mask_buffer_var=None,
+):
+    """Download public USGS AWS EPT by Local OSM extent, then run normal LiDAR."""
+    global root
+    global lidar_processing_active
+
+    if lidar_processing_active:
+        alert(
+            "LiDAR processing is already running. "
+            "Wait for it to finish first."
+        )
+        return
+
+    if not root or not hasattr(root, 'filename'):
+        alert("Select a course directory before downloading AWS EPT LiDAR")
+        return
+
+    local_osm_file = ""
+    try:
+        entry = options_entries_dict.get("local_osm_file")
+        if entry is not None:
+            local_osm_file = str(entry.get() or "").strip()
+    except Exception:
+        local_osm_file = ""
+
+    if not local_osm_file:
+        try:
+            for key, entry in options_entries_dict.items():
+                try:
+                    value = entry.get()
+                except Exception:
+                    continue
+                if isinstance(value, str):
+                    candidate = value.strip()
+                    if candidate.lower().endswith((".osm", ".xml")):
+                        local_osm_file = candidate
+                        break
+        except Exception:
+            local_osm_file = ""
+
+    if not local_osm_file:
+        alert(
+            "Select a Local OSM File on the Import Terrain and Features tab "
+            "before using USGS AWS EPT."
+        )
+        return
+
+    result_queue = queue.Queue()
+    lidar_processing_active = True
+
+    printf(
+        "USGS AWS EPT job started in background. "
+        "Using Local OSM course extent with a " +
+        str(int(AWS_EPT_OSM_BUFFER_M)) + " m safety buffer."
+    )
+    printf(
+        "Public AWS EPT requires no AWS account. "
+        "Downloaded EPT nodes will be converted to normal LAZ chunks."
+    )
+
+    def worker_printf(message):
+        result_queue.put(("log", str(message)))
+
+    def download_worker():
+        try:
+            lidar_dir_path = usgs_ept_downloader.download_osm_ept_laz(
+                local_osm_file,
+                root.filename,
+                buffer_m=AWS_EPT_OSM_BUFFER_M,
+                printf=worker_printf,
+            )
+            result_queue.put(("download_done", lidar_dir_path))
+        except Exception:
+            result_queue.put(("error", traceback.format_exc()))
+
+    def pump_worker_messages():
+        global lidar_processing_active
+
+        finished = False
+        while True:
+            try:
+                kind, payload = result_queue.get_nowait()
+            except queue.Empty:
+                break
+
+            if kind == "log":
+                printf(payload)
+                continue
+
+            if kind == "error":
+                lidar_processing_active = False
+                printf("USGS AWS EPT download failed:")
+                printf(payload)
+                alert(
+                    "USGS AWS EPT download failed. "
+                    "See the Process LiDAR / DEM console for details."
+                )
+                finished = True
+                break
+
+            if kind == "download_done":
+                lidar_processing_active = False
+                printf(
+                    "AWS EPT subset is ready. "
+                    "Starting the normal Beta 5 LiDAR pipeline."
+                )
+                runLidar(
+                    scale_entry,
+                    epsg_entry,
+                    printf,
+                    auto_red_mask_var,
+                    auto_red_mask_buffer_var,
+                    lidar_dir_path_override=payload,
+                    ignore_force_epsg=True,
+                )
+                finished = True
+                break
+
+        if not finished and lidar_processing_active:
+            root.after(100, pump_worker_messages)
+
+    threading.Thread(
+        target=download_worker,
+        name="TGC-USGS-EPT-Download-Worker",
+        daemon=True,
+    ).start()
+    root.after(100, pump_worker_messages)
+
 
 def runDEM(scale_entry, printf, auto_red_mask_var=None, auto_red_mask_buffer_var=None):
     """Run DEM preparation/finalization on worker threads so Tk stays responsive."""
@@ -1382,6 +1531,32 @@ lidarbutton.pack(side=LEFT, padx=5, pady=5)
 dembutton.pack(side=LEFT, padx=5, pady=5)
 
 lidarControlFrame.pack(pady=5)
+
+awsEptFrame = Frame(lidar, bg=tool_bg)
+awsEptButton = Button(
+    awsEptFrame,
+    text="USGS AWS EPT From Local OSM",
+    command=partial(
+        runAwsEptLidar,
+        scale_entry,
+        epsg_entry,
+        lidarPrintf,
+        auto_red_mask_var,
+        auto_red_mask_buffer_var,
+    ),
+)
+awsEptButton.pack(side=LEFT, padx=5, pady=5)
+Label(
+    awsEptFrame,
+    text=(
+        "Public 3DEP cloud LiDAR; Local OSM boundary + " +
+        str(int(AWS_EPT_OSM_BUFFER_M)) +
+        " m buffer. Downloads cropped LAZ and runs normal LiDAR processing."
+    ),
+    fg=text_fg,
+    bg=tool_bg,
+).pack(side=LEFT, padx=8)
+awsEptFrame.pack(pady=(0, 5))
 
 lidarMaskFrame = Frame(lidar, bg=tool_bg)
 auto_red_mask_buffer_entry = tk.Entry(
