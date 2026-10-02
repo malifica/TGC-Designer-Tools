@@ -12,8 +12,11 @@ import json
 import math
 import numpy as np
 import os
+from pathlib import Path
+import shutil
 import overpy
 import scipy
+import pyproj
 import sys
 import time
 import urllib
@@ -724,6 +727,214 @@ def generate_lidar_heightmap(pc, img_points, sample_scale, output_dir_path, osm_
     np.save(output_dir_path + '/heightmap', output_data)
 
     printf("Done! Now go edit your mask.png to remove uneeded areas")
+
+
+def _projection_to_crs(projection):
+    if projection is None:
+        return None
+    for candidate in (
+        getattr(projection, "crs", None),
+        getattr(projection, "srs", None),
+        projection,
+    ):
+        if candidate is None:
+            continue
+        try:
+            return pyproj.CRS.from_user_input(candidate)
+        except Exception:
+            pass
+    return None
+
+
+def attach_lidar_trees_to_existing_dem(
+    lidar_dir_path,
+    dem_heightmap_path,
+    sample_scale=1.0,
+    local_osm_file=None,
+    source_metadata=None,
+    printf=print,
+):
+    """Detect trees from LiDAR and inject them into an existing DEM heightmap.
+
+    Terrain, mask, DEM resolution and DEM master grid are preserved exactly.
+    Only the projected LiDAR tree candidate list and tree-source metadata are
+    replaced.
+    """
+    sample_scale = float(sample_scale)
+    if sample_scale <= 0.0:
+        raise ValueError("Tree extraction sample scale must be greater than zero")
+
+    dem_path = Path(dem_heightmap_path)
+    if dem_path.is_dir():
+        dem_path = dem_path / "heightmap.npy"
+    if not dem_path.is_file():
+        raise FileNotFoundError(
+            "DEM heightmap.npy was not found: " + str(dem_path)
+        )
+
+    dem_data = np.load(
+        str(dem_path),
+        allow_pickle=True,
+    ).item()
+
+    source_kind = str(dem_data.get("source", "") or "")
+    if "DEM" not in source_kind.upper():
+        raise ValueError(
+            "Trees Only requires an existing DEM-generated heightmap.npy. "
+            "Current source is: " + (source_kind or "unknown")
+        )
+
+    temp_dir = dem_path.parent / "_TGC_LIDAR_TREE_EXTRACT"
+    if temp_dir.exists():
+        shutil.rmtree(temp_dir)
+    temp_dir.mkdir(parents=True, exist_ok=True)
+
+    printf(
+        "Tree-only LiDAR extraction: terrain will remain from the existing DEM."
+    )
+    printf(
+        "LiDAR is being rasterized only to reproduce the normal Beta 5 "
+        "tree-detection logic."
+    )
+
+    try:
+        prepared = prepare_lidar_previews(
+            lidar_dir_path,
+            sample_scale,
+            str(temp_dir),
+            force_epsg=None,
+            printf=printf,
+            local_osm_file=local_osm_file,
+            auto_red_mask_enabled=False,
+            auto_red_mask_buffer_m=5.0,
+        )
+        if prepared is None:
+            raise RuntimeError("LiDAR preparation returned no point cloud")
+
+        pc = prepared["pc"]
+        image_width = math.ceil(pc.width / sample_scale) + 1
+        image_height = math.ceil(pc.height / sample_scale) + 1
+
+        generate_lidar_heightmap(
+            pc,
+            prepared["img_points"],
+            sample_scale,
+            str(temp_dir),
+            prepared.get("osm_result"),
+            False,
+            5.0,
+            crop_bounds=(0, 0, image_width, image_height),
+            printf=printf,
+        )
+
+        extracted_path = temp_dir / "heightmap.npy"
+        if not extracted_path.is_file():
+            raise RuntimeError(
+                "Tree-only LiDAR extraction did not create its temporary heightmap"
+            )
+
+        lidar_data = np.load(
+            str(extracted_path),
+            allow_pickle=True,
+        ).item()
+        lidar_trees = list(lidar_data.get("trees") or [])
+
+        if not lidar_trees:
+            raise RuntimeError(
+                "Selected LiDAR dataset produced no tree candidates"
+            )
+
+        source_crs = _projection_to_crs(lidar_data.get("projection"))
+        target_crs = _projection_to_crs(dem_data.get("projection"))
+        if source_crs is None or target_crs is None:
+            raise RuntimeError(
+                "Could not resolve LiDAR and DEM coordinate reference systems "
+                "for tree reprojection"
+            )
+
+        transformed_trees = []
+        if source_crs == target_crs:
+            transformed_trees = [
+                (
+                    float(tree[0]),
+                    float(tree[1]),
+                    float(tree[2]),
+                    float(tree[3]),
+                )
+                for tree in lidar_trees
+            ]
+        else:
+            transformer = pyproj.Transformer.from_crs(
+                source_crs,
+                target_crs,
+                always_xy=True,
+            )
+            xs = np.asarray(
+                [float(tree[0]) for tree in lidar_trees],
+                dtype=np.float64,
+            )
+            ys = np.asarray(
+                [float(tree[1]) for tree in lidar_trees],
+                dtype=np.float64,
+            )
+            out_x, out_y = transformer.transform(xs, ys)
+            transformed_trees = [
+                (
+                    float(out_x[index]),
+                    float(out_y[index]),
+                    float(tree[2]),
+                    float(tree[3]),
+                )
+                for index, tree in enumerate(lidar_trees)
+            ]
+
+        backup_path = dem_path.parent / "heightmap_before_lidar_trees.npy"
+        if not backup_path.exists():
+            shutil.copy2(dem_path, backup_path)
+            printf(
+                "Saved DEM-only backup: " + str(backup_path)
+            )
+
+        dem_data["trees"] = transformed_trees
+        dem_data["tree_source"] = "LiDAR"
+        dem_data["tree_source_count"] = len(transformed_trees)
+        dem_data["tree_source_projection"] = source_crs.to_string()
+        dem_data["tree_source_sample_scale"] = float(sample_scale)
+
+        if isinstance(source_metadata, dict):
+            safe_metadata = {}
+            for key, value in source_metadata.items():
+                if key == "ept_resources":
+                    continue
+                if isinstance(value, (str, int, float, bool)) or value is None:
+                    safe_metadata[key] = value
+                elif isinstance(value, (list, tuple)):
+                    safe_metadata[key] = [
+                        str(item) for item in value
+                    ]
+                else:
+                    safe_metadata[key] = str(value)
+            dem_data["tree_source_metadata"] = safe_metadata
+
+        np.save(str(dem_path), dem_data)
+
+        printf(
+            "Trees Only complete: injected " +
+            str(len(transformed_trees)) +
+            " LiDAR tree candidate(s) into the DEM heightmap."
+        )
+        printf(
+            "DEM terrain array, DEM mask, image scale and master grid were preserved."
+        )
+        return len(transformed_trees)
+
+    finally:
+        try:
+            if temp_dir.exists():
+                shutil.rmtree(temp_dir)
+        except Exception:
+            pass
+
 
 if __name__ == "__main__":
     if len(sys.argv) < 4:
