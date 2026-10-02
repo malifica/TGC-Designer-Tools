@@ -11,6 +11,7 @@ import traceback
 import cv2
 from functools import partial
 import math
+from pathlib import Path
 import numpy as np
 import numpy
 from PIL import Image, ImageTk
@@ -834,6 +835,286 @@ def runLidar(
     ).start()
     root.after(100, pump_worker_messages)
 
+def _aws_ept_dem_ready():
+    global root
+    if not root or not hasattr(root, "filename"):
+        return False
+    path = Path(root.filename) / "heightmap.npy"
+    if not path.is_file():
+        return False
+    try:
+        data = np.load(str(path), allow_pickle=True).item()
+        return "DEM" in str(data.get("source", "") or "").upper()
+    except Exception:
+        return False
+
+
+def showAwsEptDatasetChooser(candidates):
+    """Modal chooser showing USGS acquisition/quality metadata before download."""
+    result = {"candidate": None, "mode": None}
+    popup = tk.Toplevel(root)
+    popup.title("Choose USGS LiDAR Acquisition")
+    popup.geometry("1500x680")
+    popup.minsize(1150, 560)
+    popup.transient(root)
+    popup.grab_set()
+
+    intro = (
+        "Choose the LiDAR acquisition you want. Collection dates are the actual "
+        "flight/acquisition dates when WESM provides them; publication date is "
+        "shown separately in the details. Public AWS EPT availability is also "
+        "checked before you choose."
+    )
+    Label(
+        popup,
+        text=intro,
+        justify=LEFT,
+        wraplength=1420,
+    ).pack(fill=X, padx=10, pady=(10, 6))
+
+    columns = (
+        "year",
+        "collection",
+        "ql",
+        "lidar_resolution",
+        "dem_gsd",
+        "lpc_status",
+        "aws",
+        "project",
+    )
+    tree = ttk.Treeview(
+        popup,
+        columns=columns,
+        show="headings",
+        selectmode="browse",
+        height=13,
+    )
+    headings = {
+        "year": "Year",
+        "collection": "Collection dates",
+        "ql": "3DEP quality",
+        "lidar_resolution": "QL pulse spacing / density",
+        "dem_gsd": "Source DEM GSD",
+        "lpc_status": "LPC status",
+        "aws": "Public AWS EPT",
+        "project": "USGS project",
+    }
+    widths = {
+        "year": 70,
+        "collection": 190,
+        "ql": 110,
+        "lidar_resolution": 300,
+        "dem_gsd": 130,
+        "lpc_status": 155,
+        "aws": 130,
+        "project": 340,
+    }
+    for column in columns:
+        tree.heading(column, text=headings[column])
+        tree.column(
+            column,
+            width=widths[column],
+            minwidth=60,
+            stretch=(column == "project"),
+        )
+
+    yscroll = ttk.Scrollbar(
+        popup,
+        orient=VERTICAL,
+        command=tree.yview,
+    )
+    xscroll = ttk.Scrollbar(
+        popup,
+        orient=HORIZONTAL,
+        command=tree.xview,
+    )
+    tree.configure(
+        yscrollcommand=yscroll.set,
+        xscrollcommand=xscroll.set,
+    )
+
+    table_frame = Frame(popup)
+    tree.grid(in_=table_frame, row=0, column=0, sticky="nsew")
+    yscroll.grid(in_=table_frame, row=0, column=1, sticky="ns")
+    xscroll.grid(in_=table_frame, row=1, column=0, sticky="ew")
+    table_frame.grid_rowconfigure(0, weight=1)
+    table_frame.grid_columnconfigure(0, weight=1)
+    table_frame.pack(fill=BOTH, expand=True, padx=10)
+
+    iid_to_candidate = {}
+    for index, candidate in enumerate(candidates):
+        start_date = str(candidate.get("collect_start") or "")
+        end_date = str(candidate.get("collect_end") or "")
+        if start_date and end_date:
+            collection = (
+                start_date if start_date == end_date
+                else start_date + " to " + end_date
+            )
+        else:
+            collection = start_date or end_date or "Unknown"
+
+        aws_text = (
+            "Available"
+            if candidate.get("ept_available")
+            else "Not available"
+        )
+        iid = "dataset_" + str(index)
+        iid_to_candidate[iid] = candidate
+        tree.insert(
+            "",
+            END,
+            iid=iid,
+            values=(
+                candidate.get("collection_year") or "",
+                collection,
+                candidate.get("ql") or "Unknown",
+                candidate.get("ql_reference") or "Not listed",
+                candidate.get("dem_gsd") or "Not listed",
+                candidate.get("lpc_category") or "Not listed",
+                aws_text,
+                candidate.get("project") or "",
+            ),
+        )
+
+    details_var = tk.StringVar()
+    details_label = Label(
+        popup,
+        textvariable=details_var,
+        justify=LEFT,
+        anchor="w",
+        wraplength=1420,
+        relief=SUNKEN,
+        padx=8,
+        pady=6,
+    )
+    details_label.pack(fill=X, padx=10, pady=8)
+
+    dem_ready = _aws_ept_dem_ready()
+    dem_note = (
+        "Trees Only is available: current heightmap source is DEM."
+        if dem_ready else
+        "Trees Only requires a DEM-generated heightmap.npy in the selected course directory."
+    )
+    dem_note_var = tk.StringVar(value=dem_note)
+    Label(
+        popup,
+        textvariable=dem_note_var,
+        justify=LEFT,
+        anchor="w",
+    ).pack(fill=X, padx=10, pady=(0, 6))
+
+    button_frame = Frame(popup)
+    terrain_button = ttk.Button(
+        button_frame,
+        text="Use for Terrain + Trees",
+    )
+    tree_button = ttk.Button(
+        button_frame,
+        text="Use for Trees Only (Keep DEM Terrain)",
+    )
+    cancel_button = ttk.Button(
+        button_frame,
+        text="Cancel",
+    )
+    terrain_button.pack(side=LEFT, padx=6)
+    tree_button.pack(side=LEFT, padx=6)
+    cancel_button.pack(side=LEFT, padx=6)
+    button_frame.pack(pady=(0, 10))
+
+    if not dem_ready:
+        tree_button.configure(state=DISABLED)
+
+    def selected_candidate():
+        selection = tree.selection()
+        if not selection:
+            return None
+        return iid_to_candidate.get(selection[0])
+
+    def update_details(_event=None):
+        candidate = selected_candidate()
+        if candidate is None:
+            details_var.set("Select a dataset to see full metadata.")
+            terrain_button.configure(state=DISABLED)
+            if dem_ready:
+                tree_button.configure(state=DISABLED)
+            return
+
+        available = bool(candidate.get("ept_available"))
+        terrain_button.configure(
+            state=NORMAL if available else DISABLED
+        )
+        tree_button.configure(
+            state=NORMAL if (available and dem_ready) else DISABLED
+        )
+
+        lines = [
+            "Project: " + str(candidate.get("project") or ""),
+            "Work units: " + ", ".join(candidate.get("workunits") or []),
+            "Collection: " +
+            str(candidate.get("collect_start") or "?") + " to " +
+            str(candidate.get("collect_end") or "?"),
+            "3DEP QL: " + str(candidate.get("ql") or "Not listed"),
+            "QL reference: " +
+            str(candidate.get("ql_reference") or "Not listed"),
+            "Specification: " +
+            str(candidate.get("spec") or "Not listed"),
+            "Production method: " +
+            str(candidate.get("production_method") or "Not listed"),
+            "Source DEM GSD: " +
+            str(candidate.get("dem_gsd") or "Not listed"),
+            "LPC publication date: " +
+            str(candidate.get("lpc_pub_date") or "Not listed"),
+            "LPC status: " +
+            str(candidate.get("lpc_category") or "Not listed"),
+            "Horizontal CRS: " +
+            str(candidate.get("horizontal_crs") or "Not listed"),
+            "Vertical CRS: " +
+            str(candidate.get("vertical_crs") or "Not listed"),
+            "Geoid: " + str(candidate.get("geoid") or "Not listed"),
+            "AWS EPT: " + str(candidate.get("ept_note") or ""),
+        ]
+        if candidate.get("lpc_reason"):
+            lines.append(
+                "LPC variance/reason: " +
+                str(candidate.get("lpc_reason"))
+            )
+        details_var.set("\n".join(lines))
+
+    def choose(mode):
+        candidate = selected_candidate()
+        if candidate is None:
+            return
+        if not candidate.get("ept_available"):
+            return
+        if mode == "trees" and not dem_ready:
+            return
+        result["candidate"] = candidate
+        result["mode"] = mode
+        popup.destroy()
+
+    terrain_button.configure(
+        command=lambda: choose("full"),
+        state=DISABLED,
+    )
+    tree_button.configure(
+        command=lambda: choose("trees"),
+        state=DISABLED,
+    )
+    cancel_button.configure(command=popup.destroy)
+    tree.bind("<<TreeviewSelect>>", update_details)
+
+    if candidates:
+        first = "dataset_0"
+        tree.selection_set(first)
+        tree.focus(first)
+        tree.see(first)
+        update_details()
+
+    popup.protocol("WM_DELETE_WINDOW", popup.destroy)
+    popup.wait_window()
+    return result["candidate"], result["mode"]
+
+
 def runAwsEptLidar(
     scale_entry,
     epsg_entry,
@@ -841,7 +1122,7 @@ def runAwsEptLidar(
     auto_red_mask_var=None,
     auto_red_mask_buffer_var=None,
 ):
-    """Download public USGS AWS EPT by Local OSM extent, then run normal LiDAR."""
+    """Discover, choose and download public USGS AWS EPT using Local OSM."""
     global root
     global lidar_processing_active
 
@@ -865,52 +1146,81 @@ def runAwsEptLidar(
         local_osm_file = ""
 
     if not local_osm_file:
-        try:
-            for key, entry in options_entries_dict.items():
-                try:
-                    value = entry.get()
-                except Exception:
-                    continue
-                if isinstance(value, str):
-                    candidate = value.strip()
-                    if candidate.lower().endswith((".osm", ".xml")):
-                        local_osm_file = candidate
-                        break
-        except Exception:
-            local_osm_file = ""
-
-    if not local_osm_file:
         alert(
             "Select a Local OSM File on the Import Terrain and Features tab "
             "before using USGS AWS EPT."
         )
         return
 
+    try:
+        sample_scale = float(scale_entry.get())
+        if sample_scale <= 0.0:
+            raise ValueError()
+    except Exception:
+        alert("Map Scale must be a number greater than zero.")
+        return
+
     result_queue = queue.Queue()
     lidar_processing_active = True
 
     printf(
-        "USGS AWS EPT job started in background. "
-        "Using Local OSM course extent with a " +
-        str(int(AWS_EPT_OSM_BUFFER_M)) + " m safety buffer."
+        "USGS AWS EPT dataset discovery started in background. "
+        "Local OSM extent buffer=" +
+        str(int(AWS_EPT_OSM_BUFFER_M)) + " m."
     )
     printf(
-        "Public AWS EPT requires no AWS account. "
-        "Downloaded EPT nodes will be converted to normal LAZ chunks."
+        "USGS WESM metadata will be used for acquisition dates, quality, "
+        "specification and source DEM resolution."
     )
 
     def worker_printf(message):
         result_queue.put(("log", str(message)))
 
-    def download_worker():
+    def discovery_worker():
         try:
-            lidar_dir_path = usgs_ept_downloader.download_osm_ept_laz(
-                local_osm_file,
-                root.filename,
-                buffer_m=AWS_EPT_OSM_BUFFER_M,
-                printf=worker_printf,
+            bbox, candidates = (
+                usgs_ept_downloader.discover_osm_ept_candidates(
+                    local_osm_file,
+                    root.filename,
+                    buffer_m=AWS_EPT_OSM_BUFFER_M,
+                    printf=worker_printf,
+                )
             )
-            result_queue.put(("download_done", lidar_dir_path))
+            result_queue.put(
+                ("candidates", (bbox, candidates))
+            )
+        except Exception:
+            result_queue.put(("error", traceback.format_exc()))
+
+    def selected_download_worker(bbox, candidate, mode):
+        try:
+            lidar_dir_path = (
+                usgs_ept_downloader.download_candidate_ept_laz(
+                    candidate,
+                    bbox,
+                    root.filename,
+                    osm_file=local_osm_file,
+                    buffer_m=AWS_EPT_OSM_BUFFER_M,
+                    printf=worker_printf,
+                )
+            )
+
+            if mode == "trees":
+                count = (
+                    lidar_map_api.attach_lidar_trees_to_existing_dem(
+                        lidar_dir_path,
+                        Path(root.filename) / "heightmap.npy",
+                        sample_scale=sample_scale,
+                        local_osm_file=local_osm_file,
+                        source_metadata=candidate,
+                        printf=worker_printf,
+                    )
+                )
+                result_queue.put(("trees_done", count))
+            else:
+                result_queue.put(
+                    ("download_done", lidar_dir_path)
+                )
         except Exception:
             result_queue.put(("error", traceback.format_exc()))
 
@@ -930,11 +1240,65 @@ def runAwsEptLidar(
 
             if kind == "error":
                 lidar_processing_active = False
-                printf("USGS AWS EPT download failed:")
+                printf("USGS AWS EPT operation failed:")
                 printf(payload)
                 alert(
-                    "USGS AWS EPT download failed. "
+                    "USGS AWS EPT operation failed. "
                     "See the Process LiDAR / DEM console for details."
+                )
+                finished = True
+                break
+
+            if kind == "candidates":
+                bbox, candidates = payload
+                printf(
+                    "Dataset discovery complete. Opening acquisition chooser."
+                )
+                candidate, mode = showAwsEptDatasetChooser(candidates)
+
+                if candidate is None or mode is None:
+                    lidar_processing_active = False
+                    printf("USGS AWS EPT selection cancelled.")
+                    finished = True
+                    break
+
+                printf(
+                    "Selected LiDAR acquisition: " +
+                    str(candidate.get("project") or "")
+                )
+                if candidate.get("collect_start") or candidate.get("collect_end"):
+                    printf(
+                        "Collection dates: " +
+                        str(candidate.get("collect_start") or "?") +
+                        " to " +
+                        str(candidate.get("collect_end") or "?")
+                    )
+                printf(
+                    "Selected use: " +
+                    (
+                        "Trees Only - preserve current DEM terrain"
+                        if mode == "trees"
+                        else "Terrain + Trees"
+                    )
+                )
+
+                threading.Thread(
+                    target=selected_download_worker,
+                    args=(bbox, candidate, mode),
+                    name="TGC-USGS-EPT-Selected-Download",
+                    daemon=True,
+                ).start()
+                continue
+
+            if kind == "trees_done":
+                lidar_processing_active = False
+                printf(
+                    "LiDAR tree layer attached to DEM terrain: " +
+                    str(payload) + " candidate(s)."
+                )
+                printf(
+                    "The next Import Terrain and Features run can use "
+                    "LiDAR Trees normally; terrain remains the DEM."
                 )
                 finished = True
                 break
@@ -942,8 +1306,8 @@ def runAwsEptLidar(
             if kind == "download_done":
                 lidar_processing_active = False
                 printf(
-                    "AWS EPT subset is ready. "
-                    "Starting the normal Beta 5 LiDAR pipeline."
+                    "Selected AWS EPT subset is ready. "
+                    "Starting the normal Beta 5 LiDAR terrain/tree pipeline."
                 )
                 runLidar(
                     scale_entry,
@@ -961,8 +1325,8 @@ def runAwsEptLidar(
             root.after(100, pump_worker_messages)
 
     threading.Thread(
-        target=download_worker,
-        name="TGC-USGS-EPT-Download-Worker",
+        target=discovery_worker,
+        name="TGC-USGS-EPT-Discovery-Worker",
         daemon=True,
     ).start()
     root.after(100, pump_worker_messages)
