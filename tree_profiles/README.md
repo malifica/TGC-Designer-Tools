@@ -268,16 +268,12 @@ tree landscapes, such as exposed coastal links/heath. The profile still applies
 the donor Designer theme and materials; automatic LiDAR/OSM tree candidates are
 suppressed instead of being mapped to a fabricated tree palette.
 
-### Coastal Links
+### Coastal Links — reviewed, not enabled
 
-**Coastal Links** is calibrated from
 `Cape Wickham 1.0 Adaptive(3).course`, identified as Cape Wickham Golf Links on
-King Island, Tasmania.
+King Island, Tasmania, was reviewed as a possible Coastal Links donor.
 
-The donor contains **0 placed SpeedTree trees**, and its surface/terrain material
-slots are unnamed defaults. The profile therefore applies **Highlands (theme 15)**
-as the authoritative donor environment and sets `tree_generation = "none"`.
-
-This matches the course's exposed links character while leaving coastal heath,
-scrub, pigface and dune-grass generation for the future massing/scrub system rather
-than misclassifying those forms as specimen trees.
+The donor contains **0 placed SpeedTree trees**. Since the Regional Theme selector
+is primarily used to influence LiDAR/OSM tree generation, this reference is kept
+disabled and does **not** appear in the GUI. Its coastal-heath observations remain
+useful for a future scrub/massing system.

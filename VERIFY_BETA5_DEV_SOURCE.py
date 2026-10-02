@@ -240,7 +240,7 @@ except Exception as exc:
 bass_strait_profile = ROOT / "tree_profiles" / "bass_strait_coastal_links.json"
 try:
     bass_strait = json.loads(bass_strait_profile.read_text(encoding="utf-8"))
-    assert bass_strait.get("enabled") is True
+    assert bass_strait.get("enabled") is False
     assert bass_strait.get("display_name") == "Coastal Links"
     assert bass_strait.get("tree_generation") == "none"
     assert bass_strait.get("all_speedtree_tree_count") == 0
@@ -248,7 +248,7 @@ try:
     materials = bass_strait.get("visual_material_preset", {})
     assert materials.get("theme") == 15
     assert len(materials.get("surfaces2", [])) == 15
-    print("PASS - Coastal Links intentional no-tree profile")
+    print("PASS - Coastal Links reviewed but disabled")
 except Exception as exc:
     print("FAIL - Coastal Links profile -", exc)
     failed.append("Coastal Links profile")
@@ -256,15 +256,12 @@ except Exception as exc:
 try:
     import tree_profile_manager
     tree_profile_manager.load_profiles(force=True)
-    no_tree = tree_profile_manager.get_profile("Coastal Links")
-    assert no_tree is not None
-    assert no_tree.get("tree_generation") == "none"
-    assert no_tree.get("assets") == []
-    assert tree_profile_manager.choose_asset(no_tree) is None
-    print("PASS - no-tree regional profile runtime behavior")
+    assert tree_profile_manager.get_profile("Coastal Links") is None
+    assert "Coastal Links" not in tree_profile_manager.get_profile_choices()
+    print("PASS - Coastal Links excluded from Regional Theme selector")
 except Exception as exc:
-    print("FAIL - no-tree regional profile runtime behavior -", exc)
-    failed.append("no-tree regional profile runtime behavior")
+    print("FAIL - Coastal Links selector exclusion -", exc)
+    failed.append("Coastal Links selector exclusion")
 
 try:
     import tree_profile_manager

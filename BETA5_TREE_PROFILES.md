@@ -304,13 +304,11 @@ The course file contains **zero placed tree objects** and no explicitly named
 intentional rather than as a failed tree donor because Cape Wickham is a pure,
 windswept coastal links environment.
 
-The enabled profile therefore uses:
+Because the donor contains **no usable tree population**, it is **not enabled in
+the Regional Theme selector**. Beta 5 regional themes are primarily intended to
+control LiDAR/OSM tree generation on import; a no-tree donor provides no useful
+tree matrix for that purpose.
 
-- `tree_generation = "none"`;
-- **Highlands (15)** as the authoritative root Designer theme;
-- the donor's exact default `surfaces2` / `secondarySurfaces` structures;
-- no invented tree assets.
-
-This is intended to represent exposed Bass Strait links terrain until Beta 5 gains
-a dedicated coastal-heath/scrub palette for low shrubs, pigface, grasses and other
-wind-pruned vegetation.
+The Cape Wickham analysis is retained for future coastal-heath/scrub work, but no
+tree palette is invented and selecting a no-tree regional theme is not exposed in
+the GUI.
