@@ -44,6 +44,19 @@ def _decode_course(path):
     raise ValueError("Could not decode CourseDescription")
 
 
+def _extract_visual_material_preset(course, source_course):
+    """Capture donor surface/terrain texture selections for a regional theme."""
+    preset = {"source_course": str(source_course)}
+    for key in ("surfaces2", "secondarySurfaces"):
+        value = course.get(key)
+        if isinstance(value, list) and value:
+            preset[key] = value
+    for key in ("cartPathTexture", "teeTexture"):
+        if key in course:
+            preset[key] = course.get(key)
+    return preset
+
+
 def _tree_shape_reference():
     normal = set()
     skinny = set()
@@ -254,6 +267,7 @@ def analyze(
     references = []
     reference_stats = []
     course_records = []
+    visual_material_preset = None
 
     total_speedtree_items = 0
     excluded_vertical = 0
@@ -263,6 +277,8 @@ def analyze(
         course = _decode_course(filename)
         file_name = Path(filename).name
         references.append(file_name)
+        if visual_material_preset is None:
+            visual_material_preset = _extract_visual_material_preset(course, file_name)
         sampler = None if keep_manual_height else _TerrainPointSampler(course)
 
         this_course_counts = Counter()
@@ -379,6 +395,7 @@ def analyze(
             "weighting_method": "none",
             "review_asset_count": 0,
             "scale_defaults": {},
+            "visual_material_preset": visual_material_preset or {},
             "assets": [],
         }
 
@@ -487,6 +504,7 @@ def analyze(
             else "single_eligible_course_frequency"
         ),
         "scale_defaults": scale_defaults,
+        "visual_material_preset": visual_material_preset or {},
         "assets": assets,
     }
 
