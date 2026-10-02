@@ -13,7 +13,9 @@ This project remains under the upstream **Apache License 2.0**.
 
 The published release remains **v0.5.0-2k25-beta4**. Current `main` development has moved to **Beta 5**.
 
-Beta 5 begins a real-life tree planting-profile system for LiDAR/OSM vegetation. It adds a selectable **Heroic** tree scale and JSON-backed custom profiles measured from fully planted Designer reference courses. Planned profile families include Piney Woods, Monterey Peninsula, Upstate New York, Scotland, and Florida.
+Beta 5 begins a real-life regional-theme system for LiDAR/OSM vegetation. It adds a selectable **Heroic** tree scale and JSON-backed custom profiles measured from fully planted Designer reference courses. Planned profile families include Piney Woods, Monterey Peninsula, Upstate New York, Scotland, and Florida.
+
+Regional themes can also apply donor playing-surface and terrain textures: bunker, green, fringe, fairway, rough, heavy rough, and the four terrain/splat channels.
 
 See `BETA5_TREE_PROFILES.md`.
 
