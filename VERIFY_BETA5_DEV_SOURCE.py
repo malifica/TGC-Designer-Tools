@@ -52,7 +52,7 @@ checks = [
     ("Monterey Bay Coast profile file", "BETA5_TREE_PROFILES.md", "Monterey Bay Coast"),
     ("Georgia Piedmont profile file", "BETA5_TREE_PROFILES.md", "Georgia Piedmont"),
     ("San Francisco Peninsula profile file", "BETA5_TREE_PROFILES.md", "San Francisco Peninsula"),
-    ("Bass Strait Coastal Links profile file", "BETA5_TREE_PROFILES.md", "Bass Strait Coastal Links"),
+    ("Coastal Links profile file", "BETA5_TREE_PROFILES.md", "Coastal Links"),
     ("South Carolina Lowcountry profile file", "BETA5_TREE_PROFILES.md", "South Carolina Lowcountry"),
     ("Equal multi-course weighting", "tree_profile_analyzer.py", "def equal_course_weight(asset_path):"),
 ]
@@ -241,22 +241,22 @@ bass_strait_profile = ROOT / "tree_profiles" / "bass_strait_coastal_links.json"
 try:
     bass_strait = json.loads(bass_strait_profile.read_text(encoding="utf-8"))
     assert bass_strait.get("enabled") is True
-    assert bass_strait.get("display_name") == "Bass Strait Coastal Links"
+    assert bass_strait.get("display_name") == "Coastal Links"
     assert bass_strait.get("tree_generation") == "none"
     assert bass_strait.get("all_speedtree_tree_count") == 0
     assert bass_strait.get("assets") == []
     materials = bass_strait.get("visual_material_preset", {})
     assert materials.get("theme") == 15
     assert len(materials.get("surfaces2", [])) == 15
-    print("PASS - Bass Strait Coastal Links intentional no-tree profile")
+    print("PASS - Coastal Links intentional no-tree profile")
 except Exception as exc:
-    print("FAIL - Bass Strait Coastal Links profile -", exc)
-    failed.append("Bass Strait Coastal Links profile")
+    print("FAIL - Coastal Links profile -", exc)
+    failed.append("Coastal Links profile")
 
 try:
     import tree_profile_manager
     tree_profile_manager.load_profiles(force=True)
-    no_tree = tree_profile_manager.get_profile("Bass Strait Coastal Links")
+    no_tree = tree_profile_manager.get_profile("Coastal Links")
     assert no_tree is not None
     assert no_tree.get("tree_generation") == "none"
     assert no_tree.get("assets") == []

@@ -268,9 +268,9 @@ tree landscapes, such as exposed coastal links/heath. The profile still applies
 the donor Designer theme and materials; automatic LiDAR/OSM tree candidates are
 suppressed instead of being mapped to a fabricated tree palette.
 
-### Bass Strait Coastal Links
+### Coastal Links
 
-**Bass Strait Coastal Links** is calibrated from
+**Coastal Links** is calibrated from
 `Cape Wickham 1.0 Adaptive(3).course`, identified as Cape Wickham Golf Links on
 King Island, Tasmania.
 

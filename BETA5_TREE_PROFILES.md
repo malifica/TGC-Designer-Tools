@@ -293,9 +293,9 @@ inventing a specimen-tree palette merely to satisfy the profile schema. Low scru
 heath, dune grasses and similar vegetation remain a separate future massing/scrub
 system.
 
-## Bass Strait Coastal Links
+## Coastal Links
 
-**Bass Strait Coastal Links** is calibrated from Cape Wickham Golf Links on King
+**Coastal Links** is calibrated from Cape Wickham Golf Links on King
 Island, Tasmania. The donor is an 18-hole, par-72 course using Designer theme
 **15 (Highlands)**.
 
