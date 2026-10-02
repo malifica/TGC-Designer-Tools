@@ -5,6 +5,27 @@ All notable fork-specific changes to `malifica/TGC-Designer-Tools` are documente
 The fork is based on work from `HiCamino/TGC-Designer-Tools`.
 
 
+## [0.5.0-2k25-beta4] - Preview, OSM, LiDAR-tree, water, and Fjordland update
+
+### Added
+
+- Full Fjordland (theme 54) 2K25 tree palette support from the supplied reference course: 44 tree prefabs split into normal/wider and skinny/columnar groups.
+- Beta 4 Windows build, verifier, publish helper, release notes, and release checklist.
+
+### Changed
+
+- Course preview now sizes to actual course bounds instead of a fixed square-only presentation.
+- Large DEM workflows prepare a bounded course-boundary preview off-thread and generate the final full-resolution selected mask with a 100 m processing halo.
+- OSM golf-hole routes are normalized by par for standard par-3, par-4, and par-5 node patterns.
+- LiDAR tree candidates are filtered against playing surfaces while explicit rough islands can override underlying fairway rejection.
+- OSM natural-water and multipolygon lake/pond relations are written into the actual 2K25 course with stitched outer/inner topology and preserved islands.
+- Existing 2K25 global tree indices are preserved; new Fjordland-only asset paths are appended.
+
+### Retained
+
+- Beta 3.1 canonical-EPSG LiDAR projection correction for foot and US-survey-foot projected CRS.
+- Beta 3 CFS alignment, Auto Red Mask, Dense / Original terrain workflow, and optional native C LiDAR rasterizer.
+
 ## [0.5.0-2k25-beta3.1] - Auto LiDAR projection hotfix
 
 ### Fixed

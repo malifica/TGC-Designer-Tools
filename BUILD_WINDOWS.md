@@ -1,6 +1,6 @@
 # Windows Build Guide
 
-This guide builds the PGA TOUR 2K25 Beta 3.1 hotfix fork on Windows.
+This guide builds the PGA TOUR 2K25 Beta 4 fork on Windows.
 
 ## Tested development environment
 
@@ -45,11 +45,11 @@ Verify the key DEM dependency:
 python -c "import rasterio; print('Rasterio', rasterio.__version__); print('GDAL', rasterio.__gdal_version__)"
 ```
 
-Beta 3.1 uses modern `laspy` 2.x. LAZ support is available through `laspy[lazrs]`; the repository also retains the upstream `laszip` tools.
+Beta 4 uses modern `laspy` 2.x. LAZ support is available through `laspy[lazrs]`; the repository also retains the upstream `laszip` tools.
 
 ## Syntax check
 
-The Beta 3.1 build script checks:
+The Beta 4 build script checks:
 
 ```text
 tgc_gui.py
@@ -59,6 +59,7 @@ lidar_fast_native.py
 usgs_lidar_parser.py
 infill_image.py
 tgc_image_terrain.py
+tgc_definitions.py
 OSMTGC.py
 auto_red_mask.py
 cfs_georef.py
@@ -72,32 +73,32 @@ You can also run the application from source before packaging:
 python tgc_gui.py
 ```
 
-## Build Beta 3.1 hotfix
+## Build Beta 4
 
 Run:
 
 ```bat
-BUILD_TGC_2K25_BETA3_1.bat
+BUILD_TGC_2K25_BETA4.bat
 ```
 
 Expected executable:
 
 ```text
-C:\TGC-Designer-Tools\dist\tgc_gui_2k25_beta3_1.exe
+C:\TGC-Designer-Tools\dist\tgc_gui_2k25_beta4.exe
 ```
 
 The script also creates:
 
 ```text
-C:\TGC-Designer-Tools\dist\release_beta3_1\
-    TGC-Designer-Tools-2K25-v0.5.0-2k25-beta3.1-Windows-x64.zip
-    tgc_gui_2k25_beta3_1.exe.sha256.txt
-    TGC-Designer-Tools-2K25-v0.5.0-2k25-beta3.1-Windows-x64.zip.sha256.txt
+C:\TGC-Designer-Tools\dist\release_beta4\
+    TGC-Designer-Tools-2K25-v0.5.0-2k25-beta4-Windows-x64.zip
+    tgc_gui_2k25_beta4.exe.sha256.txt
+    TGC-Designer-Tools-2K25-v0.5.0-2k25-beta4-Windows-x64.zip.sha256.txt
 ```
 
 ## Native LiDAR helper
 
-`BUILD_TGC_2K25_BETA3_1.bat` attempts to compile:
+`BUILD_TGC_2K25_BETA4.bat` attempts to compile:
 
 ```text
 lidar_fast_native.c
@@ -116,13 +117,13 @@ Compiler lookup order:
 3. `x86_64-w64-mingw32-clang.exe` on `PATH`
 4. `x86_64-w64-mingw32-gcc.exe` on `PATH`
 
-The native helper uses generic x86-64 compiler settings. If no compiler is available, or the DLL build fails, the main EXE is still built and uses the exact Python rasterizer fallback. The Beta 3.1 build summary explicitly reports either `LiDAR rasterizer: NATIVE C` or `LiDAR rasterizer: PYTHON FALLBACK` so source builders can tell which path was packaged.
+The native helper uses generic x86-64 compiler settings. If no compiler is available, or the DLL build fails, the main EXE is still built and uses the exact Python rasterizer fallback. The Beta 4 build summary explicitly reports either `LiDAR rasterizer: NATIVE C` or `LiDAR rasterizer: PYTHON FALLBACK` so source builders can tell which path was packaged.
 
 ## Rasterio / GDAL / PROJ packaging
 
 Rasterio Windows wheels include GDAL/PROJ data and DLLs that a minimal PyInstaller build may not discover automatically.
 
-Beta 3.1 retains:
+Beta 4 retains:
 
 ```text
 PyInstaller/hooks/hook-rasterio.py
@@ -130,6 +131,14 @@ PyInstaller/rthook_rasterio.py
 ```
 
 Do not remove these from a DEM-enabled release.
+
+## Source verification
+
+Before packaging, run:
+
+```bat
+python VERIFY_BETA4_SOURCE.py
+```
 
 ## Release verification
 
@@ -143,8 +152,13 @@ Before publishing the Windows package:
 6. Confirm Auto Red Mask preserves compound outer/inner OSM geometry.
 7. Confirm relation fairways/rough are visibly filled in `mask.png`.
 8. Confirm relation water is pure blue.
-9. Import terrain/features and open the output course in PGA TOUR 2K25 Designer.
-10. Verify the resulting course geometry and terrain are aligned.
+9. Verify standard par-3 / par-4 / par-5 OSM hole waypoint normalization.
+10. Verify LiDAR trees are rejected on green/tee, bunker, and un-overridden fairway surfaces.
+11. Verify explicit rough islands can retain intentional fairway trees.
+12. Verify an OSM multipolygon lake/pond is written into the output course with islands preserved.
+13. Verify a Fjordland (theme 54) course uses the Fjordland tree palette.
+14. Import terrain/features and open the output course in PGA TOUR 2K25 Designer.
+15. Verify the resulting course geometry and terrain are aligned.
 
 ## Git remotes
 
@@ -156,3 +170,14 @@ upstream -> https://github.com/HiCamino/TGC-Designer-Tools.git
 ```
 
 This fork modifies central terrain, OSM, masking, and LiDAR/DEM processing files. Review upstream changes before merging them.
+
+
+## Publish Beta 4
+
+After regression validation, install/authenticate GitHub CLI and run:
+
+```bat
+PUBLISH_TGC_2K25_BETA4.bat
+```
+
+The publish helper creates the `v0.5.0-2k25-beta4` prerelease from `main`, uses the Beta 4 release-notes file as the body, and uploads the EXE, ZIP, and checksum files.

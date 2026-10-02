@@ -2,21 +2,26 @@
 
 A streamlined 2K25-focused fork of **HiCamino/TGC-Designer-Tools** for building real-world courses from **LiDAR, GeoTIFF DEM, and OpenStreetMap data**.
 
-Current release: **v0.5.0-2k25-beta3.1**
+Current release: **v0.5.0-2k25-beta4**
 Maintainer: **malifica**
 Upstream: https://github.com/HiCamino/TGC-Designer-Tools
 
 This project remains under the upstream **Apache License 2.0**.
 
 
-## Beta 3.1 hotfix
+## Beta 4
 
-Beta 3.1 keeps the Beta 3 feature set and fixes automatic LiDAR projection for LAS/LAZ datasets whose detected projected CRS uses feet or US survey feet.
+Beta 4 rolls the post-Beta-3.1 work on `main` into a new Windows prerelease.
 
-- Auto-detected horizontal CRS values that resolve to an EPSG code are now rebuilt from the canonical EPSG definition before OSM/CFS projection.
-- This keeps the working projected coordinates meter-normalized, matching TGCTool's meter-normalized LiDAR XY data.
-- Verified against a compound Colorado State Plane South dataset where Auto Detect resolves **EPSG:6432**; automatic alignment now matches manually forcing EPSG 6432.
-- Manual **Force LiDAR Horizontal EPSG** remains available for unusual or incomplete source metadata.
+- **Dynamic course preview sizing** now follows actual course bounds.
+- **Faster DEM course-boundary selection** prepares a bounded preview off-thread, then renders the final full-resolution selected area with a 100 m processing halo.
+- **Par-aware OSM hole normalization** handles standard par-3, par-4, and par-5 route-node patterns.
+- **LiDAR tree playing-surface filtering** rejects candidates on greens/tees, bunkers, and un-overridden fairways while allowing explicit rough islands.
+- **OSM multipolygon lakes/ponds** are now imported into the actual course with stitched relation geometry and preserved islands.
+- **Fjordland theme 54 tree support** adds the complete 44-tree reference palette without renumbering existing global 2K25 tree IDs.
+- The Beta 3.1 **automatic LiDAR CRS correction for foot/US-survey-foot projections** remains included.
+
+Build with `BUILD_TGC_2K25_BETA4.bat`. See `RELEASE_NOTES_v0.5.0-2k25-beta4.md` and `RELEASE_CHECKLIST_v0.5.0-2k25-beta4.md` for validation and publishing steps.
 
 ---
 
