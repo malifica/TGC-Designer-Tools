@@ -68,6 +68,10 @@ checks = [
     ("AWS EPT selected download", "usgs_ept_downloader.py", "def download_candidate_ept_laz("),
     ("DEM terrain plus LiDAR trees", "lidar_map_api.py", "def attach_lidar_trees_to_existing_dem("),
     ("Trees-only GUI action", "tgc_gui.py", 'Use for Trees Only (Keep DEM Terrain)'),
+    ("Complete OSM relation way lookup", "OSMTGC.py", "way.id: way for way in osm_result.ways"),
+    ("Safe fairway relation member lookup", "OSMTGC.py", "Warning: skipping fairway relation "),
+    ("Safe rough relation member lookup", "OSMTGC.py", "Warning: skipping rough relation "),
+    ("OSM ways/relations progress handoff", "OSMTGC.py", "OpenStreetMap Ways complete: "),
 ]
 
 failed = []

@@ -2243,6 +2243,11 @@ def addOSMToTGC(course_json, geopointcloud, osm_result, x_offset=0.0, y_offset=0
         elif amenity_type == "parking" and golf_cart_type is not None and golf_cart_type != "no" and options_dict.get('cartpath', True):
             course_json[spline_tag].append(newCartPath(nds, area=True, course_version=course_version))
 
+    printf(
+        "OpenStreetMap Ways complete: " + str(num_ways) +
+        ". Starting Relations: " + str(num_rels) + "."
+    )
+
     for n, rel in enumerate(osm_result.relations):
         if time.time() > last_print_time + status_print_duration:
             last_print_time = time.time()
@@ -2440,6 +2445,8 @@ def addOSMToTGC(course_json, geopointcloud, osm_result, x_offset=0.0, y_offset=0
 
                     fw_spline = newRough(nds, course_version)
                     course_json[spline_tag].append(fw_spline)
+
+    printf("OpenStreetMap Relations complete: " + str(num_rels) + ".")
 
     # Insert all the found holes
     for key in sorted(hole_dictionary):
