@@ -143,6 +143,7 @@ copy /y "README.md" "%RELEASEDIR%\" >nul
 copy /y "CHANGELOG.md" "%RELEASEDIR%\" >nul
 copy /y "BUILD_WINDOWS.md" "%RELEASEDIR%\" >nul
 copy /y "BETA5_TREE_PROFILES.md" "%RELEASEDIR%\" >nul
+xcopy /E /I /Y "tree_profiles" "%RELEASEDIR%\tree_profiles" >nul
 
 powershell -NoProfile -Command ^
  "Compress-Archive -Path '%RELEASEDIR%\*' -DestinationPath '%RELEASEBASE%\%PKG%.zip' -Force"
