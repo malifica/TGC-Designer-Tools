@@ -144,6 +144,13 @@ def _validate_profile(profile, source_name):
         source_course = str(raw_visual_material_preset.get("source_course", "")).strip()
         if source_course:
             clean_visual_material_preset["source_course"] = source_course
+        if "theme" in raw_visual_material_preset:
+            try:
+                clean_visual_material_preset["theme"] = int(
+                    raw_visual_material_preset["theme"]
+                )
+            except (TypeError, ValueError):
+                raise ValueError("visual_material_preset.theme must be an integer")
         for key in ("surfaces2", "secondarySurfaces"):
             value = raw_visual_material_preset.get(key)
             if isinstance(value, list) and value:
@@ -205,7 +212,7 @@ def profile_load_errors():
 
 
 def apply_visual_material_preset(target_json, choice, printf=print, metadata=False):
-    """Apply a selected real-life theme's donor surface/terrain materials."""
+    """Apply a selected regional profile's donor Designer theme and materials."""
     profile = get_profile(choice)
     if profile is None:
         return target_json
@@ -214,17 +221,26 @@ def apply_visual_material_preset(target_json, choice, printf=print, metadata=Fal
     if not preset:
         return target_json
 
-    keys = ("surfaces2",) if metadata else (
-        "surfaces2",
-        "secondarySurfaces",
-        "cartPathTexture",
-        "teeTexture",
-    )
     applied = []
-    for key in keys:
-        if key in preset:
-            target_json[key] = copy.deepcopy(preset[key])
-            applied.append(key)
+    if metadata:
+        # CourseMetadata uses a different key name for the root Designer theme.
+        if "theme" in preset:
+            target_json["courseTheme"] = copy.deepcopy(preset["theme"])
+            applied.append("courseTheme")
+        if "surfaces2" in preset:
+            target_json["surfaces2"] = copy.deepcopy(preset["surfaces2"])
+            applied.append("surfaces2")
+    else:
+        for key in (
+            "theme",
+            "surfaces2",
+            "secondarySurfaces",
+            "cartPathTexture",
+            "teeTexture",
+        ):
+            if key in preset:
+                target_json[key] = copy.deepcopy(preset[key])
+                applied.append(key)
 
     if applied and not metadata:
         surfaces = preset.get("surfaces2", []) or []
@@ -246,15 +262,16 @@ def apply_visual_material_preset(target_json, choice, printf=print, metadata=Fal
                 item = surfaces[index]
                 if isinstance(item, dict) and item.get("name"):
                     names.append(label + "=" + str(item["name"]))
+        if "theme" in preset:
+            names.insert(0, "Designer theme=" + str(preset["theme"]))
         source = preset.get("source_course", profile.get("_source", "profile"))
         printf(
-            "Regional theme materials applied from "
+            "Regional theme preset applied from "
             + str(source)
             + (": " + ", ".join(names) if names else "")
         )
 
     return target_json
-
 
 def _pool(profile, shape=None, source_kind="lidar"):
     assets = list(profile.get("assets", []))

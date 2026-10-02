@@ -1672,7 +1672,7 @@ Label(courseSubFrame, text="Purple Background Detail Spacing (m)", fg=check_fg, 
 outside_bg_resolution_entry.grid(row=3, column=1, sticky=W, padx=5)
 lidarTreeCheck.grid(row=4, columnspan=2, sticky=W, padx=5)
 treeVarietyCheck.grid(row=5, columnspan=2, sticky=W, padx=5)
-Label(courseSubFrame, text="Regional Theme (Trees + Materials)", fg=check_fg, bg=check_bg).grid(row=6, column=0, sticky=W, padx=5, pady=(5,0))
+Label(courseSubFrame, text="Regional Theme (Designer + Trees + Materials)", fg=check_fg, bg=check_bg).grid(row=6, column=0, sticky=W, padx=5, pady=(5,0))
 treeProfileCombo.grid(row=6, column=1, sticky=W, padx=5, pady=(5,0))
 Label(courseSubFrame, text="Tree Scale", fg=check_fg, bg=check_bg).grid(row=7, column=0, sticky=W, padx=5)
 treeScaleModeCombo.grid(row=7, column=1, sticky=W, padx=5)

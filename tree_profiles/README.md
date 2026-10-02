@@ -173,13 +173,16 @@ All **19** retained natural-placement prefabs are preserved in the profile.
 
 ## Donor surface and terrain materials
 
-Beta 5 regional profiles now carry the donor course's visible material selection,
-not just its tree mix. Selecting a regional theme applies the donor's bunker,
+Beta 5 regional profiles now carry the donor course's root Designer theme and
+visible material selection, not just its tree mix. Selecting a regional theme
+replaces the starting template's Designer theme and applies the donor's bunker,
 green, fringe, fairway, rough, heavy-rough and terrain/splat materials.
 
-The runtime copies `surfaces2`, `secondarySurfaces`, `cartPathTexture`, and
-`teeTexture` into the target CourseDescription. At export it mirrors
-`surfaces2` into CourseMetadata so the packed course remains consistent.
+The runtime copies `theme`, `surfaces2`, `secondarySurfaces`,
+`cartPathTexture`, and `teeTexture` into the target CourseDescription. At
+export it mirrors `surfaces2` and the root theme into
+`CourseMetadata.surfaces2` / `CourseMetadata.courseTheme` so the packed course
+remains consistent.
 
 For 2K25 `surfaces2`, the material slots used by the regional-theme system are:
 0 bunker; 6 green; 7 fringe; 8 fairway; 9 light rough; 10 heavy rough; and 11-14
@@ -219,5 +222,21 @@ Southern-live-oak forms, making it intentionally distinct from Virginia Coastal
 Plain and Carolina Piedmont (Autumn).
 
 Caledonia provides explicit bunker and turf material names. Its four terrain/splat
-slots are unnamed Delta-theme defaults, so the profile records and copies the exact
-slot structures without changing the target course's root Designer theme.
+slots are unnamed Delta-theme defaults, so the profile records the exact slot
+structures and applies Caledonia's Delta root Designer theme to resolve them.
+
+
+### Georgia Piedmont
+
+**Georgia Piedmont** is calibrated from `PeachTree_ADAPTIVE(1).course`, identified
+as Peachtree Golf Club in Atlanta, Georgia.
+
+The reference contains **4,684** SpeedTree placements. After the Beta 5
+terrain-alignment filter, **3,628** natural trees remain and **1,056**
+buried/raised scenery trees are excluded. The enabled core uses **42 prefabs /
+3,466 trees / 95.5%** coverage with fallback scale p10 / p50 / p90 approximately
+**0.627 / 0.908 / 1.215**.
+
+The palette is strongly pine-led with a smaller mature hardwood component. The
+profile also applies Peachtree's **Countryside (theme 7)** root Designer theme,
+making its unnamed terrain/splat defaults independent of the starting template.

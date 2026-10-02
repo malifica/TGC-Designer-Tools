@@ -47,6 +47,8 @@ def _decode_course(path):
 def _extract_visual_material_preset(course, source_course):
     """Capture donor surface/terrain texture selections for a regional theme."""
     preset = {"source_course": str(source_course)}
+    if "theme" in course:
+        preset["theme"] = course.get("theme")
     for key in ("surfaces2", "secondarySurfaces"):
         value = course.get(key)
         if isinstance(value, list) and value:

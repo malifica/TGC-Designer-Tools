@@ -181,10 +181,12 @@ mountain-forest snags.
 
 ## Regional themes now include materials
 
-Beta 5 regional themes are no longer tree-only. The selected donor course also
-supplies the visible playing-surface and terrain material set. TGCTool applies the
-donor `surfaces2`, `secondarySurfaces`, cart-path texture and tee texture to
-the target course.
+Beta 5 regional themes are no longer tree-only. The selected donor course now
+supplies the root Designer theme as well as the visible playing-surface and terrain
+material set. TGCTool applies the donor `theme`, `surfaces2`,
+`secondarySurfaces`, cart-path texture and tee texture to the target course.
+At export, `CourseMetadata.courseTheme` is synchronized too, so the visual result
+does not depend on which Designer theme the starting template happened to use.
 
 That includes bunker, green, fringe, fairway, light rough, heavy rough, and all
 four terrain/splat channels (the general soil/dirt/topsoil-style terrain texture
@@ -227,6 +229,25 @@ Caledonia explicitly supplies **Sand34_DetroitGC** bunkers,
 **Green46_Pinehurst** greens, **Fringe46_Pinehurst**,
 **Fairway46_Pinehurst**, **LightRough43_RenaissanceClub**, and
 **HeavyRough19_TPC_Boston**. Its terrain/splat slots 11-14 are unnamed and
-therefore depend on the donor's Delta theme defaults. Beta 5 preserves the exact
-slot structures but deliberately does not change a target course's root Designer
-theme just to resolve those unnamed terrain defaults.
+therefore depend on the donor's Delta theme defaults. Beta 5 preserves the exact slot structures and applies Caledonia's Delta root
+Designer theme, so those unnamed terrain defaults resolve as they do in the donor.
+
+
+## Georgia Piedmont
+
+**Georgia Piedmont** is calibrated from Peachtree Golf Club in Atlanta, Georgia.
+The 18-hole, par-72 donor uses Designer theme **7 (Countryside)** and its regional
+profile carries that root theme along with its trees and explicit materials.
+
+The reference contains **4,684** SpeedTree placements. After terrain-alignment
+filtering, **3,628** natural / terrain-aligned trees remain and **1,056**
+buried/raised scenery-massing trees are excluded. The enabled core uses
+**42 prefabs / 3,466 trees / 95.5%** coverage, with fallback Designer scale
+p10 / p50 / p90 approximately **0.627 / 0.908 / 1.215**.
+
+The core is strongly pine-led (about **84%** narrow pine/conifer visual forms) with
+ash, elm, beech and oak supplying the principal hardwood component. Peachtree's
+explicit materials are **Sand17**, **Green40_TorreyPines**,
+**Fringe40_TorreyPines**, **Fairway40_TorreyPines**, **LightRough06**, and
+**HeavyRough06**. Its unnamed terrain/splat slots now resolve under the copied
+Countryside root theme rather than the starting template's theme.

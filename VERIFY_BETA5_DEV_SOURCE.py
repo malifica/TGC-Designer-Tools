@@ -22,13 +22,15 @@ sources = {
 checks = [
     ("Beta 5 dev version", "tgc_gui.py", 'TGC_GUI_VERSION = "v0.5.0-2k25-beta5-dev"'),
     ("Beta 5 dev title", "tgc_gui.py", 'TGC_APP_TITLE = "TGC Designer Tools 2K25 - Beta 5 Development"'),
-    ("Tree profile GUI selector", "tgc_gui.py", 'text="Regional Theme (Trees + Materials)"'),
+    ("Tree profile GUI selector", "tgc_gui.py", 'text="Regional Theme (Designer + Trees + Materials)"'),
     ("Tree scale GUI selector", "tgc_gui.py", 'text="Tree Scale"'),
     ("Heroic default", "tgc_gui.py", 'tree_scale_mode_var.set(tree_profile_manager.HEROIC_SCALE_MODE)'),
     ("Profile loader", "tree_profile_manager.py", "def load_profiles("),
     ("Material preset loader", "tree_profile_manager.py", "visual_material_preset"),
     ("Material preset apply helper", "tree_profile_manager.py", "def apply_visual_material_preset("),
-    ("Regional theme GUI label", "tgc_gui.py", 'text="Regional Theme (Trees + Materials)"'),
+    ("Designer theme profile support", "tree_profile_manager.py", 'target_json["courseTheme"]'),
+    ("Analyzer captures donor Designer theme", "tree_profile_analyzer.py", 'preset["theme"] = course.get("theme")'),
+    ("Regional theme GUI label", "tgc_gui.py", 'text="Regional Theme (Designer + Trees + Materials)"'),
     ("Weighted asset selection", "tree_profile_manager.py", "rng.choices("),
     ("Reference quantile scaling", "tree_profile_manager.py", "def scale_for_asset("),
     ("Uniform profile scale support", "tree_profile_manager.py", 'asset.get("uniform_scale")'),
@@ -47,6 +49,7 @@ checks = [
     ("Virginia Coastal Plain profile file", "BETA5_TREE_PROFILES.md", "Virginia Coastal Plain"),
     ("Hudson Valley profile file", "BETA5_TREE_PROFILES.md", "Hudson Valley Mixed Forest"),
     ("Monterey Bay Coast profile file", "BETA5_TREE_PROFILES.md", "Monterey Bay Coast"),
+    ("Georgia Piedmont profile file", "BETA5_TREE_PROFILES.md", "Georgia Piedmont"),
     ("South Carolina Lowcountry profile file", "BETA5_TREE_PROFILES.md", "South Carolina Lowcountry"),
     ("Equal multi-course weighting", "tree_profile_analyzer.py", "def equal_course_weight(asset_path):"),
 ]
@@ -179,6 +182,7 @@ try:
     assert south_carolina.get("excluded_vertical_massing_count") == 1035
     assert len(south_carolina.get("assets", [])) == 34
     materials = south_carolina.get("visual_material_preset", {})
+    assert materials.get("theme") == 10
     assert materials.get("surfaces2", [])[0].get("name") == "Sand34_DetroitGC"
     assert materials.get("surfaces2", [])[6].get("name") == "Green46_Pinehurst"
     assert materials.get("surfaces2", [])[8].get("name") == "Fairway46_Pinehurst"
@@ -186,6 +190,24 @@ try:
 except Exception as exc:
     print("FAIL - South Carolina Lowcountry enabled profile -", exc)
     failed.append("South Carolina Lowcountry enabled profile")
+
+georgia_profile = ROOT / "tree_profiles" / "georgia_piedmont.json"
+try:
+    georgia = json.loads(georgia_profile.read_text(encoding="utf-8"))
+    assert georgia.get("enabled") is True
+    assert georgia.get("display_name") == "Georgia Piedmont"
+    assert georgia.get("natural_reference_tree_count") == 3628
+    assert georgia.get("excluded_vertical_massing_count") == 1056
+    assert len(georgia.get("assets", [])) == 42
+    materials = georgia.get("visual_material_preset", {})
+    assert materials.get("theme") == 7
+    assert materials.get("surfaces2", [])[0].get("name") == "Sand17"
+    assert materials.get("surfaces2", [])[6].get("name") == "Green40_TorreyPines"
+    assert materials.get("surfaces2", [])[8].get("name") == "Fairway40_TorreyPines"
+    print("PASS - Georgia Piedmont enabled profile + donor Designer theme/materials")
+except Exception as exc:
+    print("FAIL - Georgia Piedmont enabled profile -", exc)
+    failed.append("Georgia Piedmont enabled profile")
 
 template = ROOT / "tree_profiles" / "_template.json"
 try:

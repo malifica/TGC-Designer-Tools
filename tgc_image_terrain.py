@@ -740,7 +740,7 @@ def generate_course(course_json, heightmap_dir_path, options_dict={}, printf=pri
         print(course_version)
         return None
 
-    # Regional theme material preset: donor bunker/turf/terrain textures.
+    # Regional theme preset: donor Designer theme plus bunker/turf/terrain textures.
     course_json = tree_profile_manager.apply_visual_material_preset(
         course_json,
         options_dict.get('tree_profile'),
