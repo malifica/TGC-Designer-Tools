@@ -55,7 +55,8 @@ themes = {
     13: "steppe",
     14: "autumn",
     15: "highlands",
-    50: "temperate"
+    50: "temperate",
+    54: "fjordland"
 }
 
 normal_trees = {
@@ -325,7 +326,40 @@ trees_2k = [
     "Assets/Foliage/SpeedTree8/Trees/Wisteria_White/Prefabs/Wisteria_White_003",
     "Assets/Foliage/SpeedTree8/Trees/Wisteria_Purple/Prefabs/Wisteria_Purple_001",
     "Assets/Foliage/SpeedTree8/Trees/Wisteria_Purple/Prefabs/Wisteria_Purple_002",
-    "Assets/Foliage/SpeedTree8/Trees/Wisteria_Purple/Prefabs/Wisteria_Purple_003"
+    "Assets/Foliage/SpeedTree8/Trees/Wisteria_Purple/Prefabs/Wisteria_Purple_003",
+    "Assets/Foliage/SpeedTree8/Trees/Maple_Norway/Prefabs/Maple_Norway_004",
+    "Assets/Foliage/SpeedTree8/Trees/Maple_Norway/Prefabs/Maple_Norway_001",
+    "Assets/Foliage/SpeedTree8/Trees/Maple_Norway/Prefabs/Maple_Norway_002",
+    "Assets/Foliage/SpeedTree8/Trees/Maple_Norway/Prefabs/Maple_Norway_003",
+    "Assets/Foliage/SpeedTree8/Trees/Birch_Downy/Prefabs/Birch_Downy_003",
+    "Assets/Foliage/SpeedTree8/Trees/Birch_Downy/Prefabs/Birch_Downy_002",
+    "Assets/Foliage/SpeedTree8/Trees/Birch_Downy/Prefabs/Birch_Downy_001",
+    "Assets/Foliage/SpeedTree8/Trees/Birch_Downy/Prefabs/Birch_Downy_007",
+    "Assets/Foliage/SpeedTree8/Trees/Birch_Downy/Prefabs/Birch_Downy_006",
+    "Assets/Foliage/SpeedTree8/Trees/Birch_Downy/Prefabs/Birch_Downy_005",
+    "Assets/Foliage/SpeedTree8/Trees/Birch_Downy/Prefabs/Birch_Downy_004",
+    "Assets/Foliage/SpeedTree8/Trees/Larch_European/Prefabs/Larch_European_004",
+    "Assets/Foliage/SpeedTree8/Trees/Larch_European/Prefabs/Larch_European_005",
+    "Assets/Foliage/SpeedTree8/Trees/Larch_European/Prefabs/Larch_European_002",
+    "Assets/Foliage/SpeedTree8/Trees/Larch_European/Prefabs/Larch_European_003",
+    "Assets/Foliage/SpeedTree8/Trees/Larch_European/Prefabs/Larch_European_001",
+    "Assets/Foliage/SpeedTree/Trees/Lombardy_Poplar/Prefabs/Lombardy_Poplar_Desktop04",
+    "Assets/Foliage/SpeedTree8/Trees/Spruce_Norway/Prefabs/Spruce_Norway_009",
+    "Assets/Foliage/SpeedTree8/Trees/Spruce_Norway/Prefabs/Spruce_Norway_008",
+    "Assets/Foliage/SpeedTree8/Trees/Spruce_Norway/Prefabs/Spruce_Norway_003",
+    "Assets/Foliage/SpeedTree8/Trees/Spruce_Norway/Prefabs/Spruce_Norway_001",
+    "Assets/Foliage/SpeedTree8/Trees/Spruce_Norway/Prefabs/Spruce_Norway_007",
+    "Assets/Foliage/SpeedTree8/Trees/Spruce_Norway/Prefabs/Spruce_Norway_006",
+    "Assets/Foliage/SpeedTree8/Trees/Spruce_Norway/Prefabs/Spruce_Norway_005",
+    "Assets/Foliage/SpeedTree8/Trees/Pine_Baltic/Prefabs/Pine_Baltic_003",
+    "Assets/Foliage/SpeedTree8/Trees/Pine_Baltic/Prefabs/Pine_Baltic_002",
+    "Assets/Foliage/SpeedTree8/Trees/Pine_Baltic/Prefabs/Pine_Baltic_001",
+    "Assets/Foliage/SpeedTree8/Trees/Pine_Baltic/Prefabs/Pine_Baltic_006",
+    "Assets/Foliage/SpeedTree8/Trees/Pine_Baltic/Prefabs/Pine_Baltic_005",
+    "Assets/Foliage/SpeedTree8/Trees/Pine_Baltic/Prefabs/Pine_Baltic_004",
+    "Assets/Foliage/SpeedTree/Trees/Lombardy_Poplar/Prefabs/Lombardy_Poplar_Desktop07",
+    "Assets/Foliage/SpeedTree8/Trees/Spruce_Norway/Prefabs/Spruce_Norway_010",
+    "Assets/Foliage/SpeedTree/Trees/Lombardy_Poplar/Prefabs/Lombardy_Poplar_Desktop03"
 ]
 
 normal_trees_2k = {
@@ -343,7 +377,12 @@ normal_trees_2k = {
     15: [ 16,  17,  50,  51,  61,  64, 123, 124],
     50: [ 73, 147, 148, 149, 150, 151, 152, 155, 156, 157, 158, 159, 160, 162, 163, 
          164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 
-         179, 180, 181, 182, 183, 184, 185, 186]
+         179, 180, 181, 182, 183, 184, 185, 186],
+    # Fjordland (theme 54) - broad-canopy / wider forms from the supplied 2K25 reference course
+    54: [
+          85, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197,
+         177, 178, 179
+    ]
 } 
 
 skinny_trees_2k = {
@@ -360,5 +399,11 @@ skinny_trees_2k = {
     13: [105, 106, 107, 108, 110, 111, 112, 113, 114, 115],
     14: [ 39,  42],
     15: [  9,  10,  40,  41,  42,  55],
-    50: [153, 154, 161]
+    50: [153, 154, 161],
+    # Fjordland (theme 54) - narrow / columnar / conifer forms from the supplied 2K25 reference course
+    54: [
+         198, 199, 200, 201, 202, 203, 204, 205, 206, 153, 207, 208,
+         209, 210, 154,  77,  75,  78,  70,  69, 211, 212, 213, 214,
+         215, 216, 217, 218, 219
+    ]
 } 
