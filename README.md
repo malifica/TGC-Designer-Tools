@@ -335,3 +335,36 @@ Workflow:
 
 The public EPT route does **not** require an AWS account or Requester Pays
 credentials. The manual local LAS/LAZ workflow remains unchanged.
+
+
+### Select the LiDAR acquisition before download
+
+The **USGS AWS EPT From Local OSM** workflow now discovers all overlapping
+Lidar Point Cloud acquisitions first and opens a chooser before anything is
+downloaded. The chooser uses USGS Work Unit Extent Spatial Metadata (WESM)
+when available and shows:
+
+- actual collection start/end dates;
+- 3DEP quality level;
+- the quality-level pulse spacing / pulse density reference;
+- lidar specification version;
+- production method;
+- source DEM ground-sample distance;
+- LPC publication date and status;
+- horizontal / vertical CRS and geoid;
+- work-unit names; and
+- whether that acquisition is available in the free public AWS EPT mirror.
+
+No acquisition is automatically chosen merely because it is newer.
+
+The selected acquisition can then be used in either of two ways:
+
+**Terrain + Trees** runs the existing Beta 5 LiDAR terrain and tree workflow.
+
+**Trees Only (Keep DEM Terrain)** requires an existing DEM-generated
+`heightmap.npy`. Beta 5 runs the selected LiDAR through the normal tree
+detector, reprojects only the resulting tree candidates into the DEM CRS, and
+writes those candidates into the DEM heightmap package. The DEM elevation
+array, DEM mask, image scale and master grid are not replaced. A one-time
+`heightmap_before_lidar_trees.npy` backup is created before the tree layer is
+attached.

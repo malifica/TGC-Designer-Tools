@@ -16,6 +16,7 @@ sources = {
     "tgc_image_terrain.py": read("tgc_image_terrain.py"),
     "tree_profile_manager.py": read("tree_profile_manager.py"),
     "tree_profile_analyzer.py": read("tree_profile_analyzer.py"),
+    "lidar_map_api.py": read("lidar_map_api.py"),
     "usgs_ept_downloader.py": read("usgs_ept_downloader.py"),
     "BETA5_TREE_PROFILES.md": read("BETA5_TREE_PROFILES.md"),
 }
@@ -61,6 +62,12 @@ checks = [
     ("AWS EPT OSM downloader", "usgs_ept_downloader.py", "def download_osm_ept_laz("),
     ("AWS EPT TNM discovery", "usgs_ept_downloader.py", "tnmaccess.nationalmap.gov/api/v1/products"),
     ("AWS EPT public mirror", "usgs_ept_downloader.py", "usgs-lidar-public"),
+    ("AWS EPT dataset chooser", "tgc_gui.py", "def showAwsEptDatasetChooser("),
+    ("AWS EPT candidate discovery", "usgs_ept_downloader.py", "def discover_osm_ept_candidates("),
+    ("AWS EPT WESM metadata", "usgs_ept_downloader.py", "WESM_CSV_URL"),
+    ("AWS EPT selected download", "usgs_ept_downloader.py", "def download_candidate_ept_laz("),
+    ("DEM terrain plus LiDAR trees", "lidar_map_api.py", "def attach_lidar_trees_to_existing_dem("),
+    ("Trees-only GUI action", "tgc_gui.py", 'Use for Trees Only (Keep DEM Terrain)'),
 ]
 
 failed = []
@@ -74,7 +81,7 @@ for label, filename, needle in checks:
 for name in [
     "tgc_gui.py", "tgc_image_terrain.py", "tree_profile_manager.py",
     "tree_profile_analyzer.py", "tgc_definitions.py", "OSMTGC.py",
-    "usgs_ept_downloader.py"
+    "usgs_ept_downloader.py", "lidar_map_api.py"
 ]:
     try:
         py_compile.compile(str(ROOT / name), doraise=True)
