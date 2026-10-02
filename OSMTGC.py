@@ -1984,7 +1984,13 @@ def addOSMToTGC(course_json, geopointcloud, osm_result, x_offset=0.0, y_offset=0
     num_ways = len(osm_result.ways)
     num_rels = len(osm_result.relations)
     last_print_time = time.time()
-    way_dict = {}
+    # Keep a complete relation-member lookup from the original OSM result.
+    # Some member ways are intentionally consumed/skipped by the normal way
+    # loop (water/bunker multipolygons), but later relations may still
+    # legitimately reference those same ways.
+    way_dict = {
+        way.id: way for way in osm_result.ways
+    }
 
     # Pre-detect bunker multipolygons with golf=rough inner islands.
     # Their member ways are consumed by the relation converter so the normal
@@ -2098,7 +2104,6 @@ def addOSMToTGC(course_json, geopointcloud, osm_result, x_offset=0.0, y_offset=0
             last_print_time = time.time()
             printf(str(round(100.0*float(n) / num_ways, 2)) + "% through OpenStreetMap Ways")
 
-        way_dict[way.id] = way
         golf_type = way.tags.get("golf", None)
         waterway_type = way.tags.get("waterway", None)
         building_type = way.tags.get("building", None)
@@ -2378,7 +2383,15 @@ def addOSMToTGC(course_json, geopointcloud, osm_result, x_offset=0.0, y_offset=0
         if golf_type == "fairway" and options_dict.get('fairway', True):
             for member in rel.members:
                 if isinstance(member, overpy.RelationWay) and member.role == "outer":
-                    wayref = way_dict[member.ref]
+                    wayref = way_dict.get(member.ref)
+                    if wayref is None:
+                        printf(
+                            "Warning: skipping fairway relation " +
+                            str(rel.id) + " outer member way " +
+                            str(member.ref) +
+                            " because that way is not present in the OSM result."
+                        )
+                        continue
 
                     nds = []
                     try:
@@ -2400,7 +2413,15 @@ def addOSMToTGC(course_json, geopointcloud, osm_result, x_offset=0.0, y_offset=0
         elif golf_type == "rough" and options_dict.get('rough', True):
             for member in rel.members:
                 if isinstance(member, overpy.RelationWay) and member.role == "outer":
-                    wayref = way_dict[member.ref]
+                    wayref = way_dict.get(member.ref)
+                    if wayref is None:
+                        printf(
+                            "Warning: skipping rough relation " +
+                            str(rel.id) + " outer member way " +
+                            str(member.ref) +
+                            " because that way is not present in the OSM result."
+                        )
+                        continue
 
                     nds = []
                     try:
