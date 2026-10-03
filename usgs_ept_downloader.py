@@ -151,8 +151,20 @@ def read_osm_course_bounds(osm_file, buffer_m=DEFAULT_OSM_BUFFER_M, printf=print
         boundary_rings.extend(_stitch_way_refs(refs, ways, nodes))
 
     if boundary_rings:
-        boundary = max(boundary_rings, key=_polygon_area_lonlat)
-        source = "explicit golf-course boundary"
+        # Multi-course OSM exports are intentional: use the combined extent of
+        # every COMPLETE explicit golf-course boundary instead of silently
+        # choosing only the largest course. Incomplete multipolygon fragments
+        # never become rings in _stitch_way_refs(), so unrelated clipped
+        # courses at the export edge do not expand the master extent.
+        boundary = [
+            coordinate
+            for ring in boundary_rings
+            for coordinate in ring
+        ]
+        source = (
+            str(len(boundary_rings)) +
+            " explicit golf-course boundary ring(s), combined"
+        )
     else:
         boundary = list(nodes.values())
         source = "all OSM nodes (no explicit golf-course boundary found)"
