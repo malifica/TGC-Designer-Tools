@@ -746,6 +746,402 @@ def _projection_to_crs(projection):
     return None
 
 
+
+def fill_missing_terrain_from_lidar(
+    lidar_dir_path,
+    heightmap_path,
+    force_epsg=None,
+    source_metadata=None,
+    printf=print,
+):
+    """Fill only missing cells in an existing terrain from a fallback LiDAR set.
+
+    The existing heightmap/master grid is authoritative. Valid primary terrain
+    is never replaced. Fallback Class-2/Class-8 ground is rasterized directly
+    onto the primary master grid and is used only where the primary elevation
+    is NaN/non-finite.
+
+    A robust median overlap delta is used to remove small vertical acquisition
+    bias. Large (>2 m) apparent offsets are not applied automatically because
+    they are more likely to indicate an incompatible vertical datum.
+    """
+    terrain_path = Path(heightmap_path)
+    if terrain_path.is_dir():
+        terrain_path = terrain_path / "heightmap.npy"
+    if not terrain_path.is_file():
+        raise FileNotFoundError(
+            "Existing heightmap.npy was not found: " + str(terrain_path)
+        )
+
+    primary = np.load(
+        str(terrain_path),
+        allow_pickle=True,
+    ).item()
+
+    if "heightmap" not in primary:
+        raise ValueError("Existing heightmap.npy contains no heightmap array")
+
+    heightmap = np.asarray(primary["heightmap"])
+    if heightmap.ndim == 3 and heightmap.shape[2] >= 1:
+        primary_elevation = np.array(
+            heightmap[:, :, 0],
+            dtype=np.float32,
+            copy=True,
+        )
+        heightmap_is_3d = True
+    elif heightmap.ndim == 2:
+        primary_elevation = np.array(
+            heightmap,
+            dtype=np.float32,
+            copy=True,
+        )
+        heightmap_is_3d = False
+    else:
+        raise ValueError(
+            "Unsupported existing heightmap shape: " + str(heightmap.shape)
+        )
+
+    grid = cfs_georef.get_master_grid(
+        primary,
+        heightmap,
+        printf=printf,
+    )
+    resolution = float(grid["resolution"])
+    rows = int(primary_elevation.shape[0])
+    cols = int(primary_elevation.shape[1])
+
+    if int(grid.get("rows", rows)) != rows or int(grid.get("cols", cols)) != cols:
+        raise ValueError(
+            "Stored master grid dimensions do not match heightmap.npy"
+        )
+
+    target_crs = _projection_to_crs(primary.get("projection"))
+    if target_crs is None:
+        wkt = grid.get("crs_wkt")
+        if wkt:
+            try:
+                target_crs = pyproj.CRS.from_user_input(wkt)
+            except Exception:
+                target_crs = None
+    if target_crs is None:
+        raise RuntimeError(
+            "Could not resolve the primary terrain horizontal CRS"
+        )
+
+    missing_before = ~np.isfinite(primary_elevation)
+    missing_count_before = int(np.count_nonzero(missing_before))
+    if missing_count_before == 0:
+        printf(
+            "Terrain Gap Fill: primary terrain has no missing elevation cells; "
+            "nothing to fill."
+        )
+        return {
+            "filled_cells": 0,
+            "missing_before": 0,
+            "missing_after": 0,
+            "vertical_offset_m": 0.0,
+            "overlap_cells": 0,
+        }
+
+    printf(
+        "Terrain Gap Fill: primary grid " +
+        str(cols) + " x " + str(rows) +
+        " at " + str(resolution) + " m."
+    )
+    printf(
+        "Terrain Gap Fill: missing primary cells before fill = " +
+        str(missing_count_before)
+    )
+    printf(
+        "Loading fallback LiDAR. Primary valid terrain will never be overwritten."
+    )
+
+    fallback_pc = load_usgs_directory(
+        str(lidar_dir_path),
+        force_epsg=force_epsg,
+        printf=printf,
+    )
+    if fallback_pc is None or not fallback_pc.count:
+        raise RuntimeError("Fallback LAS/LAZ directory contained no usable LiDAR")
+
+    points = np.asarray(fallback_pc.point_matrix)
+    if points.ndim != 2 or points.shape[1] < 5:
+        raise RuntimeError("Fallback LiDAR point matrix is invalid")
+
+    ground_mask = np.isin(
+        points[:, 4].astype(np.int32, copy=False),
+        wanted_classifications,
+    )
+    ground = points[ground_mask]
+    if len(ground) == 0:
+        raise RuntimeError(
+            "Fallback LiDAR contains no Class-2/Class-8 ground points"
+        )
+
+    source_crs = _projection_to_crs(fallback_pc.proj)
+    if source_crs is None:
+        raise RuntimeError("Could not resolve fallback LiDAR horizontal CRS")
+
+    # load_usgs_directory() stores XY in metre-normalized ENU coordinates
+    # relative to fallback_pc.origin. Reconstruct projected XY before mapping
+    # onto the primary terrain's authoritative master grid.
+    source_x = (
+        ground[:, 0].astype(np.float64, copy=False) +
+        float(fallback_pc.origin[0])
+    )
+    source_y = (
+        ground[:, 1].astype(np.float64, copy=False) +
+        float(fallback_pc.origin[1])
+    )
+    z = ground[:, 2].astype(np.float64, copy=False)
+
+    if source_crs != target_crs:
+        printf(
+            "Terrain Gap Fill: reprojecting fallback LiDAR from " +
+            str(source_crs.to_string()) + " to " +
+            str(target_crs.to_string()) + "."
+        )
+        transformer = pyproj.Transformer.from_crs(
+            source_crs,
+            target_crs,
+            always_xy=True,
+        )
+        target_x, target_y = transformer.transform(source_x, source_y)
+        target_x = np.asarray(target_x, dtype=np.float64)
+        target_y = np.asarray(target_y, dtype=np.float64)
+    else:
+        target_x = source_x
+        target_y = source_y
+
+    min_x = float(grid["min_x"])
+    min_y = float(grid["min_y"])
+
+    mapped_cols = np.floor(
+        (target_x - min_x) / resolution
+    ).astype(np.int64)
+    mapped_rows = np.floor(
+        (target_y - min_y) / resolution
+    ).astype(np.int64)
+
+    in_bounds = (
+        np.isfinite(target_x) &
+        np.isfinite(target_y) &
+        np.isfinite(z) &
+        (mapped_rows >= 0) & (mapped_rows < rows) &
+        (mapped_cols >= 0) & (mapped_cols < cols)
+    )
+
+    if not np.any(in_bounds):
+        raise RuntimeError(
+            "Fallback LiDAR does not overlap the existing terrain master grid"
+        )
+
+    mapped_rows = mapped_rows[in_bounds]
+    mapped_cols = mapped_cols[in_bounds]
+    mapped_z = z[in_bounds]
+
+    # Reuse the normal exact LiDAR rasterizer so fallback cells are calculated
+    # with the same elevation accumulation behavior as primary LiDAR terrain.
+    raster_points = np.empty(
+        (len(mapped_rows), 5),
+        dtype=np.float64,
+    )
+    raster_points[:, 0] = mapped_rows
+    raster_points[:, 1] = mapped_cols
+    raster_points[:, 2] = mapped_z
+    raster_points[:, 3] = 0.0
+    raster_points[:, 4] = 2.0
+
+    fallback_raster, _unused_visual = (
+        lidar_fast_native.accumulate_height_and_visual(
+            raster_points,
+            rows,
+            cols,
+            3,
+            printf=printf,
+        )
+    )
+    fallback_elevation = fallback_raster[:, :, 0].astype(
+        np.float32,
+        copy=False,
+    )
+
+    primary_valid = np.isfinite(primary_elevation)
+    fallback_valid = np.isfinite(fallback_elevation)
+    overlap_mask = primary_valid & fallback_valid
+    overlap_count = int(np.count_nonzero(overlap_mask))
+
+    vertical_offset = 0.0
+    offset_applied = False
+
+    if overlap_count >= 50:
+        differences = (
+            primary_elevation[overlap_mask].astype(np.float64) -
+            fallback_elevation[overlap_mask].astype(np.float64)
+        )
+        differences = differences[np.isfinite(differences)]
+
+        if differences.size:
+            median_delta = float(np.median(differences))
+            absolute_deviation = np.abs(differences - median_delta)
+            mad = float(np.median(absolute_deviation))
+
+            if math.isfinite(mad) and mad > 1.0e-6:
+                robust_sigma = 1.4826 * mad
+                tolerance = max(0.20, 4.0 * robust_sigma)
+                keep = absolute_deviation <= tolerance
+                if int(np.count_nonzero(keep)) >= 25:
+                    median_delta = float(
+                        np.median(differences[keep])
+                    )
+
+            if math.isfinite(median_delta):
+                if abs(median_delta) <= 2.0:
+                    vertical_offset = median_delta
+                    offset_applied = True
+                    printf(
+                        "Terrain Gap Fill: robust overlap vertical offset = " +
+                        str(round(vertical_offset, 4)) +
+                        " m from " + str(overlap_count) +
+                        " overlapping cells; applying to fallback terrain."
+                    )
+                else:
+                    printf(
+                        "WARNING: Terrain Gap Fill measured a " +
+                        str(round(median_delta, 3)) +
+                        " m primary/fallback vertical offset. This exceeds "
+                        "the 2 m automatic-safety limit, so no vertical "
+                        "correction was applied. Verify the vertical datum/geoid."
+                    )
+    else:
+        printf(
+            "Terrain Gap Fill: only " + str(overlap_count) +
+            " overlapping valid cells; not enough for automatic vertical "
+            "offset correction."
+        )
+
+    adjusted_fallback = fallback_elevation
+    if offset_applied and vertical_offset != 0.0:
+        adjusted_fallback = (
+            fallback_elevation.astype(np.float64) +
+            vertical_offset
+        ).astype(np.float32)
+
+    fill_mask = missing_before & np.isfinite(adjusted_fallback)
+    filled_cells = int(np.count_nonzero(fill_mask))
+
+    if filled_cells == 0:
+        printf(
+            "Terrain Gap Fill: fallback LiDAR contains no valid ground in "
+            "the primary terrain's missing cells."
+        )
+        return {
+            "filled_cells": 0,
+            "missing_before": missing_count_before,
+            "missing_after": missing_count_before,
+            "vertical_offset_m": vertical_offset,
+            "overlap_cells": overlap_count,
+        }
+
+    backup_path = (
+        terrain_path.parent /
+        "heightmap_before_lidar_gap_fill.npy"
+    )
+    if not backup_path.exists():
+        shutil.copy2(terrain_path, backup_path)
+        printf(
+            "Saved primary-terrain backup: " + str(backup_path)
+        )
+
+    primary_elevation[fill_mask] = adjusted_fallback[fill_mask]
+
+    if heightmap_is_3d:
+        updated_heightmap = np.array(heightmap, copy=True)
+        updated_heightmap[:, :, 0] = primary_elevation
+    else:
+        updated_heightmap = primary_elevation
+
+    primary["heightmap"] = updated_heightmap
+
+    gap_history = primary.get("terrain_gap_fill_history")
+    if not isinstance(gap_history, list):
+        gap_history = []
+
+    safe_metadata = {}
+    if isinstance(source_metadata, dict):
+        for key, value in source_metadata.items():
+            if key == "ept_resources":
+                continue
+            if isinstance(value, (str, int, float, bool)) or value is None:
+                safe_metadata[key] = value
+            elif isinstance(value, (list, tuple)):
+                safe_metadata[key] = [str(item) for item in value]
+            else:
+                safe_metadata[key] = str(value)
+
+    missing_after = int(
+        np.count_nonzero(~np.isfinite(primary_elevation))
+    )
+
+    gap_record = {
+        "source": "LiDAR terrain gap fill",
+        "fallback_directory": str(lidar_dir_path),
+        "force_epsg": (
+            int(force_epsg) if force_epsg is not None else None
+        ),
+        "filled_cells": filled_cells,
+        "missing_before": missing_count_before,
+        "missing_after": missing_after,
+        "overlap_cells": overlap_count,
+        "vertical_offset_m": float(vertical_offset),
+        "vertical_offset_applied": bool(offset_applied),
+        "fallback_crs": source_crs.to_string(),
+        "primary_crs": target_crs.to_string(),
+        "metadata": safe_metadata,
+    }
+    gap_history.append(gap_record)
+    primary["terrain_gap_fill_history"] = gap_history
+    primary["terrain_gap_fill_last"] = gap_record
+
+    np.save(str(terrain_path), primary)
+
+    # Diagnostic mask: white pixels are cells supplied by fallback LiDAR.
+    diagnostic = np.zeros((rows, cols), dtype=np.uint8)
+    diagnostic[fill_mask] = 255
+    diagnostic_path = (
+        terrain_path.parent / "lidar_gap_fill_mask.png"
+    )
+    cv2.imwrite(
+        str(diagnostic_path),
+        np.flip(diagnostic, 0),
+    )
+
+    report_path = (
+        terrain_path.parent / "lidar_gap_fill_report.json"
+    )
+    try:
+        report_path.write_text(
+            json.dumps(gap_record, indent=2) + "\n",
+            encoding="utf-8",
+        )
+    except Exception:
+        pass
+
+    printf(
+        "Terrain Gap Fill complete: filled " +
+        str(filled_cells) + " missing cell(s); remaining missing cells=" +
+        str(missing_after) + "."
+    )
+    printf(
+        "Valid primary terrain cells overwritten: 0."
+    )
+    printf(
+        "Gap-fill diagnostic mask: " + str(diagnostic_path)
+    )
+    return gap_record
+
+
+
 def attach_lidar_trees_to_existing_dem(
     lidar_dir_path,
     dem_heightmap_path,

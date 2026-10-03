@@ -406,3 +406,31 @@ Process LiDAR / DEM tab. The workflow:
 A one-time `heightmap_before_lidar_trees.npy` backup is preserved before the
 tree layer is attached. The existing local LiDAR Terrain + Trees workflow is
 unchanged.
+
+
+### LiDAR terrain gap fill
+
+Beta 5 can combine a newer primary LiDAR terrain with an older fallback LiDAR
+acquisition without blending the two indiscriminately.
+
+First generate the normal primary terrain with **Select Lidar and Generate
+Heightmap**. Then use either:
+
+- **Select Local LAS/LAZ - Fill Missing Terrain**, or
+- an AWS EPT acquisition with **Use as Terrain Gap Fill (Keep Primary Terrain)**.
+
+The current `heightmap.npy` master grid remains authoritative. The fallback
+source is reprojected directly onto that grid using only Class 2 / Class 8
+ground points. A fallback cell is written only when the primary terrain cell is
+non-finite/NaN. Valid primary cells are never replaced.
+
+Where enough valid overlap exists, Beta 5 measures a robust median vertical
+offset between acquisitions and applies it to the fallback data when the
+offset is within a 2 m safety limit. Larger apparent offsets are reported but
+not automatically applied, because they can indicate an incompatible vertical
+datum/geoid.
+
+Before the first fill, Beta 5 creates
+`heightmap_before_lidar_gap_fill.npy`. It also writes
+`lidar_gap_fill_mask.png` (white = cells supplied by fallback LiDAR) and
+`lidar_gap_fill_report.json` with fill counts and vertical-alignment details.

@@ -835,6 +835,153 @@ def runLidar(
     ).start()
     root.after(100, pump_worker_messages)
 
+
+def runLocalLidarTerrainGapFill(
+    epsg_entry,
+    printf,
+):
+    """Fill only missing terrain cells from a local fallback LAS/LAZ folder."""
+    global root
+    global lidar_processing_active
+
+    if lidar_processing_active:
+        alert(
+            "LiDAR processing is already running. "
+            "Wait for it to finish first."
+        )
+        return
+
+    if not root or not hasattr(root, "filename"):
+        alert("Select a course directory before terrain gap fill")
+        return
+
+    heightmap_path = Path(root.filename) / "heightmap.npy"
+    if not heightmap_path.is_file():
+        alert(
+            "Terrain Gap Fill requires an existing heightmap.npy. "
+            "Process the primary/newer LiDAR first."
+        )
+        return
+
+    try:
+        existing = np.load(
+            str(heightmap_path),
+            allow_pickle=True,
+        ).item()
+        elevation = np.asarray(existing.get("heightmap"))
+        if elevation.size == 0:
+            raise ValueError()
+    except Exception:
+        alert(
+            "Could not read the existing heightmap.npy. "
+            "Process the primary/newer terrain first."
+        )
+        return
+
+    force_epsg = None
+    try:
+        epsg_raw = str(epsg_entry.get() or "").strip()
+        if epsg_raw:
+            force_epsg = int(epsg_raw)
+    except Exception:
+        alert(
+            "Force LiDAR Horizontal EPSG must be blank or a valid integer EPSG code."
+        )
+        return
+
+    lidar_dir_path = tk.filedialog.askdirectory(
+        initialdir=root.filename,
+        title="Select older/fallback LAS/LAZ directory for Terrain Gap Fill",
+    )
+    if not lidar_dir_path:
+        return
+
+    result_queue = queue.Queue()
+    lidar_processing_active = True
+
+    printf(
+        "Local LiDAR Terrain Gap Fill started in background."
+    )
+    printf(
+        "Primary terrain: " + str(heightmap_path)
+    )
+    printf(
+        "Fallback LiDAR: " + str(lidar_dir_path)
+    )
+    printf(
+        "RULE: valid primary terrain is authoritative and will not be overwritten."
+    )
+    if force_epsg is not None:
+        printf(
+            "Fallback Force LiDAR Horizontal EPSG: " +
+            str(force_epsg)
+        )
+
+    def worker_printf(message):
+        result_queue.put(("log", str(message)))
+
+    def worker():
+        try:
+            result = lidar_map_api.fill_missing_terrain_from_lidar(
+                lidar_dir_path,
+                heightmap_path,
+                force_epsg=force_epsg,
+                source_metadata={
+                    "source": "Local LAS/LAZ Terrain Gap Fill",
+                    "directory": str(lidar_dir_path),
+                },
+                printf=worker_printf,
+            )
+            result_queue.put(("done", result))
+        except Exception:
+            result_queue.put(("error", traceback.format_exc()))
+
+    def pump_worker_messages():
+        global lidar_processing_active
+        finished = False
+
+        while True:
+            try:
+                kind, payload = result_queue.get_nowait()
+            except queue.Empty:
+                break
+
+            if kind == "log":
+                printf(payload)
+                continue
+
+            if kind == "error":
+                lidar_processing_active = False
+                printf("Local LiDAR Terrain Gap Fill failed:")
+                printf(payload)
+                alert(
+                    "Local LiDAR Terrain Gap Fill failed. "
+                    "See the Process LiDAR / DEM console for details."
+                )
+                finished = True
+                break
+
+            if kind == "done":
+                lidar_processing_active = False
+                printf(
+                    "Terrain Gap Fill finished. Filled cells: " +
+                    str(payload.get("filled_cells", 0))
+                )
+                finished = True
+                break
+
+        if not finished and lidar_processing_active:
+            root.after(100, pump_worker_messages)
+
+    threading.Thread(
+        target=worker,
+        name="TGC-Local-LiDAR-Terrain-Gap-Fill",
+        daemon=True,
+    ).start()
+    root.after(100, pump_worker_messages)
+
+
+
 def runLocalLidarTreesOnly(
     scale_entry,
     epsg_entry,
@@ -1015,6 +1162,22 @@ def runLocalLidarTreesOnly(
     root.after(100, pump_worker_messages)
 
 
+
+def _terrain_gap_fill_ready():
+    global root
+    if not root or not hasattr(root, "filename"):
+        return False
+    path = Path(root.filename) / "heightmap.npy"
+    if not path.is_file():
+        return False
+    try:
+        data = np.load(str(path), allow_pickle=True).item()
+        heightmap = np.asarray(data.get("heightmap"))
+        return heightmap.size > 0
+    except Exception:
+        return False
+
+
 def _aws_ept_dem_ready():
     global root
     if not root or not hasattr(root, "filename"):
@@ -1170,11 +1333,14 @@ def showAwsEptDatasetChooser(candidates):
     details_label.pack(fill=X, padx=10, pady=8)
 
     dem_ready = _aws_ept_dem_ready()
+    gap_fill_ready = _terrain_gap_fill_ready()
     dem_note = (
         "Trees Only is available: current heightmap source is DEM."
         if dem_ready else
         "Trees Only requires a DEM-generated heightmap.npy in the selected course directory."
     )
+    if gap_fill_ready:
+        dem_note += "  Terrain Gap Fill is available for the current heightmap."
     dem_note_var = tk.StringVar(value=dem_note)
     Label(
         popup,
@@ -1192,17 +1358,24 @@ def showAwsEptDatasetChooser(candidates):
         button_frame,
         text="Use for Trees Only (Keep DEM Terrain)",
     )
+    gap_fill_button = ttk.Button(
+        button_frame,
+        text="Use as Terrain Gap Fill (Keep Primary Terrain)",
+    )
     cancel_button = ttk.Button(
         button_frame,
         text="Cancel",
     )
     terrain_button.pack(side=LEFT, padx=6)
     tree_button.pack(side=LEFT, padx=6)
+    gap_fill_button.pack(side=LEFT, padx=6)
     cancel_button.pack(side=LEFT, padx=6)
     button_frame.pack(pady=(0, 10))
 
     if not dem_ready:
         tree_button.configure(state=DISABLED)
+    if not gap_fill_ready:
+        gap_fill_button.configure(state=DISABLED)
 
     def selected_candidate():
         selection = tree.selection()
@@ -1215,8 +1388,8 @@ def showAwsEptDatasetChooser(candidates):
         if candidate is None:
             details_var.set("Select a dataset to see full metadata.")
             terrain_button.configure(state=DISABLED)
-            if dem_ready:
-                tree_button.configure(state=DISABLED)
+            tree_button.configure(state=DISABLED)
+            gap_fill_button.configure(state=DISABLED)
             return
 
         available = bool(candidate.get("ept_available"))
@@ -1225,6 +1398,9 @@ def showAwsEptDatasetChooser(candidates):
         )
         tree_button.configure(
             state=NORMAL if (available and dem_ready) else DISABLED
+        )
+        gap_fill_button.configure(
+            state=NORMAL if (available and gap_fill_ready) else DISABLED
         )
 
         lines = [
@@ -1268,6 +1444,8 @@ def showAwsEptDatasetChooser(candidates):
             return
         if mode == "trees" and not dem_ready:
             return
+        if mode == "gap_fill" and not gap_fill_ready:
+            return
         result["candidate"] = candidate
         result["mode"] = mode
         popup.destroy()
@@ -1278,6 +1456,10 @@ def showAwsEptDatasetChooser(candidates):
     )
     tree_button.configure(
         command=lambda: choose("trees"),
+        state=DISABLED,
+    )
+    gap_fill_button.configure(
+        command=lambda: choose("gap_fill"),
         state=DISABLED,
     )
     cancel_button.configure(command=popup.destroy)
@@ -1397,6 +1579,17 @@ def runAwsEptLidar(
                     )
                 )
                 result_queue.put(("trees_done", count))
+            elif mode == "gap_fill":
+                gap_result = (
+                    lidar_map_api.fill_missing_terrain_from_lidar(
+                        lidar_dir_path,
+                        Path(root.filename) / "heightmap.npy",
+                        force_epsg=None,
+                        source_metadata=candidate,
+                        printf=worker_printf,
+                    )
+                )
+                result_queue.put(("gap_fill_done", gap_result))
             else:
                 result_queue.put(
                     ("download_done", lidar_dir_path)
@@ -1456,9 +1649,15 @@ def runAwsEptLidar(
                 printf(
                     "Selected use: " +
                     (
-                        "Trees Only - preserve current DEM terrain"
-                        if mode == "trees"
-                        else "Terrain + Trees"
+                        (
+                            "Trees Only - preserve current DEM terrain"
+                            if mode == "trees"
+                            else (
+                                "Terrain Gap Fill - preserve valid primary terrain"
+                                if mode == "gap_fill"
+                                else "Terrain + Trees"
+                            )
+                        )
                     )
                 )
 
@@ -1469,6 +1668,16 @@ def runAwsEptLidar(
                     daemon=True,
                 ).start()
                 continue
+
+            if kind == "gap_fill_done":
+                lidar_processing_active = False
+                printf(
+                    "AWS EPT Terrain Gap Fill complete: filled " +
+                    str(payload.get("filled_cells", 0)) +
+                    " missing terrain cell(s)."
+                )
+                finished = True
+                break
 
             if kind == "trees_done":
                 lidar_processing_active = False
@@ -2098,6 +2307,28 @@ Label(
     bg=tool_bg,
 ).pack(side=LEFT, padx=8)
 localTreesOnlyFrame.pack(pady=(0, 5))
+
+localGapFillFrame = Frame(lidar, bg=tool_bg)
+localGapFillButton = Button(
+    localGapFillFrame,
+    text="Select Local LAS/LAZ - Fill Missing Terrain",
+    command=partial(
+        runLocalLidarTerrainGapFill,
+        epsg_entry,
+        lidarPrintf,
+    ),
+)
+localGapFillButton.pack(side=LEFT, padx=5, pady=5)
+Label(
+    localGapFillFrame,
+    text=(
+        "Uses older/fallback Class-2/Class-8 ground only where the current "
+        "heightmap is missing. Valid primary terrain is never overwritten."
+    ),
+    fg=text_fg,
+    bg=tool_bg,
+).pack(side=LEFT, padx=8)
+localGapFillFrame.pack(pady=(0, 5))
 
 awsEptFrame = Frame(lidar, bg=tool_bg)
 awsEptButton = Button(
