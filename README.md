@@ -434,3 +434,23 @@ Before the first fill, Beta 5 creates
 `heightmap_before_lidar_gap_fill.npy`. It also writes
 `lidar_gap_fill_mask.png` (white = cells supplied by fallback LiDAR) and
 `lidar_gap_fill_report.json` with fill counts and vertical-alignment details.
+
+
+### OSM-defined terrain master extent
+
+When a Local OSM file is selected, Beta 5 now treats the golf-course OSM
+boundary plus the same 150 m course buffer used by the AWS EPT workflow as the
+authoritative terrain extent. The LiDAR crop no longer limits the master grid.
+The OSM extent is snapped to the primary raster's existing cell lattice, so
+valid primary elevations are copied without resampling; uncovered cells remain
+NaN and can be supplied by one or more Terrain Gap Fill acquisitions.
+
+Terrain Gap Fill requires the Local OSM file so an older acquisition can fill
+both interior holes and missing edge tiles. After each fill, the stored
+heightmap visual is regenerated from the merged terrain, so the CFS Alignment
+Viewer displays the combined primary + fallback terrain instead of the stale
+primary-only visual.
+
+The first reframe saves `heightmap_before_osm_master.npy`, rewrites
+`cfs_master_grid.json`, and regenerates `mask.png` on the new OSM master
+grid. Existing primary finite cells are never replaced by gap-fill terrain.

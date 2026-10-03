@@ -756,6 +756,19 @@ def runLidar(
                 crop_bounds=crop,
                 printf=worker_printf,
             )
+            if local_osm_file:
+                worker_printf(
+                    "Local OSM selected: converting the LiDAR crop to the "
+                    "OSM-defined master terrain extent."
+                )
+                lidar_map_api.reframe_heightmap_to_osm_master(
+                    Path(prepared["output_dir_path"]) / "heightmap.npy",
+                    local_osm_file,
+                    buffer_m=AWS_EPT_OSM_BUFFER_M,
+                    auto_red_mask_enabled=auto_red_enabled,
+                    auto_red_mask_buffer_m=auto_red_buffer_m,
+                    printf=worker_printf,
+                )
             result_queue.put(("done", None))
         except Exception:
             result_queue.put(("error", traceback.format_exc()))
@@ -839,6 +852,8 @@ def runLidar(
 def runLocalLidarTerrainGapFill(
     epsg_entry,
     printf,
+    auto_red_mask_var=None,
+    auto_red_mask_buffer_var=None,
 ):
     """Fill only missing terrain cells from a local fallback LAS/LAZ folder."""
     global root
@@ -889,6 +904,32 @@ def runLocalLidarTerrainGapFill(
         )
         return
 
+    local_osm_file = ""
+    try:
+        entry = options_entries_dict.get("local_osm_file")
+        if entry is not None:
+            local_osm_file = str(entry.get() or "").strip()
+    except Exception:
+        local_osm_file = ""
+
+    if not local_osm_file:
+        alert(
+            "Terrain Gap Fill now uses the Local OSM course boundary as the "
+            "master extent. Select a Local OSM File first."
+        )
+        return
+
+    auto_red_enabled = True
+    auto_red_buffer_m = AUTO_RED_MASK_BUFFER_DEFAULT_M
+    try:
+        if auto_red_mask_var is not None:
+            auto_red_enabled = bool(auto_red_mask_var.get())
+        if auto_red_mask_buffer_var is not None:
+            auto_red_buffer_m = float(auto_red_mask_buffer_var.get())
+    except Exception:
+        auto_red_enabled = True
+        auto_red_buffer_m = AUTO_RED_MASK_BUFFER_DEFAULT_M
+
     lidar_dir_path = tk.filedialog.askdirectory(
         initialdir=root.filename,
         title="Select older/fallback LAS/LAZ directory for Terrain Gap Fill",
@@ -930,6 +971,10 @@ def runLocalLidarTerrainGapFill(
                     "source": "Local LAS/LAZ Terrain Gap Fill",
                     "directory": str(lidar_dir_path),
                 },
+                local_osm_file=local_osm_file,
+                osm_master_buffer_m=AWS_EPT_OSM_BUFFER_M,
+                auto_red_mask_enabled=auto_red_enabled,
+                auto_red_mask_buffer_m=auto_red_buffer_m,
                 printf=worker_printf,
             )
             result_queue.put(("done", result))
@@ -1586,6 +1631,17 @@ def runAwsEptLidar(
                         Path(root.filename) / "heightmap.npy",
                         force_epsg=None,
                         source_metadata=candidate,
+                        local_osm_file=local_osm_file,
+                        osm_master_buffer_m=AWS_EPT_OSM_BUFFER_M,
+                        auto_red_mask_enabled=(
+                            bool(auto_red_mask_var.get())
+                            if auto_red_mask_var is not None else True
+                        ),
+                        auto_red_mask_buffer_m=(
+                            float(auto_red_mask_buffer_var.get())
+                            if auto_red_mask_buffer_var is not None
+                            else AUTO_RED_MASK_BUFFER_DEFAULT_M
+                        ),
                         printf=worker_printf,
                     )
                 )
@@ -2316,6 +2372,8 @@ localGapFillButton = Button(
         runLocalLidarTerrainGapFill,
         epsg_entry,
         lidarPrintf,
+        auto_red_mask_var,
+        auto_red_mask_buffer_var,
     ),
 )
 localGapFillButton.pack(side=LEFT, padx=5, pady=5)

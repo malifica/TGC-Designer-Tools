@@ -746,12 +746,327 @@ def _projection_to_crs(projection):
     return None
 
 
+def _terrain_visual_from_heightmap(heightmap):
+    """Regenerate the CFS viewer visual from the CURRENT merged terrain."""
+    arr = np.asarray(heightmap)
+    if arr.ndim == 3:
+        arr = arr[:, :, 0]
+    arr = np.asarray(arr, dtype=np.float32)
+
+    finite = arr[np.isfinite(arr)]
+    gray = np.zeros(arr.shape, dtype=np.float32)
+    if finite.size:
+        lo = float(np.percentile(finite, 2.0))
+        hi = float(np.percentile(finite, 98.0))
+        if not math.isfinite(lo) or not math.isfinite(hi) or hi <= lo:
+            lo = float(np.min(finite))
+            hi = float(np.max(finite))
+        if math.isfinite(lo) and math.isfinite(hi) and hi > lo:
+            gray = np.clip((arr - lo) / (hi - lo), 0.0, 1.0)
+            gray[~np.isfinite(gray)] = 0.0
+
+    return np.repeat(gray[:, :, None], 3, axis=2).astype(np.float32)
+
+
+def _load_local_osm_result_for_master(osm_file):
+    with open(osm_file, "r", encoding="utf-8-sig") as stream:
+        xml_data = stream.read()
+    return overpy.Overpass().parse_xml(xml_data)
+
+
+def _write_osm_master_mask(
+    terrain_data,
+    terrain_path,
+    osm_file,
+    auto_red_mask_enabled=True,
+    auto_red_mask_buffer_m=5.0,
+    printf=print,
+):
+    """Rebuild mask.png on the current master grid after a grid resize."""
+    heightmap = np.asarray(terrain_data["heightmap"])
+    grid = cfs_georef.get_master_grid(
+        terrain_data,
+        heightmap,
+        printf=printf,
+    )
+    resolution = float(grid["resolution"])
+
+    base = _terrain_visual_from_heightmap(heightmap)
+    mask_rgb = np.array(base, copy=True)
+
+    osm_result = _load_local_osm_result_for_master(osm_file)
+
+    grid_pc = GeoPointCloud()
+    grid_pc.proj = terrain_data["projection"]
+    grid_pc.origin = (
+        float(grid["min_x"]),
+        float(grid["min_y"]),
+    )
+
+    mask_rgb = OSMTGC.addOSMToImage(
+        osm_result.ways,
+        mask_rgb,
+        grid_pc,
+        resolution,
+        printf=printf,
+    )
+
+    if auto_red_mask_enabled:
+        mask_rgb = auto_red_mask.apply_auto_red_mask(
+            osm_result,
+            mask_rgb,
+            grid_pc,
+            resolution,
+            buffer_m=float(auto_red_mask_buffer_m),
+            printf=printf,
+        )
+
+    mask_disk = np.flip(mask_rgb, 0)
+    cv2.imwrite(
+        str(terrain_path.parent / "mask.png"),
+        cv2.cvtColor(
+            (255.0 * np.clip(mask_disk, 0.0, 1.0)).astype(np.uint8),
+            cv2.COLOR_RGB2BGR,
+        ),
+    )
+
+
+def reframe_heightmap_to_osm_master(
+    heightmap_path,
+    osm_file,
+    buffer_m=150.0,
+    auto_red_mask_enabled=True,
+    auto_red_mask_buffer_m=5.0,
+    printf=print,
+):
+    """Make Local OSM + buffer the authoritative terrain master extent.
+
+    The target bounds are snapped to the existing terrain cell lattice.
+    Existing primary cells therefore retain exact alignment and values.
+    Areas inside the OSM master extent but outside primary LiDAR coverage are
+    created as NaN cells for later gap-fill LiDAR acquisitions.
+    """
+    terrain_path = Path(heightmap_path)
+    if terrain_path.is_dir():
+        terrain_path = terrain_path / "heightmap.npy"
+    if not terrain_path.is_file():
+        raise FileNotFoundError(
+            "heightmap.npy was not found: " + str(terrain_path)
+        )
+
+    osm_path = Path(osm_file)
+    if not osm_path.is_file():
+        raise FileNotFoundError(
+            "Local OSM file was not found: " + str(osm_path)
+        )
+
+    data = np.load(
+        str(terrain_path),
+        allow_pickle=True,
+    ).item()
+
+    old_heightmap = np.asarray(data.get("heightmap"))
+    if old_heightmap.ndim not in (2, 3):
+        raise ValueError(
+            "Unsupported heightmap shape: " + str(old_heightmap.shape)
+        )
+
+    old_rows = int(old_heightmap.shape[0])
+    old_cols = int(old_heightmap.shape[1])
+
+    old_grid = cfs_georef.get_master_grid(
+        data,
+        old_heightmap,
+        printf=printf,
+    )
+    resolution = float(old_grid["resolution"])
+    projection = data.get("projection")
+    if _projection_to_crs(projection) is None:
+        raise RuntimeError(
+            "Could not resolve terrain CRS for OSM-defined master grid"
+        )
+
+    # Reuse the same explicit golf-course-boundary/all-OSM-node logic as the
+    # AWS EPT downloader so local and streaming workflows use one extent rule.
+    from usgs_ept_downloader import read_osm_course_bounds
+
+    bbox = read_osm_course_bounds(
+        str(osm_path),
+        buffer_m=float(buffer_m),
+        printf=printf,
+    )
+    min_lon, min_lat, max_lon, max_lat = bbox
+
+    helper = GeoPointCloud()
+    helper.proj = projection
+    helper.origin = (0.0, 0.0)
+
+    corners = [
+        helper.latlonToProj(min_lat, min_lon),
+        helper.latlonToProj(min_lat, max_lon),
+        helper.latlonToProj(max_lat, min_lon),
+        helper.latlonToProj(max_lat, max_lon),
+    ]
+    desired_min_x = min(float(p[0]) for p in corners)
+    desired_max_x = max(float(p[0]) for p in corners)
+    desired_min_y = min(float(p[1]) for p in corners)
+    desired_max_y = max(float(p[1]) for p in corners)
+
+    old_min_x = float(old_grid["min_x"])
+    old_min_y = float(old_grid["min_y"])
+
+    # Snap to the old raster lattice so no primary elevation is resampled.
+    col0 = int(math.floor((desired_min_x - old_min_x) / resolution))
+    col1 = int(math.ceil((desired_max_x - old_min_x) / resolution))
+    row0 = int(math.floor((desired_min_y - old_min_y) / resolution))
+    row1 = int(math.ceil((desired_max_y - old_min_y) / resolution))
+
+    new_cols = max(1, col1 - col0)
+    new_rows = max(1, row1 - row0)
+    new_min_x = old_min_x + col0 * resolution
+    new_min_y = old_min_y + row0 * resolution
+
+    same_grid = (
+        new_rows == old_rows and
+        new_cols == old_cols and
+        abs(new_min_x - old_min_x) < 1.0e-6 and
+        abs(new_min_y - old_min_y) < 1.0e-6 and
+        bool(old_grid.get("osm_defined_master"))
+    )
+
+    if same_grid:
+        data["visual"] = _terrain_visual_from_heightmap(old_heightmap)
+        np.save(str(terrain_path), data)
+        _write_osm_master_mask(
+            data,
+            terrain_path,
+            str(osm_path),
+            auto_red_mask_enabled=auto_red_mask_enabled,
+            auto_red_mask_buffer_m=auto_red_mask_buffer_m,
+            printf=printf,
+        )
+        printf(
+            "OSM Master Grid: existing grid already matches Local OSM extent."
+        )
+        return dict(old_grid)
+
+    if old_heightmap.ndim == 2:
+        new_heightmap = np.full(
+            (new_rows, new_cols),
+            np.nan,
+            dtype=old_heightmap.dtype,
+        )
+    else:
+        new_heightmap = np.full(
+            (new_rows, new_cols, old_heightmap.shape[2]),
+            np.nan,
+            dtype=old_heightmap.dtype,
+        )
+
+    src_c0 = max(0, col0)
+    src_c1 = min(old_cols, col1)
+    src_r0 = max(0, row0)
+    src_r1 = min(old_rows, row1)
+
+    copied_rows = max(0, src_r1 - src_r0)
+    copied_cols = max(0, src_c1 - src_c0)
+    if copied_rows and copied_cols:
+        dst_c0 = src_c0 - col0
+        dst_c1 = dst_c0 + copied_cols
+        dst_r0 = src_r0 - row0
+        dst_r1 = dst_r0 + copied_rows
+        if old_heightmap.ndim == 2:
+            new_heightmap[dst_r0:dst_r1, dst_c0:dst_c1] = (
+                old_heightmap[src_r0:src_r1, src_c0:src_c1]
+            )
+        else:
+            new_heightmap[dst_r0:dst_r1, dst_c0:dst_c1, :] = (
+                old_heightmap[src_r0:src_r1, src_c0:src_c1, :]
+            )
+
+    backup_path = terrain_path.parent / "heightmap_before_osm_master.npy"
+    if not backup_path.exists():
+        shutil.copy2(terrain_path, backup_path)
+        printf(
+            "OSM Master Grid: saved pre-reframe backup: " +
+            str(backup_path)
+        )
+
+    ll_lat, ll_lon = helper.projToLatLon(new_min_x, new_min_y)
+    new_grid = {
+        "version": old_grid.get("version", 1),
+        "logic": "OSM-defined projected master affine",
+        "source": "Local OSM golf-course extent + buffer",
+        "resolution": resolution,
+        "rows": int(new_rows),
+        "cols": int(new_cols),
+        "min_x": float(new_min_x),
+        "min_y": float(new_min_y),
+        "max_x": float(new_min_x + new_cols * resolution),
+        "max_y": float(new_min_y + new_rows * resolution),
+        "row_order": "south_up_internal",
+        "origin_semantics": "southwest_cell_edge",
+        "lower_left_latlon": [float(ll_lat), float(ll_lon)],
+        "horizontal_epsg": cfs_georef.horizontal_epsg(projection),
+        "crs_wkt": cfs_georef.crs_wkt(projection),
+        "xy_units": "meters",
+        "osm_defined_master": True,
+        "osm_buffer_m": float(buffer_m),
+        "osm_file": str(osm_path),
+    }
+
+    data["heightmap"] = new_heightmap
+    data["visual"] = _terrain_visual_from_heightmap(new_heightmap)
+    data["master_grid"] = new_grid
+    data["origin"] = cfs_georef.master_grid_origin_latlon(new_grid)
+    data["osm_defined_master"] = True
+    data["osm_master_buffer_m"] = float(buffer_m)
+    data["osm_master_file"] = str(osm_path)
+
+    np.save(str(terrain_path), data)
+    cfs_georef.write_master_grid_json(
+        terrain_path.parent,
+        new_grid,
+    )
+    _write_osm_master_mask(
+        data,
+        terrain_path,
+        str(osm_path),
+        auto_red_mask_enabled=auto_red_mask_enabled,
+        auto_red_mask_buffer_m=auto_red_mask_buffer_m,
+        printf=printf,
+    )
+
+    primary_finite = int(np.count_nonzero(np.isfinite(
+        new_heightmap[:, :, 0] if new_heightmap.ndim == 3 else new_heightmap
+    )))
+    total_cells = int(new_rows * new_cols)
+
+    printf(
+        "OSM Master Grid active: " +
+        str(new_cols) + " x " + str(new_rows) +
+        " at " + str(resolution) + " m; Local OSM buffer=" +
+        str(round(float(buffer_m), 1)) + " m."
+    )
+    printf(
+        "OSM Master Grid: primary finite cells=" +
+        str(primary_finite) + "; cells available for gap fill=" +
+        str(max(0, total_cells - primary_finite)) + "."
+    )
+    return new_grid
+
+
+
 
 def fill_missing_terrain_from_lidar(
     lidar_dir_path,
     heightmap_path,
     force_epsg=None,
     source_metadata=None,
+    local_osm_file=None,
+    osm_master_buffer_m=150.0,
+    auto_red_mask_enabled=True,
+    auto_red_mask_buffer_m=5.0,
     printf=print,
 ):
     """Fill only missing cells in an existing terrain from a fallback LiDAR set.
@@ -771,6 +1086,16 @@ def fill_missing_terrain_from_lidar(
     if not terrain_path.is_file():
         raise FileNotFoundError(
             "Existing heightmap.npy was not found: " + str(terrain_path)
+        )
+
+    if local_osm_file:
+        reframe_heightmap_to_osm_master(
+            terrain_path,
+            local_osm_file,
+            buffer_m=osm_master_buffer_m,
+            auto_red_mask_enabled=auto_red_mask_enabled,
+            auto_red_mask_buffer_m=auto_red_mask_buffer_m,
+            printf=printf,
         )
 
     primary = np.load(
@@ -1062,6 +1387,10 @@ def fill_missing_terrain_from_lidar(
         updated_heightmap = primary_elevation
 
     primary["heightmap"] = updated_heightmap
+    # CFS Alignment Viewer reads the stored visual layer. Refresh it so the
+    # viewer shows fallback terrain immediately instead of the stale primary
+    # acquisition visual.
+    primary["visual"] = _terrain_visual_from_heightmap(updated_heightmap)
 
     gap_history = primary.get("terrain_gap_fill_history")
     if not isinstance(gap_history, list):
