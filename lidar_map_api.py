@@ -751,6 +751,7 @@ def attach_lidar_trees_to_existing_dem(
     dem_heightmap_path,
     sample_scale=1.0,
     local_osm_file=None,
+    force_epsg=None,
     source_metadata=None,
     printf=print,
 ):
@@ -802,7 +803,7 @@ def attach_lidar_trees_to_existing_dem(
             lidar_dir_path,
             sample_scale,
             str(temp_dir),
-            force_epsg=None,
+            force_epsg=force_epsg,
             printf=printf,
             local_osm_file=local_osm_file,
             auto_red_mask_enabled=False,
@@ -900,6 +901,9 @@ def attach_lidar_trees_to_existing_dem(
         dem_data["tree_source_count"] = len(transformed_trees)
         dem_data["tree_source_projection"] = source_crs.to_string()
         dem_data["tree_source_sample_scale"] = float(sample_scale)
+        dem_data["tree_source_force_epsg"] = (
+            int(force_epsg) if force_epsg is not None else None
+        )
 
         if isinstance(source_metadata, dict):
             safe_metadata = {}

@@ -384,3 +384,25 @@ For calibrated Regional Themes, Epic scales the donor-calibrated prefab
 distribution rather than replacing it with generic scale values. For built-in
 Designer-theme trees, Epic is the same 20% step above the existing Heroic
 radius/height ranges.
+
+
+### Local LAS/LAZ Trees Only
+
+Beta 5 can use an already-downloaded local LAS/LAZ acquisition only as a tree
+source while preserving terrain from a newer DEM.
+
+After processing the DEM, use **Select Local LAS/LAZ - Trees Only** on the
+Process LiDAR / DEM tab. The workflow:
+
+1. requires an existing DEM-generated `heightmap.npy`;
+2. lets the user select a local LAS/LAZ directory;
+3. honors **Force LiDAR Horizontal EPSG** when supplied, otherwise auto-detects
+   the CRS from the LAS/LAZ header;
+4. runs the normal Beta 5 LiDAR tree detector;
+5. reprojects only the resulting tree candidates into the DEM CRS; and
+6. writes those candidates into the DEM heightmap package without replacing the
+   DEM elevations, DEM resolution, mask or master grid.
+
+A one-time `heightmap_before_lidar_trees.npy` backup is preserved before the
+tree layer is attached. The existing local LiDAR Terrain + Trees workflow is
+unchanged.

@@ -835,6 +835,186 @@ def runLidar(
     ).start()
     root.after(100, pump_worker_messages)
 
+def runLocalLidarTreesOnly(
+    scale_entry,
+    epsg_entry,
+    printf,
+):
+    """Use local LAS/LAZ only for tree candidates while preserving DEM terrain."""
+    global root
+    global lidar_processing_active
+
+    if lidar_processing_active:
+        alert(
+            "LiDAR processing is already running. "
+            "Wait for it to finish first."
+        )
+        return
+
+    if not root or not hasattr(root, "filename"):
+        alert("Select a course directory before processing local LiDAR trees")
+        return
+
+    heightmap_path = Path(root.filename) / "heightmap.npy"
+    if not heightmap_path.is_file():
+        alert(
+            "Local LAS/LAZ Trees Only requires an existing DEM-generated "
+            "heightmap.npy in the selected course directory."
+        )
+        return
+
+    try:
+        heightmap_data = np.load(
+            str(heightmap_path),
+            allow_pickle=True,
+        ).item()
+        source_kind = str(
+            heightmap_data.get("source", "") or ""
+        )
+    except Exception:
+        alert(
+            "Could not read the existing heightmap.npy. "
+            "Process the DEM first, then try Trees Only again."
+        )
+        return
+
+    if "DEM" not in source_kind.upper():
+        alert(
+            "Local LAS/LAZ Trees Only requires a DEM-generated heightmap.npy. "
+            "Current terrain source is: " + (source_kind or "unknown")
+        )
+        return
+
+    try:
+        sample_scale = float(scale_entry.get())
+        if sample_scale <= 0.0:
+            raise ValueError()
+    except Exception:
+        alert("Map Scale must be a number greater than zero.")
+        return
+
+    force_epsg = None
+    try:
+        epsg_raw = str(epsg_entry.get() or "").strip()
+        if epsg_raw:
+            force_epsg = int(epsg_raw)
+    except Exception:
+        alert(
+            "Force LiDAR Horizontal EPSG must be blank or a valid integer EPSG code."
+        )
+        return
+
+    lidar_dir_path = tk.filedialog.askdirectory(
+        initialdir=root.filename,
+        title="Select local LAS/LAZ directory for Trees Only",
+    )
+    if not lidar_dir_path:
+        return
+
+    local_osm_file = ""
+    try:
+        entry = options_entries_dict.get("local_osm_file")
+        if entry is not None:
+            local_osm_file = str(entry.get() or "").strip()
+    except Exception:
+        local_osm_file = ""
+
+    result_queue = queue.Queue()
+    lidar_processing_active = True
+
+    printf(
+        "Local LAS/LAZ Trees Only started in background. "
+        "Existing DEM terrain will be preserved."
+    )
+    printf("Local LiDAR directory: " + str(lidar_dir_path))
+    if force_epsg is not None:
+        printf(
+            "Local tree-only Force LiDAR Horizontal EPSG: " +
+            str(force_epsg)
+        )
+    else:
+        printf(
+            "Local tree-only LiDAR CRS: auto-detect from LAS/LAZ headers."
+        )
+    if local_osm_file:
+        printf(
+            "Local tree-only extraction will use Local OSM: " +
+            local_osm_file
+        )
+
+    def worker_printf(message):
+        result_queue.put(("log", str(message)))
+
+    def worker():
+        try:
+            source_metadata = {
+                "source": "Local LAS/LAZ Trees Only",
+                "directory": str(lidar_dir_path),
+                "force_epsg": force_epsg,
+            }
+            count = lidar_map_api.attach_lidar_trees_to_existing_dem(
+                lidar_dir_path,
+                heightmap_path,
+                sample_scale=sample_scale,
+                local_osm_file=(local_osm_file or None),
+                force_epsg=force_epsg,
+                source_metadata=source_metadata,
+                printf=worker_printf,
+            )
+            result_queue.put(("done", count))
+        except Exception:
+            result_queue.put(("error", traceback.format_exc()))
+
+    def pump_worker_messages():
+        global lidar_processing_active
+
+        finished = False
+        while True:
+            try:
+                kind, payload = result_queue.get_nowait()
+            except queue.Empty:
+                break
+
+            if kind == "log":
+                printf(payload)
+                continue
+
+            if kind == "error":
+                lidar_processing_active = False
+                printf("Local LAS/LAZ Trees Only failed:")
+                printf(payload)
+                alert(
+                    "Local LAS/LAZ Trees Only failed. "
+                    "See the Process LiDAR / DEM console for details."
+                )
+                finished = True
+                break
+
+            if kind == "done":
+                lidar_processing_active = False
+                printf(
+                    "Local LAS/LAZ Trees Only complete: " +
+                    str(payload) + " LiDAR tree candidate(s) attached."
+                )
+                printf(
+                    "DEM terrain remains unchanged. "
+                    "Use Import Terrain and Features normally with "
+                    "Add Trees From Lidar enabled."
+                )
+                finished = True
+                break
+
+        if not finished and lidar_processing_active:
+            root.after(100, pump_worker_messages)
+
+    threading.Thread(
+        target=worker,
+        name="TGC-Local-LiDAR-Trees-Only",
+        daemon=True,
+    ).start()
+    root.after(100, pump_worker_messages)
+
+
 def _aws_ept_dem_ready():
     global root
     if not root or not hasattr(root, "filename"):
@@ -1895,6 +2075,29 @@ lidarbutton.pack(side=LEFT, padx=5, pady=5)
 dembutton.pack(side=LEFT, padx=5, pady=5)
 
 lidarControlFrame.pack(pady=5)
+
+localTreesOnlyFrame = Frame(lidar, bg=tool_bg)
+localTreesOnlyButton = Button(
+    localTreesOnlyFrame,
+    text="Select Local LAS/LAZ - Trees Only",
+    command=partial(
+        runLocalLidarTreesOnly,
+        scale_entry,
+        epsg_entry,
+        lidarPrintf,
+    ),
+)
+localTreesOnlyButton.pack(side=LEFT, padx=5, pady=5)
+Label(
+    localTreesOnlyFrame,
+    text=(
+        "Keeps the existing DEM terrain; extracts only LiDAR tree "
+        "locations/heights and honors Force LiDAR EPSG."
+    ),
+    fg=text_fg,
+    bg=tool_bg,
+).pack(side=LEFT, padx=8)
+localTreesOnlyFrame.pack(pady=(0, 5))
 
 awsEptFrame = Frame(lidar, bg=tool_bg)
 awsEptButton = Button(
