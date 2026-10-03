@@ -83,7 +83,7 @@ checks = [
     ("AWS terrain gap-fill chooser", "tgc_gui.py", 'text="Use as Terrain Gap Fill (Keep Primary Terrain)"'),
     ("OSM-defined terrain master grid", "lidar_map_api.py", "def reframe_heightmap_to_osm_master("),
     ("Gap-fill refreshes CFS visual", "lidar_map_api.py", 'primary["visual"] = _terrain_visual_from_heightmap(updated_heightmap)'),
-    ("Normal LiDAR applies OSM master", "tgc_gui.py", "converting the LiDAR crop to the OSM-defined master terrain extent"),
+    ("Normal LiDAR applies OSM master", "tgc_gui.py", "lidar_map_api.reframe_heightmap_to_osm_master("),
     ("Complete OSM relation way lookup", "OSMTGC.py", "way.id: way for way in osm_result.ways"),
     ("Safe fairway relation member lookup", "OSMTGC.py", "Warning: skipping fairway relation "),
     ("Safe rough relation member lookup", "OSMTGC.py", "Warning: skipping rough relation "),
