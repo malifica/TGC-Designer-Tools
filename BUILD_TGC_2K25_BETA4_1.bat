@@ -10,7 +10,7 @@ set RELEASEDIR=%RELEASEBASE%\%PKG%
 
 echo.
 echo ============================================================
-echo TGC DESIGNER TOOLS 2K25 - BETA 4 BUILD
+echo TGC DESIGNER TOOLS 2K25 - BETA 4.1 HOTFIX BUILD
 echo ============================================================
 echo.
 
@@ -23,7 +23,7 @@ if errorlevel 1 goto :fail
 
 echo.
 echo === Beta 4.1 Hotfix source identity check ===
-python -c "from pathlib import Path; s=Path('tgc_gui.py').read_text(encoding='utf-8'); req=['TGC_GUI_VERSION = \"v0.5.0-2k25-beta4.1\"','TGC_APP_TITLE = \"TGC Designer Tools 2K25 - Beta 4\"','root.title(TGC_APP_TITLE)']; miss=[x for x in req if x not in s]; print('Source title: TGC Designer Tools 2K25 - Beta 4.1 Hotfix' if not miss else 'ERROR: this folder still contains an older tgc_gui.py'); raise SystemExit(1 if miss else 0)"
+python -c "from pathlib import Path; s=Path('tgc_gui.py').read_text(encoding='utf-8'); req=['TGC_GUI_VERSION = \"v0.5.0-2k25-beta4.1\"','TGC_APP_TITLE = \"TGC Designer Tools 2K25 - Beta 4.1 Hotfix\"','root.title(TGC_APP_TITLE)']; miss=[x for x in req if x not in s]; print('Source title: TGC Designer Tools 2K25 - Beta 4.1 Hotfix' if not miss else 'ERROR: this folder still contains an older tgc_gui.py'); raise SystemExit(1 if miss else 0)"
 if errorlevel 1 (
   echo.
   echo ERROR: You are NOT building from the Beta 4.1 Hotfix source tree in this folder.
