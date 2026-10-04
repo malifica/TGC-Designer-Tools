@@ -12,7 +12,7 @@ set NOTES=RELEASE_NOTES_v0.5.0-2k25-beta4.1.md
 
 echo.
 echo ============================================================
-echo TGC DESIGNER TOOLS 2K25 - BETA 4 PUBLISH
+echo TGC DESIGNER TOOLS 2K25 - BETA 4.1 HOTFIX PUBLISH
 echo ============================================================
 echo.
 
@@ -63,13 +63,13 @@ if not errorlevel 1 (
 )
 
 echo.
-echo === Create Beta 4 prerelease ===
+echo === Create Beta 4.1 Hotfix prerelease ===
 gh release create "%TAG%" --repo "%REPO%" ^
  "dist\%EXENAME%.exe" ^
  "%RELEASEBASE%\%EXENAME%.exe.sha256.txt" ^
  "%RELEASEBASE%\%PKG%.zip" ^
  "%RELEASEBASE%\%PKG%.zip.sha256.txt" ^
- --target main ^
+ --target release/v0.5.0-2k25-beta4.1 ^
  --title "%TITLE%" ^
  --notes-file "%NOTES%" ^
  --prerelease
@@ -84,7 +84,7 @@ pause
 exit /b 0
 
 :missing
-echo ERROR: one or more Beta 4 release files are missing.
+echo ERROR: one or more Beta 4.1 Hotfix release files are missing.
 echo Run BUILD_TGC_2K25_BETA4_1.bat first.
 goto :fail
 
