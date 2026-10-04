@@ -17,6 +17,10 @@ The fork is based on work from `HiCamino/TGC-Designer-Tools`.
 - Beta 5 development build and verifier scripts.
 - **Texas Hill Country** calibrated profile from `Canyon Springs SATX (L).course`, using the 51 highest-use non-ornamental prefabs (2,668 placements / 90.4% of the retained reference population).
 
+### Fixed
+
+- GeoTIFF DEM Auto Red Mask final production masking now restores Beta 3/3.1 full-frame semantics: render OSM + Auto Red Mask on the full-resolution full DEM, then crop the completed mask and DEM together using identical accepted bounds. The Beta 4 100 m crop-halo production-mask regeneration path is removed while the fast bounded selector preview is retained.
+
 ### Changed
 
 - Custom profiles are independent of the source course's built-in Designer theme.
