@@ -107,7 +107,9 @@ for label, filename, needle in checks:
 for name in [
     "tgc_gui.py", "tgc_image_terrain.py", "tree_profile_manager.py",
     "tree_profile_analyzer.py", "tgc_definitions.py", "OSMTGC.py",
-    "usgs_ept_downloader.py", "lidar_map_api.py"
+    "usgs_ept_downloader.py", "lidar_map_api.py", "dem_map_api.py",
+    "auto_red_mask.py", "cfs_georef.py", "lidar_feature_filter.py",
+    "osm_alignment_viewer.py", "infill_image.py"
 ]:
     try:
         py_compile.compile(str(ROOT / name), doraise=True)
@@ -328,6 +330,26 @@ try:
 except Exception as exc:
     print("FAIL - tree profile JSON template -", exc)
     failed.append("tree profile JSON template")
+
+required_files = [
+    "BUILD_TGC_2K25_BETA5.bat",
+    "PUBLISH_TGC_2K25_BETA5.bat",
+    "RELEASE_NOTES_v0.5.0-2k25-beta5.md",
+    "RELEASE_CHECKLIST_v0.5.0-2k25-beta5.md",
+    "BETA5_TREE_PROFILES.md",
+]
+for name in required_files:
+    if not (ROOT / name).exists():
+        print("FAIL - missing", name)
+        failed.append("missing " + name)
+    else:
+        print("PASS -", name)
+
+if "beta5-dev" in sources["tgc_gui.py"] or "Beta 5 Development" in sources["tgc_gui.py"]:
+    print("FAIL - development release identity remains in tgc_gui.py")
+    failed.append("development release identity")
+else:
+    print("PASS - final Beta 5 release identity")
 
 if failed:
     print("FINAL VERIFICATION FAILED")
