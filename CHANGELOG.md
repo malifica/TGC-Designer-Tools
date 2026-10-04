@@ -5,7 +5,7 @@ All notable fork-specific changes to `malifica/TGC-Designer-Tools` are documente
 The fork is based on work from `HiCamino/TGC-Designer-Tools`.
 
 
-## [Unreleased - 0.5.0-2k25-beta5] - Real-life tree planting profiles
+## [0.5.0-2k25-beta5] - Regional themes, USGS EPT, terrain gap fill, and DEM mask hotfix
 
 ### Added
 
@@ -14,7 +14,7 @@ The fork is based on work from `HiCamino/TGC-Designer-Tools`.
 - Finished-course analyzer for prefab usage and X/Y/Z p10/p50/p90 scale distributions.
 - Weighted custom-profile tree assignment for LiDAR and OSM candidates.
 - **Heroic (Beta 5)** scale mode with **Legacy LiDAR** retained for comparison.
-- Beta 5 development build and verifier scripts.
+- Beta 5 Windows build, verifier, publish helper, release notes, release checklist, and GitHub Actions build.
 - **Texas Hill Country** calibrated profile from `Canyon Springs SATX (L).course`, using the 51 highest-use non-ornamental prefabs (2,668 placements / 90.4% of the retained reference population).
 
 ### Fixed
