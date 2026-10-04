@@ -2,19 +2,32 @@
 
 A streamlined 2K25-focused fork of **HiCamino/TGC-Designer-Tools** for building real-world courses from **LiDAR, GeoTIFF DEM, and OpenStreetMap data**.
 
-Current release: **v0.5.0-2k25-beta4**
+Current release: **v0.5.0-2k25-beta4.1**
 Maintainer: **malifica**
 Upstream: https://github.com/HiCamino/TGC-Designer-Tools
 
 This project remains under the upstream **Apache License 2.0**.
 
 
+## Beta 4.1 Hotfix
+
+Beta 4.1 is a focused hotfix based directly on the published Beta 4 release.
+
+- **DEM Auto Red Mask production masking now uses Beta 3/3.1 semantics again**: final OSM + Auto Red Mask is rendered on the full-resolution full DEM first, then the completed mask and DEM are cropped together using identical accepted bounds.
+- The **fast bounded DEM boundary preview remains**.
+- The Beta 4 **100 m crop-halo production-mask regeneration path is removed**.
+- Auto Red Mask geometry, cleanup, buffer rules, LiDAR behavior, CFS crop geometry, water import, tree filters, hole normalization and theme support are otherwise unchanged.
+
+Build with `BUILD_TGC_2K25_BETA4_1.bat`. See `RELEASE_NOTES_v0.5.0-2k25-beta4.1.md` and `RELEASE_CHECKLIST_v0.5.0-2k25-beta4.1.md`.
+
+---
+
 ## Beta 4
 
-Beta 4 rolls the post-Beta-3.1 work on `main` into a new Windows prerelease.
+Beta 4 rolled the post-Beta-3.1 work into the previous Windows prerelease.
 
 - **Dynamic course preview sizing** now follows actual course bounds.
-- **Faster DEM course-boundary selection** prepares a bounded preview off-thread, then renders the final full-resolution selected area with a 100 m processing halo.
+- **Faster DEM course-boundary selection** prepares a bounded preview off-thread. In Beta 4.1, the final production mask uses the restored Beta 3/3.1 full-DEM render-then-crop semantics.
 - **Par-aware OSM hole normalization** handles standard par-3, par-4, and par-5 route-node patterns.
 - **LiDAR tree playing-surface filtering** rejects candidates on greens/tees, bunkers, and un-overridden fairways while allowing explicit rough islands.
 - **OSM multipolygon lakes/ponds** are now imported into the actual course with stitched relation geometry and preserved islands.
