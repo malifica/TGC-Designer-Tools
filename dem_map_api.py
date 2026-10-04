@@ -44,11 +44,11 @@ DEM_DEFAULT_REDUCER_MB = 64
 DEM_DEFAULT_MERGE_MB = 256
 DEM_DEFAULT_WARP_MB = 256
 
-# Boundary-selection performance controls.
-# The selector never needs a production-resolution mask; build a bounded
-# preview first, then render the full-quality mask only for the accepted crop.
+# Boundary-selection performance control.
+# Keep the fast bounded selector preview, but final production masking follows
+# Beta 3/3.1 semantics: render OSM + Auto Red Mask on the full-resolution DEM,
+# then crop the completed mask and DEM together using identical bounds.
 DEM_BOUNDARY_PREVIEW_MAX_DIM = 1200
-DEM_FINAL_MASK_HALO_M = 100.0
 
 
 def _env_positive_int(name, default_value, minimum=1, maximum=4096):
@@ -1179,51 +1179,34 @@ def generate_dem_output(
     visual_gray = _normalize_image(dem_crop)
     visual = cv2.cvtColor(visual_gray, cv2.COLOR_GRAY2RGB)
 
-    # Render the production-quality mask only around the accepted crop. A halo
-    # keeps relation geometry and red-mask cleanup from treating the crop edge
-    # as the original DEM edge.
-    halo_m = max(
-        float(DEM_FINAL_MASK_HALO_M),
-        float(auto_red_mask_buffer_m) + 20.0,
-    )
-    halo_px = max(0, int(math.ceil(halo_m / float(image_scale))))
-
-    work_lower_x = max(0, lower_x - halo_px)
-    work_upper_x = min(w, upper_x + halo_px)
-    work_lower_y = max(0, lower_y - halo_px)
-    work_upper_y = min(h, upper_y + halo_px)
-
+    # DEM Auto Red Mask hotfix:
+    # Restore Beta 3/3.1 production-mask semantics. The fast bounded preview
+    # remains preview-only; the authoritative final mask is rendered once on
+    # the full-resolution DEM coordinate frame and only then cropped with the
+    # exact same bounds as the DEM heightmap.
     printf(
-        "Generating final DEM mask for selected crop with " +
-        str(round(halo_m, 1)) + " m processing halo."
+        "Generating final DEM mask on full DEM extent "
+        "(Beta 3/3.1 production semantics)."
     )
     mask_t0 = time.perf_counter()
 
-    dem_work = dem[
-        work_lower_y:work_upper_y,
-        work_lower_x:work_upper_x,
-    ]
-
-    mask_work = _build_mask_image(
-        dem_work,
+    mask_full = _build_mask_image(
+        dem,
         pc,
         image_scale,
         osm_result,
         auto_red_mask_enabled=auto_red_mask_enabled,
         auto_red_mask_buffer_m=auto_red_mask_buffer_m,
-        x_offset=-float(work_lower_x) * float(image_scale),
-        y_offset=-float(work_lower_y) * float(image_scale),
         printf=printf,
     )
 
-    crop_x0 = lower_x - work_lower_x
-    crop_x1 = crop_x0 + (upper_x - lower_x)
-    crop_y0 = lower_y - work_lower_y
-    crop_y1 = crop_y0 + (upper_y - lower_y)
-    mask_crop = mask_work[crop_y0:crop_y1, crop_x0:crop_x1]
+    mask_crop = mask_full[
+        lower_y:upper_y,
+        lower_x:upper_x,
+    ]
 
     printf(
-        "Final DEM mask rendered in " +
+        "Final full-frame DEM mask rendered and cropped in " +
         str(round(time.perf_counter() - mask_t0, 2)) + " sec."
     )
 
