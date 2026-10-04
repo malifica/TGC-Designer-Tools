@@ -8,7 +8,7 @@ ROOT = Path(__file__).resolve().parent
 def read(name):
     p = ROOT / name
     if not p.exists():
-        raise SystemExit(f"ERROR: required Beta 4.1 file is missing: {name}")
+        raise SystemExit(f"ERROR: required Beta 4 file is missing: {name}")
     return p.read_text(encoding="utf-8")
 
 
@@ -28,7 +28,7 @@ sources = {
 
 checks = [
     ("GUI version", "tgc_gui.py", 'TGC_GUI_VERSION = "v0.5.0-2k25-beta4.1"'),
-    ("Visible app title", "tgc_gui.py", 'TGC_APP_TITLE = "TGC Designer Tools 2K25 - Beta 4.1.1 Hotfix"'),
+    ("Visible app title", "tgc_gui.py", 'TGC_APP_TITLE = "TGC Designer Tools 2K25 - Beta 4.1 Hotfix"'),
     ("Title assignment", "tgc_gui.py", 'root.title(TGC_APP_TITLE)'),
     ("Dense-only main tool", "tgc_gui.py", 'Terrain Generation: Dense / Original only'),
     ("Auto-mask minimum 5 m", "tgc_gui.py", 'AUTO_RED_MASK_BUFFER_MIN_M = 5.0'),
@@ -63,7 +63,7 @@ checks = [
     ("Fjordland skinny 2K tree palette", "tgc_definitions.py", "# Fjordland (theme 54) - narrow / columnar / conifer forms"),
     ("Dynamic course preview", "tgc_gui.py", "TGC_DYNAMIC_COURSE_PREVIEW_V1"),
     ("DEM bounded selector preview", "dem_map_api.py", "DEM_BOUNDARY_PREVIEW_MAX_DIM = 1200"),
-    ("DEM final mask halo", "dem_map_api.py", "DEM_FINAL_MASK_HALO_M = 100.0"),
+    ("DEM final mask full-frame hotfix", "dem_map_api.py", "Generating final DEM mask on full DEM extent"),
     ("Beta 4.1 release notes identity", "RELEASE_NOTES_v0.5.0-2k25-beta4.1.md", "# TGC Designer Tools 2K25 — v0.5.0-2k25-beta4.1"),
     ("README 5-30 m mask", "README.md", '**5–30 m**'),
     ("README 2 px cleanup", "README.md", '**2 px minimum red width**'),
@@ -85,7 +85,7 @@ forbidden = [
 ]
 
 failed = []
-print("TGC Designer Tools 2K25 Beta 4.1 source verification")
+print("TGC Designer Tools 2K25 Beta 4.1 Hotfix source verification")
 print("Folder:", ROOT)
 print()
 
@@ -128,7 +128,8 @@ for name in compile_files:
         failed.append("py_compile " + name)
 
 required_files = [
-    "BUILD_TGC_2K25_BETA4_1_1.bat",
+    "BUILD_TGC_2K25_BETA4_1.bat",
+    "PUBLISH_TGC_2K25_BETA4_1.bat",
     "RELEASE_NOTES_v0.5.0-2k25-beta4.1.md",
     "auto_red_mask.py",
     "cfs_georef.py",
@@ -139,7 +140,7 @@ required_files = [
 ]
 
 print()
-print("Required Beta 4.1 release files:")
+print("Required Beta 4.1 Hotfix release files:")
 for name in required_files:
     ok = (ROOT / name).exists()
     print(("PASS" if ok else "FAIL"), "-", name)
@@ -155,5 +156,5 @@ if failed:
 
 print()
 print("FINAL VERIFICATION PASSED")
-print("Visible application title: TGC Designer Tools 2K25 - Beta 4.1.1 Hotfix")
-print(r"Expected executable: C:\TGC-Designer-Tools\dist\tgc_gui_2k25_beta4_1_1.exe")
+print("Visible application title: TGC Designer Tools 2K25 - Beta 4.1 Hotfix")
+print(r"Expected executable: C:\TGC-Designer-Tools\dist\tgc_gui_2k25_beta4_1.exe")
