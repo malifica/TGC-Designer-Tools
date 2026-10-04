@@ -8,7 +8,7 @@ set TITLE=TGC Designer Tools 2K25 - Beta 4.1 Hotfix
 set EXENAME=tgc_gui_2k25_beta4_1
 set PKG=TGC-Designer-Tools-2K25-v0.5.0-2k25-beta4.1-Windows-x64
 set RELEASEBASE=dist\release_beta4_1
-set NOTES=RELEASE_NOTES_v0.5.0-2k25-beta4.1.1.md
+set NOTES=RELEASE_NOTES_v0.5.0-2k25-beta4.1.md
 
 echo.
 echo ============================================================
@@ -63,7 +63,7 @@ if not errorlevel 1 (
 )
 
 echo.
-echo === Create Beta 4.1 Hotfix prerelease ===
+echo === Create Beta 4 prerelease ===
 gh release create "%TAG%" --repo "%REPO%" ^
  "dist\%EXENAME%.exe" ^
  "%RELEASEBASE%\%EXENAME%.exe.sha256.txt" ^
@@ -84,7 +84,7 @@ pause
 exit /b 0
 
 :missing
-echo ERROR: one or more Beta 4.1 Hotfix release files are missing.
+echo ERROR: one or more Beta 4 release files are missing.
 echo Run BUILD_TGC_2K25_BETA4_1.bat first.
 goto :fail
 
