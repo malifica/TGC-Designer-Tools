@@ -98,5 +98,5 @@ jobs:
           compression-level: 0
           path: |
             dist/tgc_gui_2k25_beta5.exe
-            dist/dev_beta5/*.zip
-            dist/dev_beta5/*.sha256.txt
+            dist/release_beta5/*.zip
+            dist/release_beta5/*.sha256.txt
