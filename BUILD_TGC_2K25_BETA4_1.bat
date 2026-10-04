@@ -22,16 +22,16 @@ python --version
 if errorlevel 1 goto :fail
 
 echo.
-echo === Beta 4.1 source identity check ===
-python -c "from pathlib import Path; s=Path('tgc_gui.py').read_text(encoding='utf-8'); req=['TGC_GUI_VERSION = \"v0.5.0-2k25-beta4.1\"','TGC_APP_TITLE = \"TGC Designer Tools 2K25 - Beta 4.1\"','root.title(TGC_APP_TITLE)']; miss=[x for x in req if x not in s]; print('Source title: TGC Designer Tools 2K25 - Beta 4.1' if not miss else 'ERROR: this folder still contains an older tgc_gui.py'); raise SystemExit(1 if miss else 0)"
+echo === Beta 4.1 Hotfix source identity check ===
+python -c "from pathlib import Path; s=Path('tgc_gui.py').read_text(encoding='utf-8'); req=['TGC_GUI_VERSION = \"v0.5.0-2k25-beta4.1\"','TGC_APP_TITLE = \"TGC Designer Tools 2K25 - Beta 4\"','root.title(TGC_APP_TITLE)']; miss=[x for x in req if x not in s]; print('Source title: TGC Designer Tools 2K25 - Beta 4.1 Hotfix' if not miss else 'ERROR: this folder still contains an older tgc_gui.py'); raise SystemExit(1 if miss else 0)"
 if errorlevel 1 (
   echo.
-  echo ERROR: You are NOT building from the Beta 4.1 source tree in this folder.
+  echo ERROR: You are NOT building from the Beta 4.1 Hotfix source tree in this folder.
   echo Expected:
   echo   TGC_GUI_VERSION = v0.5.0-2k25-beta4.1
-  echo   Window title = TGC Designer Tools 2K25 - Beta 4.1
+  echo   Window title = TGC Designer Tools 2K25 - Beta 4.1 Hotfix
   echo.
-  echo Make sure the Beta 4.1 package files were extracted DIRECTLY into:
+  echo Make sure the Beta 4.1 Hotfix package files were extracted DIRECTLY into:
   echo   C:\TGC-Designer-Tools
   echo and not into:
   echo   C:\TGC-Designer-Tools\TGC-Designer-Tools
@@ -39,8 +39,8 @@ if errorlevel 1 (
 )
 
 echo.
-echo === Beta 4.1 full source verification ===
-python VERIFY_BETA4_1_1_SOURCE.py
+echo === Beta 4.1 Hotfix full source verification ===
+python VERIFY_BETA4_1_SOURCE.py
 if errorlevel 1 goto :fail
 
 echo.
@@ -95,7 +95,7 @@ python -m py_compile ^
 if errorlevel 1 goto :fail
 
 echo.
-echo === Clean previous Beta 4.1 build ===
+echo === Clean previous Beta 4.1 Hotfix build ===
 if exist "build\%EXENAME%" rmdir /s /q "build\%EXENAME%"
 if exist "dist\%EXENAME%.exe" del /q "dist\%EXENAME%.exe"
 for %%F in ("dist\tgc_gui_2k25_beta2*.exe") do if exist "%%~fF" del /q "%%~fF"
@@ -131,7 +131,7 @@ if errorlevel 1 goto :fail
 if not exist "dist\%EXENAME%.exe" goto :fail
 
 echo.
-echo === Package Beta 4.1 release ===
+echo === Package Beta 4.1 Hotfix release ===
 mkdir "%RELEASEDIR%"
 copy /y "dist\%EXENAME%.exe" "%RELEASEDIR%\" >nul
 copy /y "LICENSE" "%RELEASEDIR%\" >nul
