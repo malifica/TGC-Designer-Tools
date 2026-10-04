@@ -25,8 +25,8 @@ import tgc_image_terrain
 from tgc_visualizer import drawCourseAsImage
 import OSMTGC
 
-TGC_GUI_VERSION = "v0.5.0-2k25-beta4"
-TGC_APP_TITLE = "TGC Designer Tools 2K25 - Beta 4"
+TGC_GUI_VERSION = "v0.5.0-2k25-beta4.1"
+TGC_APP_TITLE = "TGC Designer Tools 2K25 - Beta 4.1 Hotfix"
 
 AUTO_RED_MASK_BUFFER_MIN_M = 5.0
 AUTO_RED_MASK_BUFFER_MAX_M = 30.0
