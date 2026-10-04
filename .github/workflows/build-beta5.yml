@@ -7,7 +7,7 @@ on:
       - main
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build-windows:
@@ -100,3 +100,20 @@ jobs:
             dist/tgc_gui_2k25_beta5.exe
             dist/release_beta5/*.zip
             dist/release_beta5/*.sha256.txt
+
+      - name: Publish Beta 5 prerelease
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = "v0.5.0-2k25-beta5"
+          $repo = "${{ github.repository }}"
+          gh release view $tag --repo $repo *> $null
+          if ($LASTEXITCODE -eq 0) {
+            Write-Host "Release $tag already exists; leaving it unchanged."
+            exit 0
+          }
+
+          $pkg = "TGC-Designer-Tools-2K25-v0.5.0-2k25-beta5-Windows-x64"
+          gh release create $tag --repo $repo "dist\tgc_gui_2k25_beta5.exe" "dist\release_beta5\tgc_gui_2k25_beta5.exe.sha256.txt" "dist\release_beta5\$pkg.zip" "dist\release_beta5\$pkg.zip.sha256.txt" --target "$env:GITHUB_SHA" --title "TGC Designer Tools 2K25 - Beta 5" --notes-file "RELEASE_NOTES_v0.5.0-2k25-beta5.md" --prerelease
+          if ($LASTEXITCODE -ne 0) { throw "GitHub Beta 5 release creation failed." }
