@@ -2,24 +2,26 @@
 
 A streamlined 2K25-focused fork of **HiCamino/TGC-Designer-Tools** for building real-world courses from **LiDAR, GeoTIFF DEM, and OpenStreetMap data**.
 
-Current release: **v0.5.0-2k25-beta4**
+Current release: **v0.5.0-2k25-beta5**
 Maintainer: **malifica**
 Upstream: https://github.com/HiCamino/TGC-Designer-Tools
 
 This project remains under the upstream **Apache License 2.0**.
 
 
-## Beta 5 development
+## Beta 5
 
-The published release remains **v0.5.0-2k25-beta4**. Current `main` development has moved to **Beta 5**.
+Beta 5 is the current public prerelease and publishes the current main-line feature set.
 
-Beta 5 begins a real-life regional-theme system for LiDAR/OSM vegetation. It adds a selectable **Heroic** tree scale and JSON-backed custom profiles measured from fully planted Designer reference courses. Planned profile families include Piney Woods, Monterey Peninsula, Upstate New York, Scotland, and Florida.
+Beta 5 includes a real-life regional-theme system for LiDAR/OSM vegetation. It adds a selectable **Heroic** tree scale and JSON-backed custom profiles measured from fully planted Designer reference courses. Planned profile families include Piney Woods, Monterey Peninsula, Upstate New York, Scotland, and Florida.
 
 Regional themes can also apply donor playing-surface and terrain textures: bunker, green, fringe, fairway, rough, heavy rough, and the four terrain/splat channels.
 
 See `BETA5_TREE_PROFILES.md`.
 
-**Texas Hill Country** is the first enabled real-life profile for Beta 5 testing, calibrated from `Canyon Springs SATX (L).course`.
+The current Beta 5 profile set includes the calibrated regional profiles already shipped in `tree_profiles`. See `BETA5_TREE_PROFILES.md` for the current list and donor details.
+
+Beta 5 also includes public USGS AWS EPT acquisition discovery/download, Trees Only workflows, Terrain Gap Fill, OSM-defined terrain master extents, Epic tree scale, and the restored Beta 3/3.1 full-frame DEM Auto Red Mask production workflow.
 
 
 
@@ -35,7 +37,9 @@ Beta 4 rolls the post-Beta-3.1 work on `main` into a new Windows prerelease.
 - **Fjordland theme 54 tree support** adds the complete 44-tree reference palette without renumbering existing global 2K25 tree IDs.
 - The Beta 3.1 **automatic LiDAR CRS correction for foot/US-survey-foot projections** remains included.
 
-Build with `BUILD_TGC_2K25_BETA4.bat`. See `RELEASE_NOTES_v0.5.0-2k25-beta4.md` and `RELEASE_CHECKLIST_v0.5.0-2k25-beta4.md` for validation and publishing steps.
+For Beta 5, build with `BUILD_TGC_2K25_BETA5.bat`. See `RELEASE_NOTES_v0.5.0-2k25-beta5.md` and `RELEASE_CHECKLIST_v0.5.0-2k25-beta5.md` for validation and publishing steps.
+
+The Beta 4 section below is retained as release history.
 
 ---
 
