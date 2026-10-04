@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.5.0-2k25-beta4.1] - DEM Auto Red Mask hotfix
+
+- Restored Beta 3/3.1 production masking for GeoTIFF DEM courses: render final OSM + Auto Red Mask on the full-resolution full DEM coordinate frame, then crop the finished mask and DEM together using identical bounds.
+- Removed the Beta 4 100 m crop-halo production-mask regeneration path.
+- Retained Beta 4's fast bounded DEM boundary preview.
+- Left Auto Red Mask geometry/cleanup rules and LiDAR behavior unchanged.
+- Validated against the reported Cape Wickham DEM case in the Beta 5 development tree before backporting to the Beta 4 release line.
+
+
 All notable fork-specific changes to `malifica/TGC-Designer-Tools` are documented here.
 
 The fork is based on work from `HiCamino/TGC-Designer-Tools`.
