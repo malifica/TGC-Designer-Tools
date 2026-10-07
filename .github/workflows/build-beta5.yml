@@ -37,45 +37,6 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt
 
-      - name: Apply cumulative Beta 5 hotfix
-        shell: pwsh
-        run: |
-          $applyDir = ".hotfix_apply"
-          if (Test-Path $applyDir) { Remove-Item $applyDir -Recurse -Force }
-          New-Item -ItemType Directory -Force -Path $applyDir | Out-Null
-          $v4Text = ((Get-ChildItem ".github\hotfix\ept_v4_*.b64" | Sort-Object Name | ForEach-Object { Get-Content $_.FullName -Raw }) -join "")
-          $osmText = ((Get-ChildItem ".github\hotfix\osm_master_*.b64" | Sort-Object Name | ForEach-Object { Get-Content $_.FullName -Raw }) -join "")
-          [IO.File]::WriteAllBytes("$applyDir\ept_v4.zip", [Convert]::FromBase64String($v4Text))
-          [IO.File]::WriteAllBytes("$applyDir\osm_master.zip", [Convert]::FromBase64String($osmText))
-          Expand-Archive -Path "$applyDir\ept_v4.zip" -DestinationPath $applyDir -Force
-          Expand-Archive -Path "$applyDir\osm_master.zip" -DestinationPath $applyDir -Force
-          python "$applyDir\UPDATE_BETA5_AWS_EPT_TRUE_GROUND_METRES_V4.py"
-          if ($LASTEXITCODE -ne 0) { throw "AWS EPT true-ground/UI hotfix failed." }
-          python "$applyDir\UPDATE_BETA5_OSM_MASTER_EXTENT_MASK_V1.py"
-          if ($LASTEXITCODE -ne 0) { throw "OSM master extent/mask hotfix failed." }
-          Remove-Item $applyDir -Recurse -Force
-          Get-ChildItem -Directory -Filter "_backup_aws_ept_true_ground_v4_*" | Remove-Item -Recurse -Force
-          Get-ChildItem -Directory -Filter "_backup_osm_master_extent_mask_*" | Remove-Item -Recurse -Force
-          Remove-Item "UPDATE_BETA5_AWS_EPT_TRUE_GROUND_METRES_V4_manifest.json" -Force -ErrorAction SilentlyContinue
-          Remove-Item "UPDATE_BETA5_OSM_MASTER_EXTENT_MASK_V1_manifest.json" -Force -ErrorAction SilentlyContinue
-
-      - name: Commit corrected source to main
-        shell: pwsh
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add usgs_ept_downloader.py tgc_gui.py lidar_map_api.py infill_image.py README.md CHANGELOG.md RELEASE_NOTES_v0.5.0-2k25-beta5.md
-          git diff --cached --quiet
-          if ($LASTEXITCODE -ne 0) {
-            git commit -m "Beta 5 Hotfix: correct AWS EPT scale and OSM master masks"
-            if ($LASTEXITCODE -ne 0) { throw "Could not commit patched Beta 5 source." }
-            git push origin HEAD:main
-            if ($LASTEXITCODE -ne 0) { throw "Could not push patched Beta 5 source to main." }
-          } else {
-            Write-Host "Corrected Beta 5 source is already committed."
-          }
-          "BUILD_SHA=$(git rev-parse HEAD)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-
       - name: Verify Beta 5 hotfix source
         shell: pwsh
         run: |
@@ -156,8 +117,7 @@ jobs:
         run: |
           $tag = "v0.5.0-2k25-beta5"
           $repo = "${{ github.repository }}"
-          $target = "$env:BUILD_SHA"
-          if (-not $target) { $target = (git rev-parse HEAD).Trim() }
+          $target = "${{ github.sha }}"
 
           git tag -f $tag $target
           git push origin "refs/tags/$tag" --force
