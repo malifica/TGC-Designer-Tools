@@ -548,7 +548,7 @@ def generate_lidar_previews(lidar_dir_path, sample_scale, output_dir_path, force
         printf=printf,
     )
 
-def generate_lidar_heightmap(pc, img_points, sample_scale, output_dir_path, osm_results=None, auto_red_mask_enabled=False, auto_red_mask_buffer_m=5.0, crop_bounds=None, printf=print):
+def generate_lidar_heightmap(pc, img_points, sample_scale, output_dir_path, osm_results=None, auto_red_mask_enabled=False, auto_red_mask_buffer_m=5.0, crop_bounds=None, printf=print, defer_mask_edit_message=False):
     global lower_x, lower_y, upper_x, upper_y
 
     image_width = math.ceil(pc.width / sample_scale) + 1
@@ -726,7 +726,9 @@ def generate_lidar_heightmap(pc, img_points, sample_scale, output_dir_path, osm_
     printf("Saving data as: " + str(output_dir_path) + '/heightmap.npy')
     np.save(output_dir_path + '/heightmap', output_data)
 
-    printf("Done! Now go edit your mask.png to remove uneeded areas")
+    # TGC_OSM_MASTER_MASK_READY_MESSAGE_V1
+    if not defer_mask_edit_message:
+        printf("Done! Now edit mask.png to remove unneeded areas")
 
 
 def _projection_to_crs(projection):
@@ -783,6 +785,7 @@ def _write_osm_master_mask(
     printf=print,
 ):
     """Rebuild mask.png on the current master grid after a grid resize."""
+    # TGC_OSM_MASTER_MASK_WRITE_VERIFY_V1
     heightmap = np.asarray(terrain_data["heightmap"])
     grid = cfs_georef.get_master_grid(
         terrain_data,
@@ -822,12 +825,28 @@ def _write_osm_master_mask(
         )
 
     mask_disk = np.flip(mask_rgb, 0)
-    cv2.imwrite(
-        str(terrain_path.parent / "mask.png"),
+    mask_path = terrain_path.parent / "mask.png"
+    write_ok = cv2.imwrite(
+        str(mask_path),
         cv2.cvtColor(
             (255.0 * np.clip(mask_disk, 0.0, 1.0)).astype(np.uint8),
             cv2.COLOR_RGB2BGR,
         ),
+    )
+    if not write_ok:
+        raise RuntimeError("OSM Master Grid could not write mask.png")
+
+    written = cv2.imread(str(mask_path), cv2.IMREAD_COLOR)
+    expected_shape = tuple(int(value) for value in heightmap.shape[:2])
+    actual_shape = None if written is None else tuple(int(value) for value in written.shape[:2])
+    if actual_shape != expected_shape:
+        raise RuntimeError(
+            "OSM Master Grid mask verification failed: heightmap rows/cols=" +
+            str(expected_shape) + "; mask rows/cols=" + str(actual_shape)
+        )
+    printf(
+        "OSM Master Grid mask verified: " +
+        str(expected_shape[1]) + " x " + str(expected_shape[0]) + " pixels."
     )
 
 

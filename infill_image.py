@@ -43,6 +43,20 @@ def infill_image_scipy(np_array, cv2_mask, background_ratio=16.0, fill_water=Fal
     values_2d = np.asarray(np_array[:, :, 0])
     rows, cols = values_2d.shape
 
+    # TGC_MASK_HEIGHTMAP_SHAPE_GUARD_V1
+    if remove_mask is not None:
+        mask_rows, mask_cols = remove_mask.shape[:2]
+        if (mask_rows, mask_cols) != (rows, cols):
+            raise ValueError(
+                "Heightmap/mask dimension mismatch: heightmap is " +
+                str(cols) + " x " + str(rows) +
+                " pixels, but mask.png is " +
+                str(mask_cols) + " x " + str(mask_rows) +
+                ". Do not resize mask.png. Regenerate the LiDAR/DEM output "
+                "after the OSM master grid changes, then edit the newly "
+                "generated mask."
+            )
+
     printf("Finding valid masked points (vectorized)")
 
     finite = np.isfinite(values_2d)

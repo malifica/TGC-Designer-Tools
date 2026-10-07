@@ -755,6 +755,7 @@ def runLidar(
                 prepared["auto_red_mask_buffer_m"],
                 crop_bounds=crop,
                 printf=worker_printf,
+                defer_mask_edit_message=bool(local_osm_file),
             )
             if local_osm_file:
                 worker_printf(
@@ -768,6 +769,11 @@ def runLidar(
                     auto_red_mask_enabled=auto_red_enabled,
                     auto_red_mask_buffer_m=auto_red_buffer_m,
                     printf=worker_printf,
+                )
+                # TGC_OSM_MASTER_MASK_READY_MESSAGE_V1
+                worker_printf(
+                    "OSM master terrain and matching mask are complete. "
+                    "Now edit mask.png to remove unneeded areas."
                 )
             result_queue.put(("done", None))
         except Exception:
@@ -1238,14 +1244,40 @@ def _aws_ept_dem_ready():
 
 
 def showAwsEptDatasetChooser(candidates):
-    """Modal chooser showing USGS acquisition/quality metadata before download."""
+    """Modal USGS acquisition chooser with fixed actions and clear selection."""
+    # TGC_AWS_EPT_CHOOSER_BUTTONS_ALWAYS_VISIBLE_V1
+    # TGC_AWS_EPT_CHOOSER_BLUE_SELECTION_V1
     result = {"candidate": None, "mode": None}
     popup = tk.Toplevel(root)
     popup.title("Choose USGS LiDAR Acquisition")
-    popup.geometry("1500x680")
-    popup.minsize(1150, 560)
     popup.transient(root)
     popup.grab_set()
+    popup.resizable(True, True)
+
+    # Fit inside the current display instead of assuming that 1500x680 fits
+    # after Windows DPI scaling and title/task bars are accounted for.
+    popup.update_idletasks()
+    screen_width = max(640, int(popup.winfo_screenwidth()))
+    screen_height = max(520, int(popup.winfo_screenheight()))
+    window_width = min(1500, max(720, screen_width - 80))
+    window_height = min(820, max(560, screen_height - 120))
+    window_width = min(window_width, screen_width)
+    window_height = min(window_height, screen_height)
+    window_x = max(0, int((screen_width - window_width) / 2))
+    window_y = max(0, int((screen_height - window_height) / 3))
+    popup.geometry(
+        str(window_width) + "x" + str(window_height) +
+        "+" + str(window_x) + "+" + str(window_y)
+    )
+    popup.minsize(
+        min(900, window_width),
+        min(520, window_height),
+    )
+
+    # Only the dataset table expands. The details, status, and action rows are
+    # fixed below it, so the buttons cannot be pushed off the bottom edge.
+    popup.grid_columnconfigure(0, weight=1)
+    popup.grid_rowconfigure(1, weight=1, minsize=120)
 
     intro = (
         "Choose the LiDAR acquisition you want. Collection dates are the actual "
@@ -1257,8 +1289,9 @@ def showAwsEptDatasetChooser(candidates):
         popup,
         text=intro,
         justify=LEFT,
-        wraplength=1420,
-    ).pack(fill=X, padx=10, pady=(10, 6))
+        anchor="w",
+        wraplength=max(600, window_width - 50),
+    ).grid(row=0, column=0, sticky="ew", padx=10, pady=(10, 6))
 
     columns = (
         "year",
@@ -1271,12 +1304,33 @@ def showAwsEptDatasetChooser(candidates):
         "project",
     )
     table_frame = Frame(popup)
+    table_frame.grid(row=1, column=0, sticky="nsew", padx=10)
+    table_frame.grid_rowconfigure(0, weight=1)
+    table_frame.grid_columnconfigure(0, weight=1)
+
+    # Use a dedicated style rather than relying on the active Windows ttk
+    # theme, because some themes make the selected row nearly indistinguishable
+    # after the detail pane or an action button receives focus.  The selected
+    # acquisition remains standard Windows blue with white text.
+    aws_ept_tree_style_name = "TgcAwsEpt.Treeview"
+    aws_ept_tree_style = ttk.Style(popup)
+    try:
+        aws_ept_tree_style.configure(aws_ept_tree_style_name)
+        aws_ept_tree_style.map(
+            aws_ept_tree_style_name,
+            background=[("selected", "#0078D7")],
+            foreground=[("selected", "#FFFFFF")],
+        )
+    except tk.TclError:
+        aws_ept_tree_style_name = "Treeview"
+
     tree = ttk.Treeview(
         table_frame,
+        style=aws_ept_tree_style_name,
         columns=columns,
         show="headings",
         selectmode="browse",
-        height=13,
+        height=10,
     )
     headings = {
         "year": "Year",
@@ -1321,13 +1375,18 @@ def showAwsEptDatasetChooser(candidates):
         yscrollcommand=yscroll.set,
         xscrollcommand=xscroll.set,
     )
-
     tree.grid(row=0, column=0, sticky="nsew")
     yscroll.grid(row=0, column=1, sticky="ns")
     xscroll.grid(row=1, column=0, sticky="ew")
-    table_frame.grid_rowconfigure(0, weight=1)
-    table_frame.grid_columnconfigure(0, weight=1)
-    table_frame.pack(fill=BOTH, expand=True, padx=10)
+
+    # Tag coloring is a fallback for themes that override ttk state maps.
+    # It also keeps the chosen acquisition blue when focus moves to details or
+    # to one of the action buttons.
+    tree.tag_configure(
+        "aws_ept_selected",
+        background="#0078D7",
+        foreground="#FFFFFF",
+    )
 
     iid_to_candidate = {}
     for index, candidate in enumerate(candidates):
@@ -1364,18 +1423,34 @@ def showAwsEptDatasetChooser(candidates):
             ),
         )
 
-    details_var = tk.StringVar()
-    details_label = Label(
+    details_frame = ttk.LabelFrame(
         popup,
-        textvariable=details_var,
-        justify=LEFT,
-        anchor="w",
-        wraplength=1420,
-        relief=SUNKEN,
-        padx=8,
-        pady=6,
+        text="Selected acquisition details",
     )
-    details_label.pack(fill=X, padx=10, pady=8)
+    details_frame.grid(
+        row=2,
+        column=0,
+        sticky="ew",
+        padx=10,
+        pady=(8, 4),
+    )
+    details_frame.grid_columnconfigure(0, weight=1)
+    details_text = ScrolledText(
+        details_frame,
+        height=7,
+        wrap=WORD,
+        relief=FLAT,
+        padx=6,
+        pady=4,
+    )
+    details_text.grid(row=0, column=0, sticky="ew")
+    details_text.configure(state=DISABLED)
+
+    def set_details(text):
+        details_text.configure(state=NORMAL)
+        details_text.delete("1.0", END)
+        details_text.insert("1.0", str(text))
+        details_text.configure(state=DISABLED)
 
     dem_ready = _aws_ept_dem_ready()
     gap_fill_ready = _terrain_gap_fill_ready()
@@ -1392,9 +1467,12 @@ def showAwsEptDatasetChooser(candidates):
         textvariable=dem_note_var,
         justify=LEFT,
         anchor="w",
-    ).pack(fill=X, padx=10, pady=(0, 6))
+        wraplength=max(600, window_width - 50),
+    ).grid(row=3, column=0, sticky="ew", padx=10, pady=(0, 6))
 
     button_frame = Frame(popup)
+    button_frame.grid(row=4, column=0, sticky="ew", padx=10, pady=(0, 10))
+
     terrain_button = ttk.Button(
         button_frame,
         text="Use for Terrain + Trees",
@@ -1411,16 +1489,44 @@ def showAwsEptDatasetChooser(candidates):
         button_frame,
         text="Cancel",
     )
-    terrain_button.pack(side=LEFT, padx=6)
-    tree_button.pack(side=LEFT, padx=6)
-    gap_fill_button.pack(side=LEFT, padx=6)
-    cancel_button.pack(side=LEFT, padx=6)
-    button_frame.pack(pady=(0, 10))
+    action_buttons = (
+        terrain_button,
+        tree_button,
+        gap_fill_button,
+        cancel_button,
+    )
+
+    # Keep the actions readable on narrower displays by switching to a 2x2
+    # footer instead of forcing four long labels into one row.
+    button_columns = 4 if window_width >= 1220 else 2
+    for column in range(button_columns):
+        button_frame.grid_columnconfigure(column, weight=1)
+    for index, button in enumerate(action_buttons):
+        row = index // button_columns
+        column = index % button_columns
+        button.grid(
+            row=row,
+            column=column,
+            sticky="ew",
+            padx=6,
+            pady=3,
+        )
 
     if not dem_ready:
         tree_button.configure(state=DISABLED)
     if not gap_fill_ready:
         gap_fill_button.configure(state=DISABLED)
+
+    def refresh_selected_row_highlight(_event=None):
+        selection = set(tree.selection())
+        for iid in tree.get_children(""):
+            current = tuple(
+                tag for tag in tree.item(iid, "tags")
+                if tag != "aws_ept_selected"
+            )
+            if iid in selection:
+                current = current + ("aws_ept_selected",)
+            tree.item(iid, tags=current)
 
     def selected_candidate():
         selection = tree.selection()
@@ -1429,9 +1535,10 @@ def showAwsEptDatasetChooser(candidates):
         return iid_to_candidate.get(selection[0])
 
     def update_details(_event=None):
+        refresh_selected_row_highlight()
         candidate = selected_candidate()
         if candidate is None:
-            details_var.set("Select a dataset to see full metadata.")
+            set_details("Select a dataset to see full metadata.")
             terrain_button.configure(state=DISABLED)
             tree_button.configure(state=DISABLED)
             gap_fill_button.configure(state=DISABLED)
@@ -1479,7 +1586,7 @@ def showAwsEptDatasetChooser(candidates):
                 "LPC variance/reason: " +
                 str(candidate.get("lpc_reason"))
             )
-        details_var.set("\n".join(lines))
+        set_details("\n".join(lines))
 
     def choose(mode):
         candidate = selected_candidate()
@@ -1509,6 +1616,12 @@ def showAwsEptDatasetChooser(candidates):
     )
     cancel_button.configure(command=popup.destroy)
     tree.bind("<<TreeviewSelect>>", update_details)
+    tree.bind(
+        "<FocusOut>",
+        refresh_selected_row_highlight,
+        add="+",
+    )
+    popup.bind("<Escape>", lambda _event: popup.destroy())
 
     if candidates:
         first = "dataset_0"
@@ -1516,8 +1629,13 @@ def showAwsEptDatasetChooser(candidates):
         tree.focus(first)
         tree.see(first)
         update_details()
+        tree.focus_set()
+    else:
+        set_details("No LiDAR acquisitions were returned for this extent.")
 
     popup.protocol("WM_DELETE_WINDOW", popup.destroy)
+    popup.update_idletasks()
+    popup.lift()
     popup.wait_window()
     return result["candidate"], result["mode"]
 

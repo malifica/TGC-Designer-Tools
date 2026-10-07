@@ -98,7 +98,17 @@ def _stitch_way_refs(member_refs, ways, nodes):
 
 
 def read_osm_course_bounds(osm_file, buffer_m=DEFAULT_OSM_BUFFER_M, printf=print):
-    """Return a buffered WGS84 bbox derived from the local OSM golf boundary."""
+    """Return a safe buffered WGS84 bbox for the Local OSM course export.
+
+    # TGC_OSM_MASTER_SAFE_EXTENT_V1
+    # OpenStreetMap exports can include complete nodes for relation members far
+    # outside the requested export rectangle.  Those relation-support nodes are
+    # not the intended course extent.  Use this order:
+    #   1. complete explicit golf-course boundary rings;
+    #   2. the OSM file's declared <bounds> export rectangle;
+    #   3. nodes referenced by golf-tagged features;
+    #   4. all nodes only as a final compatibility fallback.
+    """
     osm_path = Path(osm_file)
     if not osm_path.is_file():
         raise FileNotFoundError("Local OSM file was not found: " + str(osm_file))
@@ -151,23 +161,96 @@ def read_osm_course_bounds(osm_file, buffer_m=DEFAULT_OSM_BUFFER_M, printf=print
         boundary_rings.extend(_stitch_way_refs(refs, ways, nodes))
 
     if boundary_rings:
-        # Multi-course OSM exports are intentional: use the combined extent of
-        # every COMPLETE explicit golf-course boundary instead of silently
-        # choosing only the largest course. Incomplete multipolygon fragments
-        # never become rings in _stitch_way_refs(), so unrelated clipped
-        # courses at the export edge do not expand the master extent.
-        boundary = [
-            coordinate
-            for ring in boundary_rings
-            for coordinate in ring
-        ]
+        boundary = [coordinate for ring in boundary_rings for coordinate in ring]
         source = (
             str(len(boundary_rings)) +
             " explicit golf-course boundary ring(s), combined"
         )
     else:
-        boundary = list(nodes.values())
-        source = "all OSM nodes (no explicit golf-course boundary found)"
+        declared = None
+        bounds_element = root.find("bounds")
+        if bounds_element is not None:
+            try:
+                min_lon_declared = float(bounds_element.attrib["minlon"])
+                min_lat_declared = float(bounds_element.attrib["minlat"])
+                max_lon_declared = float(bounds_element.attrib["maxlon"])
+                max_lat_declared = float(bounds_element.attrib["maxlat"])
+                if (
+                    -180.0 <= min_lon_declared < max_lon_declared <= 180.0 and
+                    -90.0 <= min_lat_declared < max_lat_declared <= 90.0
+                ):
+                    declared = (
+                        min_lon_declared,
+                        min_lat_declared,
+                        max_lon_declared,
+                        max_lat_declared,
+                    )
+            except Exception:
+                declared = None
+
+        if declared is not None:
+            min_lon_declared, min_lat_declared, max_lon_declared, max_lat_declared = declared
+            boundary = [
+                (min_lon_declared, min_lat_declared),
+                (min_lon_declared, max_lat_declared),
+                (max_lon_declared, min_lat_declared),
+                (max_lon_declared, max_lat_declared),
+            ]
+            source = (
+                "declared OSM export bounds "
+                "(no explicit golf-course boundary found)"
+            )
+        else:
+            golf_node_ids = set()
+
+            for node in root.findall("node"):
+                tags = _tag_dict(node)
+                if "golf" in tags or tags.get("leisure") == "golf_course":
+                    golf_node_ids.add(node.attrib.get("id"))
+
+            for way in ways.values():
+                tags = _tag_dict(way)
+                if "golf" not in tags and tags.get("leisure") != "golf_course":
+                    continue
+                golf_node_ids.update(
+                    nd.attrib.get("ref") for nd in way.findall("nd")
+                )
+
+            for rel in root.findall("relation"):
+                tags = _tag_dict(rel)
+                if "golf" not in tags and tags.get("leisure") != "golf_course":
+                    continue
+                for member in rel.findall("member"):
+                    member_type = member.attrib.get("type")
+                    member_ref = member.attrib.get("ref")
+                    if member_type == "node":
+                        golf_node_ids.add(member_ref)
+                    elif member_type == "way":
+                        member_way = ways.get(member_ref)
+                        if member_way is not None:
+                            golf_node_ids.update(
+                                nd.attrib.get("ref")
+                                for nd in member_way.findall("nd")
+                            )
+
+            golf_boundary = [
+                nodes[node_id]
+                for node_id in golf_node_ids
+                if node_id in nodes
+            ]
+            if len(golf_boundary) >= 3:
+                boundary = golf_boundary
+                source = (
+                    str(len(golf_boundary)) +
+                    " golf-feature node(s) "
+                    "(no explicit course boundary or export bounds found)"
+                )
+            else:
+                boundary = list(nodes.values())
+                source = (
+                    "all OSM nodes (no explicit course boundary, export "
+                    "bounds, or usable golf-feature extent found)"
+                )
 
     min_lon = min(value[0] for value in boundary)
     max_lon = max(value[0] for value in boundary)
@@ -733,6 +816,292 @@ def _ept_crs(info):
     )
 
 
+# TGC_AWS_EPT_TRUE_GROUND_METRES_V1
+# Public EPT resources sometimes use EPSG:3857 (Web/Pseudo-Mercator).
+# EPSG:3857 coordinates are expressed in projected map metres whose local
+# scale grows by sec(latitude); they are not true ground metres. Before EPT
+# chunks enter the normal LiDAR/CFS pipeline, convert only those unsuitable
+# horizontal CRSs to one local WGS84 UTM CRS selected from the OSM extent.
+_WEB_MERCATOR_EPSG_CODES = {3857, 3785, 900913, 102100, 102113}
+
+
+def _horizontal_crs_component(crs):
+    if crs is None:
+        return None
+
+    geographic = None
+    pending = list(getattr(crs, "sub_crs_list", []) or [])
+    while pending:
+        sub = pending.pop(0)
+        if getattr(sub, "is_projected", False):
+            return sub
+        if geographic is None and getattr(sub, "is_geographic", False):
+            geographic = sub
+        pending.extend(list(getattr(sub, "sub_crs_list", []) or []))
+
+    if getattr(crs, "is_projected", False):
+        return crs
+    if getattr(crs, "is_geographic", False):
+        return crs
+    return geographic
+
+
+def _vertical_crs_component(crs):
+    if crs is None:
+        return None
+    pending = list(getattr(crs, "sub_crs_list", []) or [])
+    while pending:
+        sub = pending.pop(0)
+        if getattr(sub, "is_vertical", False):
+            return sub
+        pending.extend(list(getattr(sub, "sub_crs_list", []) or []))
+    if getattr(crs, "is_vertical", False):
+        return crs
+    return None
+
+
+def _crs_epsg(crs):
+    if crs is None:
+        return None
+    try:
+        return crs.to_epsg()
+    except Exception:
+        return None
+
+
+def _is_web_mercator_crs(crs):
+    horizontal = _horizontal_crs_component(crs)
+    if horizontal is None:
+        return False
+
+    epsg = _crs_epsg(horizontal)
+    if epsg in _WEB_MERCATOR_EPSG_CODES:
+        return True
+
+    try:
+        if horizontal.equals(pyproj.CRS.from_epsg(3857)):
+            return True
+    except Exception:
+        pass
+
+    try:
+        text = (
+            str(getattr(horizontal, "name", "")) + " " +
+            str(horizontal.to_string())
+        ).lower()
+    except Exception:
+        text = str(horizontal).lower()
+    return (
+        "pseudo-mercator" in text or
+        "web mercator" in text or
+        "popular visualisation" in text
+    )
+
+
+def _local_utm_crs_from_bbox(bbox):
+    min_lon, min_lat, max_lon, max_lat = [float(value) for value in bbox]
+    center_lon = 0.5 * (min_lon + max_lon)
+    center_lat = 0.5 * (min_lat + max_lat)
+
+    if not (-180.0 <= center_lon <= 180.0):
+        raise RuntimeError("AWS EPT OSM longitude is outside the valid WGS84 range")
+    if not (-80.0 <= center_lat <= 84.0):
+        raise RuntimeError(
+            "AWS EPT automatic true-ground reprojection requires a UTM-valid "
+            "OSM latitude (-80 to 84 degrees)"
+        )
+
+    zone = int(math.floor((center_lon + 180.0) / 6.0) + 1)
+    zone = min(60, max(1, zone))
+    epsg = (32600 if center_lat >= 0.0 else 32700) + zone
+    return pyproj.CRS.from_epsg(epsg)
+
+
+def _replace_horizontal_crs(source_crs, target_horizontal):
+    vertical = _vertical_crs_component(source_crs)
+    if vertical is None:
+        return target_horizontal
+    try:
+        return pyproj.crs.CompoundCRS(
+            name=(
+                str(target_horizontal.name) + " + " +
+                str(vertical.name)
+            ),
+            components=[target_horizontal, vertical],
+        )
+    except Exception as exc:
+        # Do not silently discard a vertical CRS. The point Z values are kept
+        # unchanged, so the output header must keep their original vertical
+        # reference whenever one was provided by EPT metadata.
+        raise RuntimeError(
+            "AWS EPT horizontal reprojection could not preserve the source "
+            "vertical CRS: " + str(exc)
+        ) from exc
+
+
+def _ept_output_crs_for_bbox(source_crs, bbox):
+    horizontal = _horizontal_crs_component(source_crs)
+    if horizontal is None:
+        raise RuntimeError(
+            "EPT metadata does not contain a usable horizontal CRS"
+        )
+
+    if _is_web_mercator_crs(horizontal) or getattr(horizontal, "is_geographic", False):
+        return _replace_horizontal_crs(
+            source_crs,
+            _local_utm_crs_from_bbox(bbox),
+        )
+    return source_crs
+
+
+def _horizontal_crs_equal(first, second):
+    a = _horizontal_crs_component(first)
+    b = _horizontal_crs_component(second)
+    if a is None or b is None:
+        return False
+    try:
+        return bool(a.equals(b))
+    except Exception:
+        try:
+            return a.to_wkt() == b.to_wkt()
+        except Exception:
+            return str(a) == str(b)
+
+
+def _safe_las_horizontal_scale(value, span):
+    try:
+        scale = abs(float(value))
+    except Exception:
+        scale = 0.001
+    if not math.isfinite(scale) or scale <= 0.0:
+        scale = 0.001
+
+    # With an offset near the coordinate midpoint, half the span must fit in
+    # signed int32. Course-sized EPT downloads are normally nowhere near this
+    # limit, but enforce it so a large multi-course OSM cannot overflow LAS X/Y.
+    required = max(0.0, float(span)) / (2.0 * 2_000_000_000.0)
+    return max(scale, required, 1.0e-9)
+
+
+def _stable_las_offset(values, scale):
+    values = np.asarray(values, dtype=np.float64)
+    midpoint = 0.5 * (float(np.min(values)) + float(np.max(values)))
+    # Snap to a whole metre. This keeps raw integer coordinates compact while
+    # retaining the source LAZ horizontal precision through its scale value.
+    return float(round(midpoint))
+
+
+# TGC_AWS_EPT_TRANSFORMER_CACHE_V1
+_EPT_TRANSFORMER_CACHE = {}
+
+
+def _cached_ept_transformer(source_horizontal, output_horizontal):
+    try:
+        source_key = source_horizontal.to_wkt()
+    except Exception:
+        source_key = str(source_horizontal)
+    try:
+        output_key = output_horizontal.to_wkt()
+    except Exception:
+        output_key = str(output_horizontal)
+
+    key = (source_key, output_key)
+    transformer = _EPT_TRANSFORMER_CACHE.get(key)
+    if transformer is None:
+        transformer = pyproj.Transformer.from_crs(
+            source_horizontal,
+            output_horizontal,
+            always_xy=True,
+        )
+        # EPT normally uses one CRS pair. Keep a small cap so an unusually
+        # mixed acquisition cannot grow a process-long cache without limit.
+        if len(_EPT_TRANSFORMER_CACHE) >= 16:
+            _EPT_TRANSFORMER_CACHE.clear()
+        _EPT_TRANSFORMER_CACHE[key] = transformer
+    return transformer
+
+def _reproject_las_xy_in_place(las, source_crs, output_crs):
+    source_horizontal = _horizontal_crs_component(source_crs)
+    output_horizontal = _horizontal_crs_component(output_crs)
+    if source_horizontal is None or output_horizontal is None:
+        raise RuntimeError("Could not resolve horizontal CRS for EPT reprojection")
+
+    if _horizontal_crs_equal(source_horizontal, output_horizontal):
+        return {
+            "reprojected": False,
+            "max_xy_quantization_error_m": 0.0,
+        }
+
+    source_x = np.asarray(las.x, dtype=np.float64)
+    source_y = np.asarray(las.y, dtype=np.float64)
+    if source_x.size == 0:
+        return {
+            "reprojected": False,
+            "max_xy_quantization_error_m": 0.0,
+        }
+
+    transformer = _cached_ept_transformer(
+        source_horizontal,
+        output_horizontal,
+    )
+    output_x, output_y = transformer.transform(source_x, source_y)
+    output_x = np.asarray(output_x, dtype=np.float64)
+    output_y = np.asarray(output_y, dtype=np.float64)
+
+    if (
+        output_x.shape != source_x.shape or
+        output_y.shape != source_y.shape or
+        not np.all(np.isfinite(output_x)) or
+        not np.all(np.isfinite(output_y))
+    ):
+        raise RuntimeError("AWS EPT horizontal reprojection produced invalid coordinates")
+
+    old_scales = np.asarray(las.header.scales, dtype=np.float64).copy()
+    old_offsets = np.asarray(las.header.offsets, dtype=np.float64).copy()
+    x_scale = _safe_las_horizontal_scale(
+        old_scales[0],
+        float(np.max(output_x) - np.min(output_x)),
+    )
+    y_scale = _safe_las_horizontal_scale(
+        old_scales[1],
+        float(np.max(output_y) - np.min(output_y)),
+    )
+
+    new_scales = np.array([x_scale, y_scale, old_scales[2]], dtype=np.float64)
+    new_offsets = np.array([
+        _stable_las_offset(output_x, x_scale),
+        _stable_las_offset(output_y, y_scale),
+        old_offsets[2],
+    ], dtype=np.float64)
+
+    # change_scaling keeps all existing XYZ values stable while synchronizing
+    # the header and ScaleAwarePointRecord. X/Y are then replaced by the true-
+    # ground coordinates; Z, intensity, classification, returns and all extra
+    # dimensions remain untouched.
+    las.change_scaling(scales=new_scales, offsets=new_offsets)
+    las.x = output_x
+    las.y = output_y
+    las.header.add_crs(output_crs)
+    las.update_header()
+
+    encoded_x = np.asarray(las.x, dtype=np.float64)
+    encoded_y = np.asarray(las.y, dtype=np.float64)
+    max_error = max(
+        float(np.max(np.abs(encoded_x - output_x))),
+        float(np.max(np.abs(encoded_y - output_y))),
+    )
+    allowed = max(x_scale, y_scale) * 0.501 + 1.0e-9
+    if max_error > allowed:
+        raise RuntimeError(
+            "AWS EPT LAS coordinate encoding exceeded its expected precision: " +
+            str(max_error) + " m"
+        )
+
+    return {
+        "reprojected": True,
+        "max_xy_quantization_error_m": max_error,
+    }
+
 def _transform_bbox_wgs84_to_crs(bbox, crs):
     transformer = pyproj.Transformer.from_crs(
         "EPSG:4326",
@@ -842,6 +1211,7 @@ def _write_filtered_node(
     query_bbox,
     crs,
     output_path,
+    output_crs=None,
 ):
     response = session.get(
         root_url + "/ept-data/" + key + ".laz",
@@ -864,14 +1234,17 @@ def _write_filtered_node(
         return 0
 
     las.points = las.points[mask]
+    output_crs = output_crs or crs
 
-    try:
-        existing = las.header.parse_crs()
-    except Exception:
-        existing = None
-
-    if existing is None:
-        las.header.add_crs(crs)
+    if not _horizontal_crs_equal(crs, output_crs):
+        _reproject_las_xy_in_place(las, crs, output_crs)
+    else:
+        try:
+            existing = las.header.parse_crs()
+        except Exception:
+            existing = None
+        if existing is None:
+            las.header.add_crs(output_crs)
 
     las.write(output_path)
     return count
@@ -919,6 +1292,11 @@ def download_candidate_ept_laz(
         ),
         "buffer_m": float(buffer_m),
         "wgs84_bbox": list(bbox),
+        "coordinate_policy": (
+            "Web/Pseudo-Mercator or geographic EPT XY is reprojected to "
+            "one local WGS84 UTM CRS before LAZ output; other suitable "
+            "projected CRSs are retained"
+        ),
         "resources": [],
     }
 
@@ -944,13 +1322,28 @@ def download_candidate_ept_laz(
         printf("  Source DEM GSD: " + str(candidate.get("dem_gsd")))
 
     for resource_name, root_url, info in resources:
-        crs = _ept_crs(info)
-        query_bbox = _transform_bbox_wgs84_to_crs(bbox, crs)
+        source_crs = _ept_crs(info)
+        output_crs = _ept_output_crs_for_bbox(source_crs, bbox)
+        query_bbox = _transform_bbox_wgs84_to_crs(bbox, source_crs)
+        horizontal_reprojected = not _horizontal_crs_equal(
+            source_crs,
+            output_crs,
+        )
 
         printf(
             "AWS EPT resource " + resource_name +
-            " CRS=" + str(crs.to_string())
+            " source CRS=" + str(source_crs.to_string())
         )
+        if horizontal_reprojected:
+            printf(
+                "  Reprojecting AWS EPT XY to true-ground local CRS: " +
+                str(output_crs.to_string())
+            )
+        else:
+            printf(
+                "  Retaining source horizontal CRS: " +
+                str(output_crs.to_string())
+            )
 
         keys = collect_ept_node_keys(
             root_url,
@@ -966,8 +1359,14 @@ def download_candidate_ept_laz(
         resource_manifest = {
             "resource": resource_name,
             "ept": root_url + "/ept.json",
-            "crs": crs.to_string(),
+            "crs": output_crs.to_string(),
+            "source_crs": source_crs.to_string(),
+            "output_crs": output_crs.to_string(),
+            "horizontal_reprojected": bool(horizontal_reprojected),
+            # Retain the legacy key for manifest readers; the explicit key
+            # documents that node selection still occurs in the source CRS.
             "query_bbox": list(query_bbox),
+            "query_bbox_source_crs": list(query_bbox),
             "files": [],
         }
 
@@ -987,8 +1386,9 @@ def download_candidate_ept_laz(
                     root_url,
                     key,
                     query_bbox,
-                    crs,
+                    source_crs,
                     destination,
+                    output_crs=output_crs,
                 )
             except Exception as exc:
                 raise RuntimeError(
