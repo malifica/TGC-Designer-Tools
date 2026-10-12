@@ -19,14 +19,14 @@ Beta 6 makes Local OSM placement and CFS alignment safer and more flexible while
 - **Road/path semantics are explicit**: `golf=cartpath` is a cart path, `golf=path` is a walking path, and supported automobile `highway=*` features use a separate optional road-spline workflow.
 - **LiDAR tree filtering uses the final master grid**, keeping tree masks aligned after CFS/OSM transforms.
 - **Slope-Locked Hulkify** scales course geometry and relief together in 10% increments so rise/run slope severity is retained.
-- **Pacific Northwest** joins the regional tree profiles, calibrated from the Mount Rainier donor course. Tree-size choices are now `Standard (Lidar)`, `Heroic`, `Epic`, and `Mythic`.
+- **Pacific Northwest** joins the calibrated regional tree profiles. Tree-size choices are now `Standard (Lidar)`, `Heroic`, `Epic`, and `Mythic`.
 - Beta 5 hotfix behavior remains included, including true-ground AWS EPT reprojection, safe Local OSM master extents, and final mask/heightmap dimension locking.
 
 Build with `BUILD_TGC_2K25_BETA6.bat`. See `RELEASE_NOTES_v0.5.0-2k25-beta6.md` and `BUILD_WINDOWS.md`.
 
 ## Beta 5
 
-Beta 5 introduced the real-life regional-theme system for LiDAR/OSM vegetation, JSON-backed custom profiles measured from finished Designer courses, donor playing-surface/terrain textures, expanded tree scaling, AWS EPT acquisition, Trees Only, Terrain Gap Fill, and the final Beta 5 hotfix corrections retained in Beta 6.
+Beta 5 introduced the real-life regional-theme system for LiDAR/OSM vegetation, JSON-backed calibrated regional profiles, coordinated playing-surface/terrain textures, expanded tree scaling, AWS EPT acquisition, Trees Only, Terrain Gap Fill, and the final Beta 5 hotfix corrections retained in Beta 6.
 
 See `RELEASE_NOTES_v0.5.0-2k25-beta5.md`, `BETA5_TREE_PROFILES.md`, and `BETA5_HOTFIX.md`.
 
@@ -206,7 +206,7 @@ TGCTool has explicit 2K25 tree-asset palettes for the following themes:
 - Temperate
 - Fjordland
 
-Fjordland is theme ID **54**. Its palette was mapped from a reference course containing the complete Fjordland theme-tree set: **44 actual tree prefabs** are supported, split into broad/wider and narrow/columnar groups for the existing LiDAR tree-shape selection logic. Theme shrub/bush assets are deliberately excluded from LiDAR tree placement.
+Fjordland is theme ID **54**. Its complete theme-tree palette includes **44 actual tree prefabs**, split into broad/wider and narrow/columnar groups for the existing LiDAR tree-shape selection logic. Theme shrub/bush assets are deliberately excluded from LiDAR tree placement.
 
 For themes without a dedicated narrow-tree subset, TGCTool falls back to the normal theme palette.
 
@@ -388,7 +388,7 @@ existing Heroic and Legacy LiDAR modes.
   multiplies the final X/Y/Z tree scale by **1.20**.
 - **Legacy LiDAR** remains unchanged.
 
-For calibrated Regional Themes, Epic scales the donor-calibrated prefab
+For calibrated Regional Themes, Epic scales the profile-calibrated prefab
 distribution rather than replacing it with generic scale values. For built-in
 Designer-theme trees, Epic is the same 20% step above the existing Heroic
 radius/height ranges.

@@ -42,13 +42,13 @@ Slope-Locked Hulkify enlarges complete course geometry by 10% per click while ap
 
 ## Regional tree profiles and scale labels
 
-- **Pacific Northwest** is added, calibrated from the finished Mount Rainier donor course.
+- **Pacific Northwest** is added as a calibrated regional tree profile.
 - Tree-size choices are now `Standard (Lidar)`, `Heroic`, `Epic`, and `Mythic`.
 - **Standard (Lidar)** retains the established LiDAR sizing behavior.
 - **Heroic** retains the existing Heroic calibration.
 - **Epic** is `1.20 × Heroic`.
 - **Mythic** is `1.80 × Heroic`.
-- The same Epic/Mythic multipliers apply to regional donor-calibrated scales.
+- The same Epic/Mythic multipliers apply to regional profile-calibrated scales.
 
 ## Retained Beta 5 hotfix corrections
 

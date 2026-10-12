@@ -14,7 +14,7 @@ The fork is based on work from `HiCamino/TGC-Designer-Tools`.
 - Background CFS preview preparation and asynchronous production-mask rebuild with progress reporting.
 - Separate optional automobile-road import for supported `highway=*` classes, independent of golf cart paths.
 - `golf=path` walking-path handling independent of `golf=cartpath`.
-- Pacific Northwest regional tree profile calibrated from the Mount Rainier donor course.
+- Pacific Northwest calibrated regional tree profile.
 - Slope-Locked Hulkify course scaling in 10% increments.
 - Beta 6 source/workflow verification scripts and Windows build helper.
 
@@ -56,7 +56,7 @@ The fork is based on work from `HiCamino/TGC-Designer-Tools`.
 
 ### Added
 
-- Full Fjordland (theme 54) 2K25 tree palette support from the supplied reference course: 44 tree prefabs split into normal/wider and skinny/columnar groups.
+- Full Fjordland (theme 54) 2K25 tree palette support: 44 tree prefabs split into normal/wider and skinny/columnar groups.
 - Beta 4 Windows build, verifier, publish helper, release notes, and release checklist.
 
 ### Changed

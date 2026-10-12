@@ -5,7 +5,7 @@ Beta 5 publishes the current main-line TGC Designer Tools 2K25 feature set witho
 ## Highlights
 
 - Regional Theme system with calibrated real-course tree planting profiles.
-- Donor Designer theme plus playing-surface and terrain-material presets.
+- Coordinated Designer theme plus playing-surface and terrain-material presets.
 - Heroic, Epic, and Legacy LiDAR tree-scale modes.
 - Public USGS 3DEP AWS EPT acquisition discovery/download from Local OSM.
 - Acquisition chooser with WESM collection metadata when available.
@@ -16,17 +16,17 @@ Beta 5 publishes the current main-line TGC Designer Tools 2K25 feature set witho
 
 ## Regional Themes
 
-Beta 5 can use JSON-backed regional profiles derived from finished reference courses. Enabled profiles in the current release include the calibrated profiles already present in the Beta 5 tree-profile directory, including Texas Hill Country, Niagara Escarpment, Carolina Piedmont (Autumn), Virginia Coastal Plain, Hudson Valley Mixed Forest, Northern Rockies, Monterey Bay Coast, Georgia Piedmont, San Francisco Peninsula, and South Carolina Lowcountry.
+Beta 5 can use JSON-backed regional profiles with calibrated regional planting palettes, scale distributions, and material presets. Enabled profiles in the current release include the calibrated profiles already present in the Beta 5 tree-profile directory, including Texas Hill Country, Niagara Escarpment, Carolina Piedmont (Autumn), Virginia Coastal Plain, Hudson Valley Mixed Forest, Northern Rockies, Monterey Bay Coast, Georgia Piedmont, San Francisco Peninsula, and South Carolina Lowcountry.
 
 Regional profiles may control:
 
 - source Designer theme;
 - weighted tree-prefab mix;
-- donor-calibrated X/Y/Z tree scale distributions;
+- profile-calibrated X/Y/Z tree scale distributions;
 - bunker, green, fringe, fairway, rough and heavy-rough textures;
 - terrain/splat material slots.
 
-The reviewed Coastal Links profile remains disabled where the donor contains no suitable natural tree population.
+The reviewed Coastal Links profile remains disabled because it does not provide a suitable automatic tree population.
 
 ## Tree Scale
 
