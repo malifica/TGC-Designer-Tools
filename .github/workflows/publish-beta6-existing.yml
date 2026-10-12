@@ -1,0 +1,156 @@
+name: Publish Beta 6 Existing Build
+on:
+  push:
+    branches: [release/beta6-20261012]
+permissions:
+  contents: write
+concurrency:
+  group: beta6-existing-release
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out staged Beta 6 publication
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python 3.11.6 x64
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11.6"
+          architecture: "x64"
+
+      - name: Materialize authoritative Beta 6 source
+        shell: pwsh
+        run: |
+          Expand-Archive -Path ".github\beta6_upload\source-overlay.zip" -DestinationPath "." -Force
+          if (-not (Test-Path "RELEASE_NOTES_v0.5.0-2k25-beta6.md")) { throw "Beta 6 release notes missing." }
+          if (-not (Test-Path "BUILD_TGC_2K25_BETA6.bat")) { throw "Beta 6 source/build documentation missing." }
+
+      - name: Transfer exact tested Beta 6 executable
+        shell: pwsh
+        run: |
+          $expected = "ee62c0e128e93a72e8a6275bb556af133cdbf45f62b1a12ba712c1b7e25924c9"
+          $baseExpected = "e36f82be00e4ad0c64ef03e7e4486d0fda9a5589aba5d133bbebdcc81dd5743d"
+          $temp = Join-Path $env:RUNNER_TEMP "beta6_exact"
+          $transfer = Join-Path $temp "transfer"
+          $wheelroot = Join-Path $temp "wheelroot"
+          New-Item -ItemType Directory -Force -Path $transfer,$wheelroot,"dist" | Out-Null
+          Expand-Archive -Path ".github\beta6_upload\exe-transfer.zip" -DestinationPath $transfer -Force
+          $baseExe = Join-Path $temp "tgc_gui_2k25_beta5.exe"
+          Invoke-WebRequest -Uri "https://github.com/${{ github.repository }}/releases/download/v0.5.0-2k25-beta5/tgc_gui_2k25_beta5.exe" -OutFile $baseExe
+          $baseHash = (Get-FileHash $baseExe -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($baseHash -ne $baseExpected) { throw "Published Beta 5 base EXE hash mismatch: $baseHash" }
+          python -m pip install --disable-pip-version-check --only-binary=:all: --target "$wheelroot" "PySide6==6.12.0"
+          if ($LASTEXITCODE -ne 0) { throw "Could not obtain PySide6 6.12.0 wheel files." }
+          $script = Join-Path $transfer "beta6_exe_transfer_v2\reconstruct_beta6_exe.py"
+          python "$script" "$baseExe" "$wheelroot" "dist\tgc_gui_2k25_beta6.exe"
+          if ($LASTEXITCODE -ne 0) { throw "Exact tested Beta 6 EXE transfer failed." }
+          $hash = (Get-FileHash "dist\tgc_gui_2k25_beta6.exe" -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($hash -ne $expected) { throw "Transferred Beta 6 EXE hash mismatch: $hash" }
+          Write-Host "EXACT TESTED BETA 6 EXE READY: $hash"
+
+      - name: Commit authoritative Beta 6 source to main
+        shell: pwsh
+        run: |
+          Remove-Item ".github\workflows\build-beta5.yml" -Force -ErrorAction SilentlyContinue
+          Remove-Item ".github\workflows\publish-beta6-existing.yml" -Force -ErrorAction SilentlyContinue
+          Remove-Item ".github\beta6_upload" -Recurse -Force -ErrorAction SilentlyContinue
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          $parent = (git rev-parse "origin/main").Trim()
+          $tree = (git write-tree).Trim()
+          if (-not $tree) { throw "Could not create Beta 6 source tree." }
+          $buildSha = (git commit-tree $tree -p $parent -m "Beta 6: publish authoritative source and release documentation").Trim()
+          if (-not $buildSha) { throw "Could not create Beta 6 source commit." }
+          git push origin "$($buildSha):main"
+          if ($LASTEXITCODE -ne 0) { throw "Could not push authoritative Beta 6 source to main." }
+          "BUILD_SHA=$buildSha" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host "BETA 6 SOURCE COMMIT: $buildSha"
+
+      - name: Package existing Beta 6 executable
+        shell: pwsh
+        run: |
+          $pkg = "TGC-Designer-Tools-2K25-v0.5.0-2k25-beta6-Windows-x64"
+          $base = "dist\release_beta6"
+          $dir = Join-Path $base $pkg
+          New-Item -ItemType Directory -Force -Path $dir | Out-Null
+          Copy-Item "dist\tgc_gui_2k25_beta6.exe" $dir
+          Copy-Item "LICENSE" $dir
+          Copy-Item "README.md" $dir
+          Copy-Item "CHANGELOG.md" $dir
+          Copy-Item "BUILD_WINDOWS.md" $dir
+          Copy-Item "BETA6_TREE_PROFILES.md" $dir
+          Copy-Item "RELEASE_NOTES_v0.5.0-2k25-beta6.md" $dir
+          Copy-Item "SPLINES_JSON_ROAD_EXAMPLE.json" $dir
+          Copy-Item "tree_profiles" (Join-Path $dir "tree_profiles") -Recurse
+          Compress-Archive -Path "$dir\*" -DestinationPath "$base\$pkg.zip" -Force
+          $exeHash = (Get-FileHash "dist\tgc_gui_2k25_beta6.exe" -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$exeHash  tgc_gui_2k25_beta6.exe" | Out-File "$base\tgc_gui_2k25_beta6.exe.sha256.txt" -Encoding ascii
+          $zipHash = (Get-FileHash "$base\$pkg.zip" -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$zipHash  $pkg.zip" | Out-File "$base\$pkg.zip.sha256.txt" -Encoding ascii
+          Write-Host "RELEASE EXE SHA256: $exeHash"
+          Write-Host "RELEASE ZIP SHA256: $zipHash"
+
+      - name: Publish Beta 6 prerelease
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = "v0.5.0-2k25-beta6"
+          $repo = "${{ github.repository }}"
+          $target = "$env:BUILD_SHA"
+          $pkg = "TGC-Designer-Tools-2K25-v0.5.0-2k25-beta6-Windows-x64"
+          if (-not $target) { throw "BUILD_SHA is not set." }
+          git ls-remote --exit-code --tags origin "refs/tags/$tag" *> $null
+          if ($LASTEXITCODE -eq 0) { throw "Beta 6 tag already exists; refusing to overwrite." }
+          gh release view $tag --repo $repo *> $null
+          if ($LASTEXITCODE -eq 0) { throw "Beta 6 release already exists; refusing to overwrite." }
+          git tag $tag $target
+          git push origin "refs/tags/$tag"
+          if ($LASTEXITCODE -ne 0) { throw "Could not push Beta 6 tag." }
+          gh release create $tag --repo $repo "dist\tgc_gui_2k25_beta6.exe" "dist\release_beta6\tgc_gui_2k25_beta6.exe.sha256.txt" "dist\release_beta6\$pkg.zip" "dist\release_beta6\$pkg.zip.sha256.txt" --target $target --title "TGC Designer Tools 2K25 - Beta 6" --notes-file "RELEASE_NOTES_v0.5.0-2k25-beta6.md" --prerelease
+          if ($LASTEXITCODE -ne 0) {
+            git push origin ":refs/tags/$tag"
+            throw "Beta 6 prerelease creation failed; tag removed."
+          }
+
+      - name: Independently verify published release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = "v0.5.0-2k25-beta6"
+          $repo = "${{ github.repository }}"
+          $target = "$env:BUILD_SHA"
+          $expected = "ee62c0e128e93a72e8a6275bb556af133cdbf45f62b1a12ba712c1b7e25924c9"
+          $pkg = "TGC-Designer-Tools-2K25-v0.5.0-2k25-beta6-Windows-x64"
+          $verify = Join-Path $env:RUNNER_TEMP "beta6_release_verify"
+          New-Item -ItemType Directory -Force -Path $verify | Out-Null
+          $remoteTag = (git ls-remote origin "refs/tags/$tag" | ForEach-Object { ($_ -split "\s+")[0] }).Trim()
+          if ($remoteTag -ne $target) { throw "Remote Beta 6 tag target mismatch: $remoteTag != $target" }
+          $releaseJson = gh api "repos/$repo/releases/tags/$tag" | ConvertFrom-Json
+          if ($releaseJson.name -ne "TGC Designer Tools 2K25 - Beta 6") { throw "Release title mismatch." }
+          if (-not $releaseJson.prerelease) { throw "Release is not prerelease." }
+          $required = @("tgc_gui_2k25_beta6.exe","tgc_gui_2k25_beta6.exe.sha256.txt","$pkg.zip","$pkg.zip.sha256.txt")
+          $names = @($releaseJson.assets | ForEach-Object { $_.name })
+          foreach ($name in $required) { if ($name -notin $names) { throw "Missing release asset: $name" } }
+          foreach ($name in $required) { gh release download $tag --repo $repo --dir $verify --pattern $name }
+          $downloadExeHash = (Get-FileHash (Join-Path $verify "tgc_gui_2k25_beta6.exe") -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($downloadExeHash -ne $expected) { throw "Downloaded EXE hash mismatch: $downloadExeHash" }
+          $exeShaText = (Get-Content (Join-Path $verify "tgc_gui_2k25_beta6.exe.sha256.txt") -Raw).Trim()
+          if (-not $exeShaText.StartsWith($expected)) { throw "Published EXE SHA file mismatch." }
+          $downloadZip = Join-Path $verify "$pkg.zip"
+          $downloadZipHash = (Get-FileHash $downloadZip -Algorithm SHA256).Hash.ToLowerInvariant()
+          $zipShaText = (Get-Content (Join-Path $verify "$pkg.zip.sha256.txt") -Raw).Trim()
+          if (-not $zipShaText.StartsWith($downloadZipHash)) { throw "Published ZIP SHA file mismatch." }
+          Write-Host "VERIFIED RELEASE PAGE: $($releaseJson.html_url)"
+          Write-Host "VERIFIED TAG TARGET: $remoteTag"
+          Write-Host "VERIFIED DOWNLOADED EXE SHA256: $downloadExeHash"
+          Write-Host "VERIFIED DOWNLOADED ZIP SHA256: $downloadZipHash"
+          Write-Host "VERIFIED ALL FOUR RELEASE ASSETS"
