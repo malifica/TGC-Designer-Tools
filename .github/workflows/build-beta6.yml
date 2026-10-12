@@ -1,0 +1,187 @@
+name: Build and Release Beta 6
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+concurrency:
+  group: beta6-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python 3.11.6 x64
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11.6"
+          architecture: "x64"
+          cache: "pip"
+
+      - name: Install Python dependencies
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+
+      - name: Expand and finalize cumulative Beta 6 source
+        shell: pwsh
+        run: |
+          $parts = Get-ChildItem ".github\release_prep\beta6_payload_part*.b64" | Sort-Object Name
+          if (-not $parts -or $parts.Count -lt 1) { throw "Beta 6 release payload parts were not found." }
+          $text = (($parts | ForEach-Object { Get-Content $_.FullName -Raw }) -join "")
+          [IO.File]::WriteAllBytes("beta6_release_payload.zip", [Convert]::FromBase64String($text))
+          $payloadHash = (Get-FileHash "beta6_release_payload.zip" -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($payloadHash -ne "26fe56adb770343e68cc5113998a7eed50f5eb540c7e74c1558d7d4b6432063e") {
+            throw "Beta 6 release payload SHA-256 mismatch: $payloadHash"
+          }
+          Expand-Archive -Path "beta6_release_payload.zip" -DestinationPath "." -Force
+          Remove-Item "beta6_release_payload.zip" -Force
+
+          python .github/release_prep/PREPARE_BETA6_MISSING_SOURCE.py
+          if ($LASTEXITCODE -ne 0) { throw "Beta 6 source preparation failed." }
+          python .github/release_prep/PATCH_BETA6_DOCS.py
+          if ($LASTEXITCODE -ne 0) { throw "Beta 6 documentation update failed." }
+
+          Remove-Item ".github\release_prep\beta6_payload_part*.b64" -Force
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet
+          if ($LASTEXITCODE -ne 0) {
+            git commit -m "Beta 6: publish verified cumulative source"
+            if ($LASTEXITCODE -ne 0) { throw "Could not commit finalized Beta 6 source." }
+            git push origin HEAD:main
+            if ($LASTEXITCODE -ne 0) { throw "Could not push finalized Beta 6 source to main." }
+          } else {
+            Write-Host "Beta 6 source is already finalized."
+          }
+          "BUILD_SHA=$(git rev-parse HEAD)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Verify Beta 6 source
+        shell: pwsh
+        run: |
+          python --version
+          python VERIFY_BETA6_SOURCE.py
+          python VERIFY_BETA6_LIDAR_TREE_MASK_MASTER_GRID_FIX_V1.py
+          python VERIFY_BETA6_CFS_MASK_ALIGNMENT_WORKFLOW_V1.py
+          python VERIFY_BETA6_WORKFLOW_UI_REORDER_V2.py
+          python VERIFY_BETA6_CFS_ASYNC_MASK_REBUILD_V3.py
+          python VERIFY_BETA6_OSM_ROAD_SPLIT_V4.py
+          python VERIFY_BETA6_CUSTOM_UNMATCHED_OSM_V5.py
+          python VERIFY_BETA6_CUSTOM_UNMATCHED_OSM_V5_1.py
+          python -m py_compile tgc_gui.py dem_map_api.py lidar_map_api.py lidar_fast_native.py usgs_lidar_parser.py usgs_ept_downloader.py infill_image.py tgc_image_terrain.py tgc_definitions.py tgc_tools.py tree_profile_manager.py tree_profile_analyzer.py OSMTGC.py auto_red_mask.py cfs_georef.py lidar_feature_filter.py osm_mask_alignment.py osm_custom_layout.py osm_alignment_viewer.py
+          python -c "import rasterio; print('Rasterio', rasterio.__version__); print('GDAL', rasterio.__gdal_version__)"
+
+      - name: Install MinGW-w64
+        shell: pwsh
+        run: |
+          choco install mingw -y --no-progress
+          $gcc = Get-ChildItem -Path "C:\ProgramData\chocolatey","C:\ProgramData\mingw64","C:\tools" -Filter gcc.exe -Recurse -ErrorAction SilentlyContinue | Where-Object { $_.FullName -match "mingw64.*bin.*gcc\.exe$" } | Select-Object -First 1
+          if (-not $gcc) {
+            $cmd = Get-Command gcc.exe -ErrorAction SilentlyContinue
+            if ($cmd) { $gcc = Get-Item $cmd.Source }
+          }
+          if (-not $gcc) { throw "MinGW-w64 gcc.exe was not found after installation." }
+          "TGC_CC=$($gcc.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host "Using MinGW-w64 compiler: $($gcc.FullName)"
+
+      - name: Compile native LiDAR rasterizer
+        shell: pwsh
+        run: |
+          & "$env:TGC_CC" -O3 -shared -std=c11 -s -o tgc_lidar_fast_native.dll lidar_fast_native.c -lm
+          if ($LASTEXITCODE -ne 0) { throw "Native LiDAR compile failed." }
+          if (-not (Test-Path "tgc_lidar_fast_native.dll")) { throw "Native LiDAR DLL was not created." }
+
+      - name: Build Beta 6 EXE
+        shell: pwsh
+        run: |
+          python -m PyInstaller --noconfirm --clean --onefile --name "tgc_gui_2k25_beta6" --add-binary "./laszip/laszip-cli.exe;laszip" --add-binary "tgc_lidar_fast_native.dll;." --additional-hooks-dir "./PyInstaller/hooks/" --runtime-hook "./PyInstaller/rthook_rasterio.py" --add-data "./tree_profiles;tree_profiles" tgc_gui.py
+          if ($LASTEXITCODE -ne 0) { throw "PyInstaller failed." }
+          if (-not (Test-Path "dist\tgc_gui_2k25_beta6.exe")) { throw "Expected Beta 6 EXE was not created." }
+
+      - name: Package Beta 6 release
+        shell: pwsh
+        run: |
+          $pkg = "TGC-Designer-Tools-2K25-v0.5.0-2k25-beta6-Windows-x64"
+          $base = "dist\release_beta6"
+          $dir = Join-Path $base $pkg
+          if (Test-Path $base) { Remove-Item $base -Recurse -Force }
+          New-Item -ItemType Directory -Force -Path $dir | Out-Null
+          Copy-Item "dist\tgc_gui_2k25_beta6.exe" $dir
+          Copy-Item "LICENSE" $dir
+          Copy-Item "README.md" $dir
+          Copy-Item "CHANGELOG.md" $dir
+          Copy-Item "BUILD_WINDOWS.md" $dir
+          Copy-Item "BETA6_TREE_PROFILES.md" $dir
+          Copy-Item "RELEASE_NOTES_v0.5.0-2k25-beta6.md" $dir
+          if (Test-Path "BETA6_OSM_CARTPATH_ROAD_SPLIT_V4.txt") { Copy-Item "BETA6_OSM_CARTPATH_ROAD_SPLIT_V4.txt" $dir }
+          if (Test-Path "BETA6_OSM_GOLF_PATH_ONLY_V4_1.txt") { Copy-Item "BETA6_OSM_GOLF_PATH_ONLY_V4_1.txt" $dir }
+          if (Test-Path "BETA6_CUSTOM_UNMATCHED_OSM_V5_1.txt") { Copy-Item "BETA6_CUSTOM_UNMATCHED_OSM_V5_1.txt" $dir }
+          if (Test-Path "SPLINES_JSON_ROAD_EXAMPLE.json") { Copy-Item "SPLINES_JSON_ROAD_EXAMPLE.json" $dir }
+          Copy-Item "tree_profiles" (Join-Path $dir "tree_profiles") -Recurse
+          Compress-Archive -Path "$dir\*" -DestinationPath "$base\$pkg.zip" -Force
+          $exeHash = (Get-FileHash "dist\tgc_gui_2k25_beta6.exe" -Algorithm SHA256).Hash
+          "$exeHash  tgc_gui_2k25_beta6.exe" | Out-File "$base\tgc_gui_2k25_beta6.exe.sha256.txt" -Encoding ascii
+          $zipHash = (Get-FileHash "$base\$pkg.zip" -Algorithm SHA256).Hash
+          "$zipHash  $pkg.zip" | Out-File "$base\$pkg.zip.sha256.txt" -Encoding ascii
+          Write-Host "EXE SHA256: $exeHash"
+          Write-Host "ZIP SHA256: $zipHash"
+
+      - name: Upload Beta 6 workflow artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: TGC-Designer-Tools-Beta6-Windows-x64
+          if-no-files-found: error
+          compression-level: 0
+          path: |
+            dist/tgc_gui_2k25_beta6.exe
+            dist/release_beta6/*.zip
+            dist/release_beta6/*.sha256.txt
+
+      - name: Publish Beta 6 prerelease
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = "v0.5.0-2k25-beta6"
+          $repo = "${{ github.repository }}"
+          $target = "$env:BUILD_SHA"
+          if (-not $target) { $target = (git rev-parse HEAD).Trim() }
+
+          git tag -f $tag $target
+          git push origin "refs/tags/$tag" --force
+          if ($LASTEXITCODE -ne 0) { throw "Could not create/move the Beta 6 source tag." }
+
+          $pkg = "TGC-Designer-Tools-2K25-v0.5.0-2k25-beta6-Windows-x64"
+          $assets = @(
+            "dist\tgc_gui_2k25_beta6.exe",
+            "dist\release_beta6\tgc_gui_2k25_beta6.exe.sha256.txt",
+            "dist\release_beta6\$pkg.zip",
+            "dist\release_beta6\$pkg.zip.sha256.txt"
+          )
+
+          gh release view $tag --repo $repo *> $null
+          if ($LASTEXITCODE -eq 0) {
+            gh release edit $tag --repo $repo --target $target --title "TGC Designer Tools 2K25 - Beta 6" --notes-file "RELEASE_NOTES_v0.5.0-2k25-beta6.md" --prerelease
+            if ($LASTEXITCODE -ne 0) { throw "Could not update the Beta 6 release metadata." }
+            gh release upload $tag --repo $repo @assets --clobber
+            if ($LASTEXITCODE -ne 0) { throw "Could not replace the Beta 6 release assets." }
+          } else {
+            gh release create $tag --repo $repo @assets --target $target --title "TGC Designer Tools 2K25 - Beta 6" --notes-file "RELEASE_NOTES_v0.5.0-2k25-beta6.md" --prerelease
+            if ($LASTEXITCODE -ne 0) { throw "Could not create the Beta 6 prerelease." }
+          }
