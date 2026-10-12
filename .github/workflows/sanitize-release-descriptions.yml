@@ -1,15 +1,15 @@
 name: Sanitize release descriptions
 
 on:
-  push:
-    paths:
-      - ".github/workflows/sanitize-release-descriptions.yml"
+  issues:
+    types: [opened]
 
 permissions:
   contents: write
 
 jobs:
   update-release-descriptions:
+    if: github.event.issue.title == 'TEMP: sanitize release descriptions'
     runs-on: ubuntu-latest
     steps:
       - name: Apply sanitized release notes
