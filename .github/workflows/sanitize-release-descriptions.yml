@@ -1,0 +1,29 @@
+name: Sanitize release descriptions
+
+on:
+  push:
+    paths:
+      - ".github/workflows/sanitize-release-descriptions.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  update-release-descriptions:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Apply sanitized release notes
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          update_release() {
+            tag="$1"
+            file="$2"
+            body="$(gh api "repos/${GITHUB_REPOSITORY}/contents/${file}?ref=main" --jq '.content' | base64 --decode)"
+            release_id="$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${tag}" --jq '.id')"
+            gh api --method PATCH "repos/${GITHUB_REPOSITORY}/releases/${release_id}" -f body="$body" >/dev/null
+          }
+          update_release "v0.5.0-2k25-beta5" "RELEASE_NOTES_v0.5.0-2k25-beta5.md"
+          update_release "v0.5.0-2k25-beta6" "RELEASE_NOTES_v0.5.0-2k25-beta6.md"
