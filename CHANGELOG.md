@@ -40,17 +40,17 @@ The fork is based on work from `HiCamino/TGC-Designer-Tools`.
 
 - Beta 5 Tree Planting Theme selector for source Designer theme vs calibrated real-life profiles.
 - JSON-backed `tree_profiles` directory for biome/location-based planting styles.
-- Finished-course analyzer for prefab usage and X/Y/Z p10/p50/p90 scale distributions.
+- Regional-profile calibration analyzer for prefab usage and X/Y/Z p10/p50/p90 scale distributions.
 - Weighted custom-profile tree assignment for LiDAR and OSM candidates.
 - **Heroic (Beta 5)** scale mode with **Legacy LiDAR** retained for comparison.
 - Beta 5 development build and verifier scripts.
-- **Texas Hill Country** calibrated profile from `Canyon Springs SATX (L).course`, using the 51 highest-use non-ornamental prefabs (2,668 placements / 90.4% of the retained reference population).
+- **Texas Hill Country** calibrated regional profile using a 51-prefab non-ornamental tree palette.
 
 ### Changed
 
-- Custom profiles are independent of the source course's built-in Designer theme.
-- LiDAR custom-profile trees map detected size percentiles into reference-course Designer scale distributions.
-- OSM custom-profile trees use weighted mix plus median reference scale.
+- Custom profiles are independent of the starting template's built-in Designer theme.
+- LiDAR custom-profile trees map detected size percentiles into profile-calibrated Designer scale distributions.
+- OSM custom-profile trees use the weighted regional mix plus the profile median scale.
 
 ## [0.5.0-2k25-beta4] - Preview, OSM, LiDAR-tree, water, and Fjordland update
 
