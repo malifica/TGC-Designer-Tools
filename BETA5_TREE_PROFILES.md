@@ -11,7 +11,7 @@ Regional profiles can define:
 
 Enabled regional profiles include Texas Hill Country, Niagara Escarpment, Carolina Piedmont (Autumn), Virginia Coastal Plain, Hudson Valley Mixed Forest, Northern Rockies, Monterey Bay Coast, Georgia Piedmont, San Francisco Peninsula, and South Carolina Lowcountry.
 
-The profile files intentionally describe the regional result rather than identifying calibration/source courses. Asset names are treated as in-game visual analogs rather than literal botanical claims.
+The profile files intentionally describe the regional result without source attribution. Asset names are treated as in-game visual analogs rather than literal botanical claims.
 
 ## Tree placement filtering
 
