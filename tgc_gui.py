@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import filedialog
+from tkinter import filedialog, messagebox
 from tkinter import *
 import tkinter.ttk as ttk
 from tkinter.scrolledtext import ScrolledText
@@ -21,6 +21,9 @@ import tgc_definitions
 import tree_profile_manager
 import tgc_tools
 import osm_alignment_viewer
+import osm_mask_alignment
+import osm_custom_layout
+import auto_red_mask
 import lidar_map_api
 import usgs_ept_downloader
 import dem_map_api
@@ -28,8 +31,8 @@ import tgc_image_terrain
 from tgc_visualizer import drawCourseAsImage
 import OSMTGC
 
-TGC_GUI_VERSION = "v0.5.0-2k25-beta5"
-TGC_APP_TITLE = "TGC Designer Tools 2K25 - Beta 5"
+TGC_GUI_VERSION = "v0.5.0-2k25-beta6"
+TGC_APP_TITLE = "TGC Designer Tools 2K25 - Beta 6"
 
 AUTO_RED_MASK_BUFFER_MIN_M = 5.0
 AUTO_RED_MASK_BUFFER_MAX_M = 30.0
@@ -54,6 +57,122 @@ course_version = -1
 brush_scale_combo = None
 dem_processing_active = False
 lidar_processing_active = False
+
+# TGC_BETA6_CFS_MASK_ALIGNMENT_WORKFLOW_V1
+last_alignment_heightmap_dir = None
+osm_mask_status_var = None
+osm_mask_status_label = None
+# TGC_BETA6_CFS_ASYNC_MASK_REBUILD_V3
+# TGC_BETA6_CUSTOM_UNMATCHED_OSM_V5
+mask_rebuild_active = False
+
+# TGC_BETA6_CUSTOM_UNMATCHED_OSM_V5_1
+# Custom / Unmatched must be visible during the initial LiDAR/DEM crop preview,
+# not only after heightmap generation in CFS.  Keep the terrain CRS authoritative
+# and draw the detached OSM through the same metric placement helper used later.
+def _load_custom_preview_osm(local_osm_file, printf=print):
+    path = str(local_osm_file or "").strip()
+    if not path:
+        return None
+    try:
+        xml_text = Path(path).read_text(encoding="utf-8")
+    except UnicodeDecodeError:
+        xml_text = Path(path).read_text(encoding="utf-8-sig")
+    result = OSMTGC.parseOSMData(xml_text, printf=printf)
+    if result is None:
+        raise RuntimeError("Could not parse the Custom / Unmatched Local OSM file.")
+
+    incomplete = []
+    for way in getattr(result, "ways", []) or []:
+        try:
+            way.get_nodes(resolve_missing=False)
+        except Exception:
+            incomplete.append(getattr(way, "id", "?"))
+    if incomplete:
+        preview = ", ".join(str(x) for x in incomplete[:10])
+        if len(incomplete) > 10:
+            preview += ", ..."
+        raise RuntimeError(
+            "Custom / Unmatched Local OSM contains " + str(len(incomplete)) +
+            " incomplete ways with missing node references: " + preview
+        )
+    return result
+
+
+def _custom_preview_pointcloud(base_pc, osm_result):
+    origin = base_pc.origin
+    target_center_x = float(origin[0]) + float(base_pc.width) * 0.5
+    target_center_y = float(origin[1]) + float(base_pc.height) * 0.5
+    placement = osm_custom_layout.build_custom_placement(
+        osm_result,
+        target_center_x,
+        target_center_y,
+    )
+    return osm_custom_layout.CustomTGCPointCloud(base_pc, placement), placement
+
+
+def _apply_custom_unmatched_preview_overlay(
+    prepared,
+    local_osm_file,
+    preview_kind,
+    auto_red_mask_enabled=False,
+    auto_red_mask_buffer_m=5.0,
+    printf=print,
+):
+    if prepared is None or not local_osm_file:
+        return prepared
+
+    osm_result = _load_custom_preview_osm(local_osm_file, printf=printf)
+    if osm_result is None:
+        return prepared
+
+    if preview_kind == "lidar":
+        base_pc = prepared["pc"]
+        image = prepared["course_image"]
+        image_scale = float(prepared["sample_scale"])
+        image_key = "course_image"
+    elif preview_kind == "dem":
+        base_pc = prepared["pc"]
+        image = prepared["boundary_preview_rgb"]
+        image_scale = float(prepared["boundary_preview_image_scale"])
+        image_key = "boundary_preview_rgb"
+    else:
+        raise ValueError("Unknown custom preview kind: " + str(preview_kind))
+
+    custom_pc, placement = _custom_preview_pointcloud(base_pc, osm_result)
+    info = placement.diagnostics()
+    printf(
+        "Custom / Unmatched OSM preview: centered course anchor " +
+        str(info.get("anchor_strategy", "layout")) + " (" +
+        str(int(info.get("anchor_node_count", 0))) + " node(s), " +
+        str(round(float(info["source_width_m"]), 1)) + " x " +
+        str(round(float(info["source_height_m"]), 1)) +
+        " m) on the " + str(preview_kind).upper() + " terrain preview."
+    )
+
+    image = OSMTGC.addOSMToImage(
+        osm_result.ways,
+        image,
+        custom_pc,
+        image_scale,
+        printf=printf,
+    )
+    if bool(auto_red_mask_enabled):
+        image = auto_red_mask.apply_auto_red_mask(
+            osm_result,
+            image,
+            custom_pc,
+            image_scale,
+            buffer_m=float(auto_red_mask_buffer_m),
+            printf=printf,
+        )
+    prepared[image_key] = image
+    # Keep this separate from osm_result.  The normal LiDAR/DEM output writer
+    # must not reuse detached OSM with an ordinary geographic point cloud.
+    prepared["custom_preview_osm_result"] = osm_result
+    prepared["custom_preview_placement"] = info
+    return prepared
+
 
 def drawPlaceholder():
     global root
@@ -448,6 +567,134 @@ def rotateAction(rotate_entry):
     course_json = tgc_tools.rotate_course(course_json, -rotation, course_version)
     drawCourse(course_json)
 
+# TGC_HULKIFY_GUI_V2_SLOPE_LOCK
+def hulkifyAction():
+    global course_json
+    global course_version
+
+    if course_json is None:
+        alert("Make sure to import a .course file")
+        return
+
+    # TGC_HULKIFY_10_PERCENT_V3
+    factor = 1.10
+    bounds = tgc_tools.get_course_horizontal_bounds(
+        course_json,
+        course_version,
+    )
+    relief = tgc_tools.get_course_vertical_relief_bounds(
+        course_json,
+        course_version,
+    )
+    if bounds is None:
+        alert("The loaded course contains no horizontal geometry to scale.")
+        return
+
+    before_width = float(bounds["width"])
+    before_height = float(bounds["height"])
+    after_width = before_width * factor
+    after_height = before_height * factor
+    relief_before = float((relief or {}).get("range", 0.0) or 0.0)
+    relief_after = relief_before * factor
+    relief_datum = float((relief or {}).get("datum", 0.0) or 0.0)
+
+    previous = course_json.get("malificaHulkify", {})
+    previous_count = 0
+    previous_factor = 1.0
+    previous_vertical = 1.0
+    if isinstance(previous, dict):
+        try:
+            previous_count = int(previous.get("applicationCount", 0) or 0)
+        except Exception:
+            previous_count = 0
+        try:
+            previous_factor = float(previous.get("combinedFactor", 1.0) or 1.0)
+        except Exception:
+            previous_factor = 1.0
+        try:
+            previous_vertical = float(previous.get("verticalScale", 1.0) or 1.0)
+        except Exception:
+            previous_vertical = 1.0
+
+    repeat_note = ""
+    if previous_count > 0:
+        repeat_note = (
+            "\n\nThis course has already been Hulkified " +
+            str(previous_count) + " time(s), with a recorded combined "
+            "horizontal factor of " + str(round(previous_factor, 4)) + "."
+        )
+        if previous_vertical <= 1.000001:
+            repeat_note += (
+                " It appears to have been created by the older horizontal-only "
+                "Hulkify. Re-import the original course before using this "
+                "slope-locked version, or the horizontal enlargement will compound."
+            )
+        else:
+            repeat_note += " Another click compounds both horizontal size and relief."
+
+    prompt = (
+        "Scale the complete course by 10% while preserving terrain slopes?\n\n"
+        "Horizontal span: " +
+        str(round(before_width, 1)) + " x " +
+        str(round(before_height, 1)) + " m\n"
+        "After Hulkify: " +
+        str(round(after_width, 1)) + " x " +
+        str(round(after_height, 1)) + " m\n\n"
+        "Terrain relief: " + str(round(relief_before, 1)) + " m -> " +
+        str(round(relief_after, 1)) + " m\n"
+        "Relief datum (kept fixed): " + str(round(relief_datum, 2)) + " m\n\n"
+        "X/Z positions and horizontal footprints will scale 1.10x. Absolute "
+        "terrain targets, relative height edits, active native-water planes, "
+        "and placed-object Y positions will receive the matching vertical "
+        "relief transform. This keeps rise/run and slope percentages the same. "
+        "Placed-object model sizes will not change."
+        + repeat_note +
+        "\n\nThe change is in memory until you use Export .course."
+    )
+
+    if not messagebox.askyesno(
+        "Hulkify Course (+10% Slope-Locked)",
+        prompt,
+        parent=root,
+    ):
+        return
+
+    original_course = copy.deepcopy(course_json)
+    try:
+        drawPlaceholder()
+        course_json = tgc_tools.scale_course_horizontal(
+            course_json,
+            factor=factor,
+            course_version=course_version,
+            printf=print,
+            preserve_slopes=True,
+        )
+        drawCourse(course_json)
+    except Exception as exc:
+        course_json = original_course
+        try:
+            drawCourse(course_json)
+        except Exception:
+            pass
+        traceback.print_exc()
+        messagebox.showerror(
+            "Hulkify Course failed",
+            "No course changes were retained.\n\n" + str(exc),
+            parent=root,
+        )
+        return
+
+    messagebox.showinfo(
+        "Hulkify complete",
+        (
+            "The course is now 10% larger in X/Z and its terrain relief was "
+            "scaled to retain the original slope severity.\n\n"
+            "Use Export .course to save the result. Re-import the original "
+            "course to undo the in-memory change."
+        ),
+        parent=root,
+    )
+
 def elevateAction(elevate_entry, auto=False):
     global course_json
     global course_version
@@ -633,6 +880,726 @@ def getAutoRedMaskSettings(auto_red_mask_var=None, auto_red_mask_buffer_var=None
 
     return enabled, buffer_m
 
+
+def _mask_option_value(options_entries_dict, key, default=None):
+    entry = options_entries_dict.get(key)
+    if entry is None:
+        return default
+    try:
+        return entry.get()
+    except Exception:
+        return default
+
+
+def _setOSMMaskStatus(text, color="black"):
+    global osm_mask_status_var
+    global osm_mask_status_label
+
+    if osm_mask_status_var is not None:
+        try:
+            osm_mask_status_var.set(str(text))
+        except Exception:
+            pass
+    if osm_mask_status_label is not None:
+        try:
+            # Status wording carries CURRENT / STALE / INVALID explicitly.
+            # Keep the text black for reliable readability on the light strip.
+            osm_mask_status_label.configure(fg="black")
+        except Exception:
+            pass
+
+
+def _currentOSMMaskInputs(
+    options_entries_dict,
+    osm_file_override=None,
+    ew_override=None,
+    ns_override=None,
+):
+    use_osm = bool(_mask_option_value(options_entries_dict, "use_osm", True))
+    local_osm_file = str(
+        osm_file_override
+        if osm_file_override is not None
+        else (_mask_option_value(options_entries_dict, "local_osm_file", "") or "")
+    ).strip()
+
+    try:
+        adjust_ew = float(
+            ew_override
+            if ew_override is not None
+            else _mask_option_value(options_entries_dict, "adjust_ew", 0.0)
+        )
+        adjust_ns = float(
+            ns_override
+            if ns_override is not None
+            else _mask_option_value(options_entries_dict, "adjust_ns", 0.0)
+        )
+    except Exception:
+        raise ValueError("CFS E/W and N/S alignment values must be valid numbers.")
+
+    auto_red_enabled = bool(
+        _mask_option_value(
+            options_entries_dict,
+            "auto_red_mask_enabled",
+            False,
+        )
+    )
+    if auto_red_enabled:
+        try:
+            auto_red_buffer_m = float(
+                _mask_option_value(
+                    options_entries_dict,
+                    "auto_red_mask_buffer_m",
+                    AUTO_RED_MASK_BUFFER_DEFAULT_M,
+                )
+            )
+        except Exception:
+            raise ValueError(
+                "Auto Red Mask buffer must be a numeric value from 5 to 30 meters."
+            )
+        if (
+            not math.isfinite(auto_red_buffer_m)
+            or auto_red_buffer_m < AUTO_RED_MASK_BUFFER_MIN_M
+            or auto_red_buffer_m > AUTO_RED_MASK_BUFFER_MAX_M
+        ):
+            raise ValueError(
+                "Auto Red Mask buffer must be between 5 and 30 meters."
+            )
+    else:
+        auto_red_buffer_m = AUTO_RED_MASK_BUFFER_DEFAULT_M
+
+    include_vehicle_roads = bool(
+        _mask_option_value(options_entries_dict, "road", False)
+    )
+    custom_unmatched_osm = bool(
+        _mask_option_value(options_entries_dict, "custom_unmatched_osm", False)
+    )
+
+    return {
+        "use_osm": use_osm,
+        "local_osm_file": local_osm_file,
+        "adjust_ew": adjust_ew,
+        "adjust_ns": adjust_ns,
+        "auto_red_mask_enabled": bool(auto_red_enabled),
+        "auto_red_mask_buffer_m": float(auto_red_buffer_m),
+        "include_vehicle_roads": include_vehicle_roads,
+        "custom_unmatched_osm": custom_unmatched_osm,
+    }
+
+
+def refreshOSMMaskAlignmentStatus(
+    options_entries_dict,
+    heightmap_dir_path=None,
+    printf=None,
+):
+    global last_alignment_heightmap_dir
+
+    if heightmap_dir_path:
+        last_alignment_heightmap_dir = str(heightmap_dir_path)
+
+    try:
+        values = _currentOSMMaskInputs(options_entries_dict)
+    except Exception as exc:
+        _setOSMMaskStatus(
+            "OSM alignment mask: INVALID SETTINGS - " + str(exc),
+            "#a00000",
+        )
+        return {
+            "state": "invalid",
+            "ok_for_import": False,
+            "message": str(exc),
+        }
+
+    if not values["use_osm"]:
+        _setOSMMaskStatus(
+            "OSM alignment mask: not required (OpenStreetMap import disabled)",
+            "grey25",
+        )
+        return {
+            "state": "not_required",
+            "ok_for_import": True,
+            "message": "OpenStreetMap import is disabled.",
+        }
+
+    if not values["local_osm_file"]:
+        _setOSMMaskStatus(
+            "OSM alignment mask: online OSM / no Local OSM alignment record",
+            "grey25",
+        )
+        return {
+            "state": "not_required",
+            "ok_for_import": True,
+            "message": "No Local OSM file is selected.",
+        }
+
+    if not last_alignment_heightmap_dir:
+        _setOSMMaskStatus(
+            "OSM alignment mask: select a heightmap folder to verify",
+            "#805500",
+        )
+        return {
+            "state": "unknown",
+            "ok_for_import": False,
+            "message": "Select a heightmap folder to verify the aligned mask.",
+        }
+
+    status = osm_mask_alignment.get_alignment_status(
+        last_alignment_heightmap_dir,
+        values["local_osm_file"],
+        values["adjust_ew"],
+        values["adjust_ns"],
+        values["auto_red_mask_enabled"],
+        values["auto_red_mask_buffer_m"],
+        include_vehicle_roads=values["include_vehicle_roads"],
+        custom_unmatched_osm=values["custom_unmatched_osm"],
+    )
+
+    state = status.get("state")
+    if state == "current":
+        _setOSMMaskStatus(
+            "OSM alignment mask: CURRENT - manual mask edits are preserved",
+            "#006400",
+        )
+    elif state == "legacy_zero_shift":
+        _setOSMMaskStatus(
+            "OSM alignment mask: LEGACY ZERO-SHIFT - adopt or rebuild before import",
+            "#805500",
+        )
+    else:
+        _setOSMMaskStatus(
+            "OSM alignment mask: STALE - " + str(status.get("message", "rebuild required")),
+            "#a00000",
+        )
+
+    if printf is not None:
+        try:
+            printf("OSM alignment mask status: " + str(status.get("message", state)))
+        except Exception:
+            pass
+    return status
+
+
+def invalidateOSMMaskAlignmentAfterProcessing(
+    heightmap_dir_path,
+    reason,
+    options_entries_dict,
+    printf,
+):
+    """Mark the final-alignment record stale after a processor rewrites mask.png."""
+    global last_alignment_heightmap_dir
+    try:
+        invalidated = osm_mask_alignment.invalidate_alignment_record(
+            heightmap_dir_path,
+            reason,
+            printf=printf,
+        )
+    except Exception as exc:
+        printf("Warning: could not invalidate OSM alignment mask record: " + str(exc))
+        invalidated = False
+
+    if invalidated:
+        last_alignment_heightmap_dir = str(heightmap_dir_path)
+        refreshOSMMaskAlignmentStatus(
+            options_entries_dict,
+            heightmap_dir_path,
+            printf=printf,
+        )
+    return invalidated
+
+
+def _markOSMMaskCurrentAfterRebuild(
+    heightmap_dir_path,
+    result=None,
+    printf=None,
+):
+    """Update the UI cheaply after a verified rebuild without reloading files."""
+    global last_alignment_heightmap_dir
+    last_alignment_heightmap_dir = str(heightmap_dir_path)
+    _setOSMMaskStatus(
+        "OSM alignment mask: CURRENT - manual mask edits are preserved",
+        "#006400",
+    )
+    if printf is not None:
+        try:
+            action = result.get("action") if isinstance(result, dict) else "rebuilt"
+            printf("OSM alignment mask status: current (" + str(action) + ")")
+        except Exception:
+            pass
+
+
+def rebuildOSMMaskFromCurrentAlignment(
+    options_entries_dict,
+    printf,
+    heightmap_dir_path=None,
+    force=True,
+    confirm_replace=False,
+    osm_file_override=None,
+    ew_override=None,
+    ns_override=None,
+    progress_callback=None,
+    printf_override=None,
+):
+    """Synchronous engine retained for tests/controlled callers.
+
+    Interactive buttons use the asynchronous wrapper below so neither Tk
+    window is blocked while the full-resolution mask is generated.
+    """
+    global root
+    global last_alignment_heightmap_dir
+
+    try:
+        values = _currentOSMMaskInputs(
+            options_entries_dict,
+            osm_file_override=osm_file_override,
+            ew_override=ew_override,
+            ns_override=ns_override,
+        )
+    except Exception as exc:
+        alert(str(exc))
+        return False
+
+    if not values["use_osm"]:
+        alert("Enable Import OpenStreetMap before rebuilding the alignment mask.")
+        return False
+    if not values["local_osm_file"]:
+        alert("Select a Local OSM File before rebuilding the alignment mask.")
+        return False
+
+    folder = str(heightmap_dir_path or last_alignment_heightmap_dir or "").strip()
+    if not folder:
+        folder = tk.filedialog.askdirectory(
+            initialdir=(root.filename if root and hasattr(root, "filename") else "."),
+            title="Select heightmap folder for aligned mask rebuild",
+        )
+    if not folder:
+        return False
+
+    last_alignment_heightmap_dir = folder
+    log = printf_override or printf
+
+    if not force:
+        status = osm_mask_alignment.get_alignment_status(
+            folder,
+            values["local_osm_file"],
+            values["adjust_ew"],
+            values["adjust_ns"],
+            values["auto_red_mask_enabled"],
+            values["auto_red_mask_buffer_m"],
+            include_vehicle_roads=values["include_vehicle_roads"],
+            custom_unmatched_osm=values["custom_unmatched_osm"],
+        )
+        if status.get("state") == "current":
+            result = {
+                "action": "already_current",
+                "message": (
+                    "mask.png already matches this CFS alignment. "
+                    "Existing manual mask edits were preserved."
+                ),
+            }
+            _markOSMMaskCurrentAfterRebuild(folder, result, printf=printf)
+            return result
+
+    mask_path = Path(folder) / "mask.png"
+    if confirm_replace and mask_path.is_file():
+        proceed = messagebox.askyesno(
+            "Rebuild Aligned Mask",
+            "Rebuilding will replace mask.png using the current CFS alignment "
+            "and Auto Red Mask settings. The existing mask will be backed up "
+            "first. Continue?",
+            parent=root,
+        )
+        if not proceed:
+            return False
+
+    try:
+        result = osm_mask_alignment.rebuild_aligned_mask(
+            folder,
+            values["local_osm_file"],
+            values["adjust_ew"],
+            values["adjust_ns"],
+            auto_red_mask_enabled=values["auto_red_mask_enabled"],
+            auto_red_mask_buffer_m=values["auto_red_mask_buffer_m"],
+            include_vehicle_roads=values["include_vehicle_roads"],
+            custom_unmatched_osm=values["custom_unmatched_osm"],
+            backup_existing=True,
+            printf=log,
+            progress_callback=progress_callback,
+        )
+    except Exception as exc:
+        log("Aligned mask rebuild failed: " + str(exc))
+        messagebox.showerror(
+            "Aligned Mask Rebuild",
+            "Could not rebuild mask.png from the current OSM alignment.\n\n" + str(exc),
+            parent=root,
+        )
+        return False
+
+    _markOSMMaskCurrentAfterRebuild(folder, result, printf=printf)
+    return result
+
+
+def _startOSMMaskRebuildProgressTask(
+    job,
+    printf,
+    on_complete=None,
+    success_title="Aligned Mask Rebuilt",
+    show_success=True,
+):
+    """Run a full-resolution aligned-mask rebuild without blocking Tk."""
+    global root
+    global mask_rebuild_active
+
+    if mask_rebuild_active:
+        alert("An aligned-mask rebuild is already running. Please wait for it to finish.")
+        return False
+
+    mask_rebuild_active = True
+    _setOSMMaskStatus(
+        "OSM alignment mask: REBUILDING - the main window remains available",
+        "#805500",
+    )
+
+    result_queue = queue.Queue()
+    popup = tk.Toplevel(root)
+    popup.title("Rebuilding Aligned OSM Mask")
+    popup.geometry("720x175")
+    popup.minsize(620, 165)
+    popup.transient(root)
+
+    Label(
+        popup,
+        text=(
+            "Rebuilding mask.png from the final CFS alignment. "
+            "Large heightmaps and OSM files may take several minutes."
+        ),
+        justify=LEFT,
+        anchor="w",
+        wraplength=680,
+    ).pack(fill=X, padx=14, pady=(14, 8))
+
+    progress_var = tk.DoubleVar(value=0.0)
+    progress = ttk.Progressbar(
+        popup,
+        orient=HORIZONTAL,
+        mode="determinate",
+        maximum=100.0,
+        variable=progress_var,
+    )
+    progress.pack(fill=X, padx=14, pady=4)
+
+    status_var = tk.StringVar(value="Starting aligned-mask rebuild...")
+    Label(
+        popup,
+        textvariable=status_var,
+        justify=LEFT,
+        anchor="w",
+    ).pack(fill=X, padx=14, pady=(4, 12))
+
+    def refuse_close():
+        messagebox.showwarning(
+            "Mask Rebuild In Progress",
+            "The aligned mask is still being written and verified. "
+            "Please wait for the operation to finish.",
+            parent=popup,
+        )
+
+    popup.protocol("WM_DELETE_WINDOW", refuse_close)
+
+    def worker_log(message):
+        result_queue.put(("log", str(message)))
+
+    def worker_progress(percent, message):
+        result_queue.put(("progress", (float(percent), str(message))))
+
+    def worker():
+        try:
+            worker_progress(2, "Checking current mask and alignment status...")
+            if not bool(job.get("force", True)):
+                status = osm_mask_alignment.get_alignment_status(
+                    job["heightmap_dir"],
+                    job["local_osm_file"],
+                    job["adjust_ew"],
+                    job["adjust_ns"],
+                    job["auto_red_mask_enabled"],
+                    job["auto_red_mask_buffer_m"],
+                    include_vehicle_roads=job.get("include_vehicle_roads", False),
+                    custom_unmatched_osm=job.get("custom_unmatched_osm", False),
+                )
+                if status.get("state") == "current":
+                    worker_progress(100, "The aligned mask is already current.")
+                    result_queue.put(("done", {
+                        "action": "already_current",
+                        "message": (
+                            "mask.png already matches this CFS alignment. "
+                            "Existing manual mask edits were preserved."
+                        ),
+                    }))
+                    return
+
+            result = osm_mask_alignment.rebuild_aligned_mask(
+                job["heightmap_dir"],
+                job["local_osm_file"],
+                job["adjust_ew"],
+                job["adjust_ns"],
+                auto_red_mask_enabled=job["auto_red_mask_enabled"],
+                auto_red_mask_buffer_m=job["auto_red_mask_buffer_m"],
+                include_vehicle_roads=job.get("include_vehicle_roads", False),
+                custom_unmatched_osm=job.get("custom_unmatched_osm", False),
+                backup_existing=True,
+                printf=worker_log,
+                progress_callback=worker_progress,
+            )
+            result_queue.put(("done", result))
+        except Exception:
+            result_queue.put(("error", traceback.format_exc()))
+
+    def pump():
+        global mask_rebuild_active
+        finished = False
+        while True:
+            try:
+                kind, payload = result_queue.get_nowait()
+            except queue.Empty:
+                break
+
+            if kind == "progress":
+                percent, message = payload
+                progress_var.set(max(0.0, min(100.0, float(percent))))
+                status_var.set(str(message))
+            elif kind == "log":
+                try:
+                    printf(payload)
+                except Exception:
+                    pass
+            elif kind == "error":
+                mask_rebuild_active = False
+                finished = True
+                _setOSMMaskStatus(
+                    "OSM alignment mask: STALE - aligned-mask rebuild failed",
+                    "#a00000",
+                )
+                try:
+                    printf("Aligned mask rebuild failed:\n" + payload)
+                except Exception:
+                    pass
+                popup.destroy()
+                messagebox.showerror(
+                    "Aligned Mask Rebuild",
+                    "Could not rebuild mask.png from the current OSM alignment.\n\n"
+                    + payload,
+                    parent=root,
+                )
+            elif kind == "done":
+                mask_rebuild_active = False
+                finished = True
+                _markOSMMaskCurrentAfterRebuild(
+                    job["heightmap_dir"],
+                    payload,
+                    printf=printf,
+                )
+                popup.destroy()
+
+                if on_complete is not None:
+                    try:
+                        on_complete(payload)
+                    except Exception as exc:
+                        printf("Warning: post-rebuild action failed: " + str(exc))
+
+                if show_success:
+                    backup = payload.get("backup_path") if isinstance(payload, dict) else None
+                    detail = (
+                        payload.get("message")
+                        if isinstance(payload, dict)
+                        else "mask.png was rebuilt from the current CFS alignment."
+                    )
+                    if backup:
+                        detail += "\n\nPrevious mask backup:\n" + str(backup)
+                    detail += (
+                        "\n\nComplete any intended manual edits to mask.png before "
+                        "importing terrain and OSM into the course."
+                    )
+                    messagebox.showinfo(success_title, detail, parent=root)
+
+        if not finished and mask_rebuild_active:
+            root.after(75, pump)
+
+    threading.Thread(
+        target=worker,
+        name="TGC-Main-Aligned-Mask-Rebuild",
+        daemon=True,
+    ).start()
+    root.after(75, pump)
+    return True
+
+
+def rebuildOSMMaskAction(options_entries_dict, printf):
+    global root
+    global last_alignment_heightmap_dir
+
+    try:
+        values = _currentOSMMaskInputs(options_entries_dict)
+    except Exception as exc:
+        alert(str(exc))
+        return
+
+    if not values["use_osm"]:
+        alert("Enable Import OpenStreetMap before rebuilding the alignment mask.")
+        return
+    if not values["local_osm_file"]:
+        alert("Select a Local OSM File before rebuilding the alignment mask.")
+        return
+
+    folder = str(last_alignment_heightmap_dir or "").strip()
+    if not folder:
+        folder = tk.filedialog.askdirectory(
+            initialdir=(root.filename if root and hasattr(root, "filename") else "."),
+            title="Select heightmap folder for aligned mask rebuild",
+        )
+    if not folder:
+        return
+
+    last_alignment_heightmap_dir = folder
+    mask_path = Path(folder) / "mask.png"
+    if mask_path.is_file():
+        proceed = messagebox.askyesno(
+            "Rebuild Aligned Mask",
+            "Rebuilding will replace mask.png using the current CFS alignment "
+            "and Auto Red Mask settings. The existing mask will be backed up "
+            "first. Continue?",
+            parent=root,
+        )
+        if not proceed:
+            return
+
+    job = {
+        "heightmap_dir": folder,
+        "local_osm_file": values["local_osm_file"],
+        "adjust_ew": values["adjust_ew"],
+        "adjust_ns": values["adjust_ns"],
+        "auto_red_mask_enabled": values["auto_red_mask_enabled"],
+        "auto_red_mask_buffer_m": values["auto_red_mask_buffer_m"],
+        "include_vehicle_roads": values["include_vehicle_roads"],
+        "custom_unmatched_osm": values["custom_unmatched_osm"],
+        "force": True,
+    }
+    _startOSMMaskRebuildProgressTask(job, printf)
+
+def validateOSMMaskBeforeCourseImport(
+    options_entries_dict,
+    heightmap_dir_path,
+    printf,
+):
+    """Block shifted Local OSM imports until mask.png matches final CFS alignment."""
+    global last_alignment_heightmap_dir
+    global mask_rebuild_active
+    last_alignment_heightmap_dir = str(heightmap_dir_path)
+
+    if mask_rebuild_active:
+        alert(
+            "The aligned mask is still being rebuilt. Wait for it to finish "
+            "before importing the heightmap and OSM into the course."
+        )
+        return False
+
+    try:
+        values = _currentOSMMaskInputs(options_entries_dict)
+    except Exception as exc:
+        alert(str(exc))
+        return False
+
+    if not values["use_osm"] or not values["local_osm_file"]:
+        refreshOSMMaskAlignmentStatus(options_entries_dict, heightmap_dir_path)
+        return True
+
+    status = refreshOSMMaskAlignmentStatus(
+        options_entries_dict,
+        heightmap_dir_path,
+        printf=printf,
+    )
+    if status.get("state") == "current":
+        return True
+
+    if status.get("state") == "legacy_zero_shift":
+        choice = messagebox.askyesnocancel(
+            "Existing Zero-Shift Mask",
+            "This mask predates CFS alignment tracking and the current shift is "
+            "0.00 m E/W and 0.00 m N/S.\n\n"
+            "Choose Yes to rebuild the mask using the current OSM and Auto Red "
+            "Mask settings. The existing mask will be backed up.\n\n"
+            "Choose No to adopt the existing mask without changing any of its "
+            "pixels, which preserves prior manual edits.\n\n"
+            "Choose Cancel to stop the import.",
+            parent=root,
+        )
+        if choice is None:
+            return False
+        if choice:
+            job = {
+                "heightmap_dir": str(heightmap_dir_path),
+                "local_osm_file": values["local_osm_file"],
+                "adjust_ew": values["adjust_ew"],
+                "adjust_ns": values["adjust_ns"],
+                "auto_red_mask_enabled": values["auto_red_mask_enabled"],
+                "auto_red_mask_buffer_m": values["auto_red_mask_buffer_m"],
+                "include_vehicle_roads": values["include_vehicle_roads"],
+                "custom_unmatched_osm": values["custom_unmatched_osm"],
+                "force": True,
+            }
+
+            def legacy_rebuild_complete(_result):
+                messagebox.showinfo(
+                    "Aligned Mask Ready",
+                    "The aligned mask is ready. Complete any intended manual "
+                    "edits to mask.png, then click Select and Import Heightmap "
+                    "and OSM into Course again.",
+                    parent=root,
+                )
+
+            _startOSMMaskRebuildProgressTask(
+                job,
+                printf,
+                on_complete=legacy_rebuild_complete,
+                show_success=False,
+            )
+            return False
+
+        try:
+            osm_mask_alignment.adopt_existing_zero_shift_mask(
+                heightmap_dir_path,
+                values["local_osm_file"],
+                values["adjust_ew"],
+                values["adjust_ns"],
+                auto_red_mask_enabled=values["auto_red_mask_enabled"],
+                auto_red_mask_buffer_m=values["auto_red_mask_buffer_m"],
+                include_vehicle_roads=values["include_vehicle_roads"],
+                custom_unmatched_osm=values["custom_unmatched_osm"],
+                printf=printf,
+            )
+            refreshOSMMaskAlignmentStatus(
+                options_entries_dict,
+                heightmap_dir_path,
+                printf=printf,
+            )
+            return True
+        except Exception as exc:
+            messagebox.showerror(
+                "Existing Mask Could Not Be Adopted",
+                str(exc),
+                parent=root,
+            )
+            return False
+
+    messagebox.showerror(
+        "OSM Alignment Mask Is Stale",
+        "The selected mask does not match the current Local OSM alignment.\n\n"
+        + str(status.get("message", "Rebuild required."))
+        + "\n\nOpen the CFS Alignment Viewer and apply the final alignment, or use "
+        "Rebuild Mask from Current Alignment. Then complete any intended "
+        "manual edits to mask.png before importing.",
+        parent=root,
+    )
+    return False
+
+
 def runLidar(
     scale_entry,
     epsg_entry,
@@ -704,7 +1671,19 @@ def runLidar(
     except Exception:
         local_osm_file = ""
 
-    if local_osm_file:
+    custom_unmatched_osm = bool(
+        _mask_option_value(options_entries_dict, "custom_unmatched_osm", False)
+    )
+    processing_local_osm_file = local_osm_file
+    if local_osm_file and custom_unmatched_osm:
+        processing_local_osm_file = ""
+        printf(
+            "Custom / Unmatched OSM enabled: LiDAR/DEM projection and crop are "
+            "authoritative. The Local OSM geographic location will NOT control "
+            "terrain processing. A detached copy will be centered on the terrain "
+            "for the selection preview and then re-centered on the finished crop in CFS."
+        )
+    elif local_osm_file:
         printf("LiDAR will use local OSM for preview/mask: " + local_osm_file)
     else:
         printf("LiDAR local OSM is blank; using online Overpass for preview/mask")
@@ -735,10 +1714,19 @@ def runLidar(
                 output_dir_path,
                 force_epsg=force_epsg,
                 printf=worker_printf,
-                local_osm_file=local_osm_file,
+                local_osm_file=processing_local_osm_file,
                 auto_red_mask_enabled=auto_red_enabled,
                 auto_red_mask_buffer_m=auto_red_buffer_m,
             )
+            if prepared is not None and local_osm_file and custom_unmatched_osm:
+                prepared = _apply_custom_unmatched_preview_overlay(
+                    prepared,
+                    local_osm_file,
+                    "lidar",
+                    auto_red_mask_enabled=auto_red_enabled,
+                    auto_red_mask_buffer_m=auto_red_buffer_m,
+                    printf=worker_printf,
+                )
             result_queue.put(("preview", prepared))
         except Exception:
             result_queue.put(("error", traceback.format_exc()))
@@ -757,7 +1745,7 @@ def runLidar(
                 printf=worker_printf,
                 defer_mask_edit_message=bool(local_osm_file),
             )
-            if local_osm_file:
+            if local_osm_file and not custom_unmatched_osm:
                 worker_printf(
                     "Local OSM selected: converting the LiDAR crop to the "
                     "OSM-defined master terrain extent."
@@ -772,8 +1760,15 @@ def runLidar(
                 )
                 # TGC_OSM_MASTER_MASK_READY_MESSAGE_V1
                 worker_printf(
-                    "OSM master terrain and matching mask are complete. "
-                    "Now edit mask.png to remove unneeded areas."
+                    "OSM master terrain and provisional mask are complete. "
+                    "Next, use the CFS Alignment Viewer and apply the final "
+                    "alignment to rebuild mask.png before making manual mask edits."
+                )
+            elif local_osm_file and custom_unmatched_osm:
+                worker_printf(
+                    "Custom / Unmatched terrain processing complete. The terrain "
+                    "master grid was preserved independently of the OSM location. "
+                    "Open CFS Alignment Viewer to center/fine-shift the layout and rebuild mask.png."
                 )
             result_queue.put(("done", None))
         except Exception:
@@ -799,7 +1794,7 @@ def runLidar(
                 printf(payload)
                 alert(
                     "LiDAR processing failed. "
-                    "See the Process LiDAR / DEM console for details."
+                    "See the Load OSM and Process LiDAR/DEM console for details."
                 )
                 finished = True
                 break
@@ -840,6 +1835,13 @@ def runLidar(
 
             if kind == "done":
                 lidar_processing_active = False
+                invalidateOSMMaskAlignmentAfterProcessing(
+                    output_dir_path,
+                    "LiDAR processing regenerated the provisional terrain mask; "
+                    "apply the final CFS alignment and rebuild mask.png.",
+                    options_entries_dict,
+                    printf,
+                )
                 printf("LiDAR Fast processing complete.")
                 finished = True
                 break
@@ -922,6 +1924,13 @@ def runLocalLidarTerrainGapFill(
         alert(
             "Terrain Gap Fill now uses the Local OSM course boundary as the "
             "master extent. Select a Local OSM File first."
+        )
+        return
+    if bool(_mask_option_value(options_entries_dict, "custom_unmatched_osm", False)):
+        alert(
+            "Terrain Gap Fill currently requires a geographically matched Local OSM "
+            "because it uses that OSM as the terrain master extent. Turn off "
+            "Custom / Unmatched for this step, or use the already-processed terrain."
         )
         return
 
@@ -1007,13 +2016,20 @@ def runLocalLidarTerrainGapFill(
                 printf(payload)
                 alert(
                     "Local LiDAR Terrain Gap Fill failed. "
-                    "See the Process LiDAR / DEM console for details."
+                    "See the Load OSM and Process LiDAR/DEM console for details."
                 )
                 finished = True
                 break
 
             if kind == "done":
                 lidar_processing_active = False
+                invalidateOSMMaskAlignmentAfterProcessing(
+                    heightmap_path.parent,
+                    "Terrain Gap Fill regenerated mask.png; apply the final CFS "
+                    "alignment and rebuild the aligned mask.",
+                    options_entries_dict,
+                    printf,
+                )
                 printf(
                     "Terrain Gap Fill finished. Filled cells: " +
                     str(payload.get("filled_cells", 0))
@@ -1117,6 +2133,11 @@ def runLocalLidarTreesOnly(
     except Exception:
         local_osm_file = ""
 
+    custom_unmatched_osm = bool(
+        _mask_option_value(options_entries_dict, "custom_unmatched_osm", False)
+    )
+    tree_filter_osm_file = "" if custom_unmatched_osm else local_osm_file
+
     result_queue = queue.Queue()
     lidar_processing_active = True
 
@@ -1134,10 +2155,15 @@ def runLocalLidarTreesOnly(
         printf(
             "Local tree-only LiDAR CRS: auto-detect from LAS/LAZ headers."
         )
-    if local_osm_file:
+    if tree_filter_osm_file:
         printf(
             "Local tree-only extraction will use Local OSM: " +
-            local_osm_file
+            tree_filter_osm_file
+        )
+    elif local_osm_file and custom_unmatched_osm:
+        printf(
+            "Custom / Unmatched OSM is not used to geographically clip Trees Only; "
+            "the final imported golf features will still drive playing-surface tree filtering."
         )
 
     def worker_printf(message):
@@ -1154,7 +2180,7 @@ def runLocalLidarTreesOnly(
                 lidar_dir_path,
                 heightmap_path,
                 sample_scale=sample_scale,
-                local_osm_file=(local_osm_file or None),
+                local_osm_file=(tree_filter_osm_file or None),
                 force_epsg=force_epsg,
                 source_metadata=source_metadata,
                 printf=worker_printf,
@@ -1183,7 +2209,7 @@ def runLocalLidarTreesOnly(
                 printf(payload)
                 alert(
                     "Local LAS/LAZ Trees Only failed. "
-                    "See the Process LiDAR / DEM console for details."
+                    "See the Load OSM and Process LiDAR/DEM console for details."
                 )
                 finished = True
                 break
@@ -1672,8 +2698,16 @@ def runAwsEptLidar(
 
     if not local_osm_file:
         alert(
-            "Select a Local OSM File on the Import Terrain and Features tab "
-            "before using USGS AWS EPT."
+            "Select a Local OSM File at the top of the Load OSM and "
+            "Process LiDAR/DEM tab before using USGS AWS EPT."
+        )
+        return
+    if bool(_mask_option_value(options_entries_dict, "custom_unmatched_osm", False)):
+        alert(
+            "USGS AWS EPT discovery uses the Local OSM's real-world location to "
+            "choose/download LiDAR. Custom / Unmatched intentionally ignores that "
+            "location, so AWS discovery is disabled in this mode. Use local LiDAR/DEM "
+            "for the target terrain, or turn Custom / Unmatched off for discovery."
         )
         return
 
@@ -1791,7 +2825,7 @@ def runAwsEptLidar(
                 printf(payload)
                 alert(
                     "USGS AWS EPT operation failed. "
-                    "See the Process LiDAR / DEM console for details."
+                    "See the Load OSM and Process LiDAR/DEM console for details."
                 )
                 finished = True
                 break
@@ -1845,6 +2879,13 @@ def runAwsEptLidar(
 
             if kind == "gap_fill_done":
                 lidar_processing_active = False
+                invalidateOSMMaskAlignmentAfterProcessing(
+                    Path(root.filename),
+                    "AWS EPT Terrain Gap Fill regenerated mask.png; apply the final "
+                    "CFS alignment and rebuild the aligned mask.",
+                    options_entries_dict,
+                    printf,
+                )
                 printf(
                     "AWS EPT Terrain Gap Fill complete: filled " +
                     str(payload.get("filled_cells", 0)) +
@@ -1961,7 +3002,18 @@ def runDEM(scale_entry, printf, auto_red_mask_var=None, auto_red_mask_buffer_var
     except Exception:
         local_osm_file = ""
 
-    if local_osm_file:
+    custom_unmatched_osm = bool(
+        _mask_option_value(options_entries_dict, "custom_unmatched_osm", False)
+    )
+    processing_local_osm_file = local_osm_file
+    if local_osm_file and custom_unmatched_osm:
+        processing_local_osm_file = ""
+        printf(
+            "Custom / Unmatched OSM enabled: DEM CRS and selected terrain extent "
+            "remain authoritative. Detached OSM geometry is centered for the DEM "
+            "selection preview and then re-centered on the finished crop in CFS."
+        )
+    elif local_osm_file:
         printf("DEM will use local OSM for preview/mask: " + local_osm_file)
     else:
         printf("DEM local OSM is blank; online Overpass will be used for preview/mask")
@@ -1985,12 +3037,21 @@ def runDEM(scale_entry, printf, auto_red_mask_var=None, auto_red_mask_buffer_var
         try:
             prepared = dem_map_api.prepare_dem_previews(
                 selected_files,
-                local_osm_file=local_osm_file,
+                local_osm_file=processing_local_osm_file,
                 sample_scale=dem_sample_scale,
                 auto_red_mask_enabled=auto_red_enabled,
                 auto_red_mask_buffer_m=auto_red_buffer_m,
                 printf=worker_printf,
             )
+            if prepared is not None and local_osm_file and custom_unmatched_osm:
+                prepared = _apply_custom_unmatched_preview_overlay(
+                    prepared,
+                    local_osm_file,
+                    "dem",
+                    auto_red_mask_enabled=auto_red_enabled,
+                    auto_red_mask_buffer_m=auto_red_buffer_m,
+                    printf=worker_printf,
+                )
             result_queue.put(("prepared", prepared))
         except Exception:
             result_queue.put(
@@ -2035,7 +3096,7 @@ def runDEM(scale_entry, printf, auto_red_mask_var=None, auto_red_mask_buffer_var
                 printf(payload)
                 alert(
                     "DEM processing failed. "
-                    "See the Process LiDAR / DEM console for details."
+                    "See the Load OSM and Process LiDAR/DEM console for details."
                 )
                 finished = True
                 break
@@ -2085,7 +3146,20 @@ def runDEM(scale_entry, printf, auto_red_mask_var=None, auto_red_mask_buffer_var
 
             if kind == "final_done":
                 dem_processing_active = False
-                printf("DEM processing complete.")
+                invalidateOSMMaskAlignmentAfterProcessing(
+                    output_dir_path,
+                    "DEM processing regenerated the provisional terrain mask; "
+                    "apply the final CFS alignment and rebuild mask.png.",
+                    options_entries_dict,
+                    printf,
+                )
+                if local_osm_file:
+                    printf(
+                        "DEM processing complete. The Local OSM mask is provisional "
+                        "until the final CFS alignment is applied."
+                    )
+                else:
+                    printf("DEM processing complete.")
                 finished = True
                 break
 
@@ -2105,6 +3179,7 @@ def generateCourseFromLidar(options_entries_dict, printf):
     global course_json
     global course_version
     global brush_scale_combo
+    global last_alignment_heightmap_dir
 
     if not root or not hasattr(root, 'filename'):
         alert("Select a course directory before processing heightmap file")
@@ -2117,6 +3192,12 @@ def generateCourseFromLidar(options_entries_dict, printf):
     heightmap_dir_path = tk.filedialog.askdirectory(initialdir=root.filename, title="Select heightmap and mask files directory")
     if not heightmap_dir_path:
         return
+
+    last_alignment_heightmap_dir = str(heightmap_dir_path)
+    refreshOSMMaskAlignmentStatus(
+        options_entries_dict,
+        heightmap_dir_path,
+    )
 
     allowed_scales = [1, 2, 3, 4, 6]
     detected_scale = None
@@ -2156,6 +3237,14 @@ def generateCourseFromLidar(options_entries_dict, printf):
     for key, entry in options_entries_dict.items():
         options_dict[key] = entry.get()
 
+    if not validateOSMMaskBeforeCourseImport(
+        options_entries_dict,
+        heightmap_dir_path,
+        printf,
+    ):
+        printf("Course import stopped: OSM alignment mask is not current.")
+        return
+
     drawPlaceholder()
     course_json = tgc_image_terrain.generate_course(course_json, heightmap_dir_path, options_dict=options_dict,
             printf=printf, course_version=course_version)
@@ -2173,30 +3262,127 @@ osm_types = [
 
 def openCFSAlignmentViewer(options_entries_dict, printf):
     global root
+    global last_alignment_heightmap_dir
 
     if not root or not hasattr(root, 'filename'):
         alert("Select a course directory first")
         return
 
-    local_osm_file = ""
     try:
-        local_osm_file = str(
-            options_entries_dict["local_osm_file"].get() or ""
-        ).strip()
-    except Exception:
-        local_osm_file = ""
+        mask_values = _currentOSMMaskInputs(options_entries_dict)
+    except Exception as exc:
+        alert(str(exc))
+        return
 
+    local_osm_file = str(mask_values["local_osm_file"] or "").strip()
     if not local_osm_file:
         alert("Select a Local OSM File before opening the alignment viewer")
         return
 
     heightmap_dir_path = tk.filedialog.askdirectory(
-        initialdir=root.filename,
+        initialdir=(last_alignment_heightmap_dir or root.filename),
         title="Select heightmap folder for CFS alignment verification"
     )
-
     if not heightmap_dir_path:
         return
+
+    last_alignment_heightmap_dir = str(heightmap_dir_path)
+    _setOSMMaskStatus(
+        "OSM alignment mask: CFS viewer open - apply alignment to rebuild",
+        "#805500",
+    )
+
+    # Capture non-alignment settings on the Tk thread. The worker callback below
+    # touches no Tk objects and sends progress/log messages through the viewer.
+    auto_red_enabled = bool(mask_values["auto_red_mask_enabled"])
+    auto_red_buffer = float(mask_values["auto_red_mask_buffer_m"])
+    include_vehicle_roads = bool(mask_values.get("include_vehicle_roads", False))
+    custom_unmatched_osm = bool(mask_values.get("custom_unmatched_osm", False))
+
+    def apply_alignment_and_rebuild_mask(
+        viewer_heightmap_dir,
+        viewer_osm_file,
+        shift_ew,
+        shift_ns,
+        progress_callback=None,
+        printf=print,
+    ):
+        if progress_callback is not None:
+            progress_callback(2, "Checking whether the aligned mask is already current...")
+        status = osm_mask_alignment.get_alignment_status(
+            viewer_heightmap_dir,
+            viewer_osm_file,
+            shift_ew,
+            shift_ns,
+            auto_red_enabled,
+            auto_red_buffer,
+            include_vehicle_roads=include_vehicle_roads,
+            custom_unmatched_osm=custom_unmatched_osm,
+        )
+        if status.get("state") == "current":
+            if progress_callback is not None:
+                progress_callback(100, "The aligned mask is already current.")
+            return {
+                "action": "already_current",
+                "message": (
+                    "mask.png already matches this CFS alignment. "
+                    "Existing manual mask edits were preserved."
+                ),
+            }
+
+        return osm_mask_alignment.rebuild_aligned_mask(
+            viewer_heightmap_dir,
+            viewer_osm_file,
+            shift_ew,
+            shift_ns,
+            auto_red_mask_enabled=auto_red_enabled,
+            auto_red_mask_buffer_m=auto_red_buffer,
+            include_vehicle_roads=include_vehicle_roads,
+            custom_unmatched_osm=custom_unmatched_osm,
+            backup_existing=True,
+            printf=printf,
+            progress_callback=progress_callback,
+        )
+
+    def alignment_rebuild_finished(result, viewer_heightmap_dir, shift_ew, shift_ns):
+        global last_alignment_heightmap_dir
+        last_alignment_heightmap_dir = str(viewer_heightmap_dir)
+
+        # The parent remains responsive during the worker. If the user changed
+        # mask settings in the main window while the CFS rebuild was running,
+        # do not briefly label the old settings CURRENT. The import gate still
+        # performs the full hash/grid verification before course generation.
+        try:
+            current = _currentOSMMaskInputs(options_entries_dict)
+            unchanged = (
+                str(current["local_osm_file"]) == str(local_osm_file)
+                and abs(float(current["adjust_ew"]) - float(shift_ew)) <= 0.0051
+                and abs(float(current["adjust_ns"]) - float(shift_ns)) <= 0.0051
+                and bool(current["auto_red_mask_enabled"]) == auto_red_enabled
+                and bool(current.get("custom_unmatched_osm", False)) == custom_unmatched_osm
+                and (
+                    not auto_red_enabled
+                    or abs(float(current["auto_red_mask_buffer_m"]) - auto_red_buffer) <= 0.0051
+                )
+            )
+        except Exception:
+            unchanged = False
+
+        if unchanged:
+            _markOSMMaskCurrentAfterRebuild(
+                viewer_heightmap_dir,
+                result,
+                printf=printf,
+            )
+        else:
+            _setOSMMaskStatus(
+                "OSM alignment mask: STALE - settings changed during rebuild",
+                "#a00000",
+            )
+            printf(
+                "Aligned mask finished, but the main-window OSM/mask settings "
+                "changed during the rebuild; another rebuild is required."
+            )
 
     osm_alignment_viewer.open_alignment_viewer(
         root,
@@ -2205,6 +3391,9 @@ def openCFSAlignmentViewer(options_entries_dict, printf):
         options_entries_dict["adjust_ew"],
         options_entries_dict["adjust_ns"],
         printf=printf,
+        apply_callback=apply_alignment_and_rebuild_mask,
+        apply_finished_callback=alignment_rebuild_finished,
+        custom_unmatched_osm=custom_unmatched_osm,
     )
 
 
@@ -2314,7 +3503,7 @@ course = ttk.Frame(nb, style='new.TFrame')
 scorecard = ttk.Frame(nb, style='new.TFrame')
 nb.pack(fill=BOTH, expand=1)
 nb.add(tools, text='Course Tools')
-nb.add(lidar, text='Process LiDAR / DEM')
+nb.add(lidar, text='Load OSM and Process LiDAR/DEM')
 nb.add(course, text='Import Terrain and Features')
 nb.add(scorecard, text="Scorecard")
 
@@ -2327,6 +3516,17 @@ canvas.place(x=0,y=0)
 bg_color = "darkgrey"
 tool_bg = "grey25"
 text_fg = "grey90"
+
+# BETA6_WORKFLOW_UI_REORDER_V2
+# TGC_BETA6_OSM_CARTPATH_ROAD_SPLIT_V4
+# Shared workflow state must exist before both the OSM/LiDAR tab and the
+# Import Terrain and Features tab are constructed.
+options_entries_dict = {}
+check_fg = "black"
+check_bg = "grey80"
+local_osm_var = tk.StringVar()
+options_entries_dict["local_osm_file"] = local_osm_var
+options_entries_dict["custom_unmatched_osm"] = tk.BooleanVar(value=False)
 
 tool_buttons_frame = Frame(tools, bg=bg_color)
 tool_buttons_frame.pack(side=LEFT, fill=BOTH, expand=1)
@@ -2374,8 +3574,17 @@ er.insert(END, '0.0')
 er.grid(row=0, column=1, padx=5)
 rb = Button(rotate_frame, text="Rotate", command=partial(rotateAction, er))
 rb.grid(row=0, column=2, padx=10, pady=5)
-rotate_frame.pack(pady=5)
-
+rotate_frame.pack(pady=5)# TGC_HULKIFY_GUI_V2_SLOPE_LOCK
+hulkify_button = Button(
+    tool_buttons_frame,
+    text="Hulkify Course (+10% Slope-Locked)",
+    command=hulkifyAction,
+    bg="#2E8B57",
+    fg="white",
+    activebackground="#246B45",
+    activeforeground="white",
+)
+hulkify_button.pack(pady=5)
 # Elevation shift
 aeb = Button(tool_buttons_frame, text="Auto Shift Elevations", command=partial(elevateAction, None, True))
 aeb.pack(pady=5)
@@ -2414,6 +3623,43 @@ root.update()
 lidarConsoleOutput = tk.scrolledtext.ScrolledText(master=lidar, wrap=tk.WORD, width=20, height=10, state=DISABLED)
 lidarPrintf = partial(tkinterPrintFunction, lidar, lidarConsoleOutput)
 
+# Load the OSM source first so every LiDAR/DEM processing path sees the same
+# selected layout before it creates previews or a provisional mask.
+localOSMSourceFrame = Frame(lidar, bg=check_bg)
+Label(
+    localOSMSourceFrame,
+    text="Local OSM File (blank = online)",
+    fg="black",
+    bg=check_bg,
+).pack(side=LEFT, padx=(8, 5), pady=7)
+local_osm_entry = tk.Entry(
+    localOSMSourceFrame,
+    width=48,
+    textvariable=local_osm_var,
+)
+local_osm_entry.pack(side=LEFT, padx=5, pady=7)
+local_osm_browse = Button(
+    localOSMSourceFrame,
+    text="Browse...",
+    command=partial(selectLocalOSMFile, local_osm_var),
+)
+local_osm_browse.pack(side=LEFT, padx=(5, 8), pady=7)
+customUnmatchedOSMCheck = Checkbutton(
+    localOSMSourceFrame,
+    text="Custom / Unmatched",
+    variable=options_entries_dict["custom_unmatched_osm"],
+    fg="black",
+    bg=check_bg,
+)
+customUnmatchedOSMCheck.pack(side=LEFT, padx=(4, 8), pady=7)
+Label(
+    localOSMSourceFrame,
+    text="Ignore OSM location; center layout on selected terrain for CFS alignment",
+    fg="black",
+    bg=check_bg,
+).pack(side=LEFT, padx=(0, 8), pady=7)
+localOSMSourceFrame.pack(fill=X, padx=10, pady=(8, 4))
+
 lidarControlFrame = Frame(lidar, bg=tool_bg)
 
 scale_label = Label(lidarControlFrame, text="Map Scale", fg=text_fg, bg=tool_bg)
@@ -2426,6 +3672,8 @@ auto_red_mask_var = tk.BooleanVar()
 auto_red_mask_var.set(True)
 auto_red_mask_buffer_var = tk.StringVar()
 auto_red_mask_buffer_var.set(str(int(AUTO_RED_MASK_BUFFER_DEFAULT_M)))
+options_entries_dict["auto_red_mask_enabled"] = auto_red_mask_var
+options_entries_dict["auto_red_mask_buffer_m"] = auto_red_mask_buffer_var
 lidarbutton = Button(
     lidarControlFrame,
     text="Select Lidar and Generate Heightmap",
@@ -2576,11 +3824,10 @@ coursePrintf = partial(tkinterPrintFunction, course, courseConsoleOutput)
 
 courseControlFrame = Frame(course, bg=bg_color)
 
-options_entries_dict = {} # Store the many entries into one dictionary
+# The OSM source and mask controls were created on the
+# Load OSM and Process LiDAR/DEM tab and are shared here.
 
 # OpenStreetMap Options
-check_fg = "black" # Check fg can't be light or near white or it is invisible in the checkbox
-check_bg = "grey80"
 osmControlFrame = Frame(courseControlFrame, bg=tool_bg)
 osmSubFrame = Frame(osmControlFrame, bg=check_bg) # Can disable all OSM Options easily inside of this
 
@@ -2622,6 +3869,9 @@ waterCheck.select()
 options_entries_dict["cartpath"] = tk.BooleanVar()
 cartpathCheck = Checkbutton(osmSubFrame, text="Import Cartpaths", variable=options_entries_dict["cartpath"], fg=check_fg, bg=check_bg)
 cartpathCheck.select()
+options_entries_dict["road"] = tk.BooleanVar()
+roadCheck = Checkbutton(osmSubFrame, text="Import Automobile Roads", variable=options_entries_dict["road"], fg=check_fg, bg=check_bg)
+roadCheck.deselect()
 options_entries_dict["path"] = tk.BooleanVar()
 pathCheck = Checkbutton(osmSubFrame, text="Import Walking Paths", variable=options_entries_dict["path"], fg=check_fg, bg=check_bg)
 pathCheck.select()
@@ -2647,16 +3897,6 @@ optimizeOSMSplineCheck = Checkbutton(
 )
 optimizeOSMSplineCheck.select()
 
-local_osm_var = tk.StringVar()
-options_entries_dict["local_osm_file"] = local_osm_var
-local_osm_entry = tk.Entry(osmSubFrame, width=32, textvariable=local_osm_var)
-local_osm_browse = Button(osmSubFrame, text="Browse...", command=partial(selectLocalOSMFile, local_osm_var))
-cfsAlignmentViewerButton = Button(
-    osmSubFrame,
-    text="CFS Alignment Viewer...",
-    command=partial(openCFSAlignmentViewer, options_entries_dict, coursePrintf)
-)
-
 osmbutton = Button(osmSubFrame, text="Make Flat Course From OSM File", command=partial(importOSMFile, options_entries_dict, coursePrintf))
 
 osmew.grid(row=0, column=1, padx=5)
@@ -2669,26 +3909,84 @@ teeboxCheck.grid(row=6, columnspan=2, sticky=W, padx=5)
 roughCheck.grid(row=7, columnspan=2, sticky=W, padx=5)
 waterCheck.grid(row=8, columnspan=2, sticky=W, padx=5)
 cartpathCheck.grid(row=9, columnspan=2, sticky=W, padx=5)
-pathCheck.grid(row=10, columnspan=2, sticky=W, padx=5)
-holeCheck.grid(row=12, columnspan=2, sticky=W, padx=5)
-Label(osmSubFrame, text="Match Hole Names", fg=check_fg, bg=check_bg).grid(row=13, sticky=W, padx=5)
-osm_hole_filter.grid(row=13, column=1, padx=5)
-buildingCheck.grid(row=14, columnspan=2, sticky=W, padx=5)
-treeCheck.grid(row=15, columnspan=2, sticky=W, padx=5)
-Label(osmSubFrame, text="Local OSM File (blank = online)", fg=check_fg, bg=check_bg).grid(row=16, column=0, sticky=W, padx=5)
-local_osm_entry.grid(row=16, column=1, sticky=W, padx=5)
-local_osm_browse.grid(row=16, column=2, sticky=W, padx=5)
-cfsAlignmentViewerButton.grid(row=16, column=3, sticky=W, padx=5)
+roadCheck.grid(row=10, columnspan=2, sticky=W, padx=5)
+pathCheck.grid(row=11, columnspan=2, sticky=W, padx=5)
+holeCheck.grid(row=13, columnspan=2, sticky=W, padx=5)
+Label(osmSubFrame, text="Match Hole Names", fg=check_fg, bg=check_bg).grid(row=14, sticky=W, padx=5)
+osm_hole_filter.grid(row=14, column=1, padx=5)
+buildingCheck.grid(row=15, columnspan=2, sticky=W, padx=5)
+treeCheck.grid(row=16, columnspan=2, sticky=W, padx=5)
 optimizeOSMSplineCheck.grid(row=17, columnspan=3, sticky=W, padx=5, pady=(5,0))
 osmbutton.grid(row=19, columnspan=3)
 
 useOSMCheck.pack(padx=10, pady=10)
 osmSubFrame.pack(padx=5, pady=5)
 
-coursebutton = Button(courseControlFrame, text="Select and Import Heightmap and OSM into Course", command=partial(generateCourseFromLidar, options_entries_dict, coursePrintf))
+# Alignment and mask finalization are intentionally placed before course import.
+cfsWorkflowFrame = Frame(courseControlFrame, bg=bg_color)
+cfsAlignmentViewerButton = Button(
+    cfsWorkflowFrame,
+    text="CFS Alignment Viewer...",
+    command=partial(openCFSAlignmentViewer, options_entries_dict, coursePrintf),
+)
+cfsAlignmentViewerButton.pack(side=LEFT, padx=(0, 6))
+rebuildAlignedMaskButton = Button(
+    cfsWorkflowFrame,
+    text="Rebuild Mask from Current OSM Alignment...",
+    command=partial(rebuildOSMMaskAction, options_entries_dict, coursePrintf),
+)
+rebuildAlignedMaskButton.pack(side=LEFT, padx=6)
+cfsWorkflowFrame.pack(padx=10, pady=(10, 4))
 
-# Pack the controls frames, button at the top followed by the options
-coursebutton.pack(padx=10, pady=10)
+osm_mask_status_var = tk.StringVar()
+osm_mask_status_var.set("OSM alignment mask: select a heightmap folder to verify")
+osm_mask_status_label = Label(
+    courseControlFrame,
+    textvariable=osm_mask_status_var,
+    fg="black",
+    bg=check_bg,
+    justify=LEFT,
+    wraplength=760,
+)
+osm_mask_status_label.pack(padx=10, pady=(0, 5), anchor=W, fill=X)
+
+coursebutton = Button(courseControlFrame, text="Select and Import Heightmap and OSM into Course", command=partial(generateCourseFromLidar, options_entries_dict, coursePrintf))
+coursebutton.pack(padx=10, pady=(5, 3))
+
+courseImportReminder = Label(
+    courseControlFrame,
+    text=(
+        "Before importing, finalize the CFS alignment, rebuild the aligned mask, "
+        "and complete all intended manual edits to mask.png."
+    ),
+    fg="black",
+    bg=check_bg,
+    justify=LEFT,
+    wraplength=760,
+)
+courseImportReminder.pack(padx=10, pady=(0, 8), anchor=W, fill=X)
+
+
+def _scheduleOSMMaskStatusRefresh(*_args):
+    try:
+        root.after_idle(
+            lambda: refreshOSMMaskAlignmentStatus(options_entries_dict)
+        )
+    except Exception:
+        pass
+
+
+local_osm_var.trace_add("write", _scheduleOSMMaskStatusRefresh)
+options_entries_dict["use_osm"].trace_add("write", _scheduleOSMMaskStatusRefresh)
+options_entries_dict["road"].trace_add("write", _scheduleOSMMaskStatusRefresh)
+options_entries_dict["custom_unmatched_osm"].trace_add("write", _scheduleOSMMaskStatusRefresh)
+auto_red_mask_var.trace_add("write", _scheduleOSMMaskStatusRefresh)
+# Re-reading heightmap.npy and hashing the Local OSM on every keystroke would
+# make the GUI feel sluggish. Refresh when an editable numeric field is
+# committed instead; the import gate always performs a fresh final check.
+for _alignment_entry in (osmew, osmns, auto_red_mask_buffer_entry):
+    _alignment_entry.bind("<Return>", _scheduleOSMMaskStatusRefresh, add="+")
+    _alignment_entry.bind("<FocusOut>", _scheduleOSMMaskStatusRefresh, add="+")
 
 # Other Course Options
 courseOptionsFrame = Frame(courseControlFrame, bg=tool_bg)
@@ -2698,7 +3996,7 @@ Label(courseOptionsFrame, text='Course Options', fg=text_fg, bg=tool_bg).pack(pa
 
 options_entries_dict["add_background"] = tk.BooleanVar()
 backgroundCheck = Checkbutton(courseSubFrame, text="Add Background Terrain/Remove Cliffs", variable=options_entries_dict["add_background"], fg=check_fg, bg=check_bg)
-backgroundCheck.deselect()
+backgroundCheck.select()
 bgentry = tk.Entry(courseSubFrame, width=10, justify='center')
 bgentry.insert(END, '16.0')
 options_entries_dict["background_scale"] = bgentry
@@ -2757,9 +4055,10 @@ treeScaleModeCombo = ttk.Combobox(
     textvariable=tree_scale_mode_var,
     state='readonly',
     values=(
+        tree_profile_manager.LEGACY_SCALE_MODE,
         tree_profile_manager.HEROIC_SCALE_MODE,
         tree_profile_manager.EPIC_SCALE_MODE,
-        tree_profile_manager.LEGACY_SCALE_MODE,
+        tree_profile_manager.MYTHIC_SCALE_MODE,
     )
 )
 

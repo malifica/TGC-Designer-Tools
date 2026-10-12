@@ -3,6 +3,10 @@ import math
 import cv2
 import numpy as np
 
+import OSMTGC
+
+# TGC_BETA6_OSM_CARTPATH_ROAD_SPLIT_V4
+
 _AREA_GOLF_TYPES = {
     "green", "tee", "fairway", "bunker", "rough", "driving_range",
     "water_hazard", "lateral_water_hazard", "clubhouse",
@@ -30,14 +34,16 @@ def _tags(obj):
     return getattr(obj, "tags", {}) or {}
 
 
-def _feature_mode_and_width_m(obj):
+def _feature_mode_and_width_m(
+    obj,
+    include_vehicle_roads=False,
+    vehicle_road_width_m=6.0,
+):
     tags = _tags(obj)
     golf_type = tags.get("golf")
     natural_type = tags.get("natural")
     waterway_type = tags.get("waterway")
     highway_type = tags.get("highway")
-    golf_cart_type = tags.get("golf_cart")
-    amenity_type = tags.get("amenity")
     area_tag = str(tags.get("area", "") or "").lower()
 
     if golf_type == "hole":
@@ -52,10 +58,16 @@ def _feature_mode_and_width_m(obj):
         return "area", 0.0
     if waterway_type is not None:
         return ("area", 0.0) if area_tag == "yes" else ("line", 6.0)
-    if highway_type is not None and golf_cart_type not in (None, "no"):
-        return ("area", 0.0) if area_tag == "yes" else ("line", 2.0)
-    if amenity_type == "parking" and golf_cart_type not in (None, "no"):
-        return "area", 0.0
+    if highway_type is not None:
+        highway_class = OSMTGC.classifyHighwayForTGC(tags)
+        if highway_class == "cartpath":
+            return ("area", 0.0) if area_tag == "yes" else ("line", 2.0)
+        if highway_class == "road" and bool(include_vehicle_roads):
+            try:
+                road_width = max(0.5, float(vehicle_road_width_m))
+            except Exception:
+                road_width = 6.0
+            return ("area", 0.0) if area_tag == "yes" else ("line", road_width)
     return None, 0.0
 
 
@@ -301,7 +313,12 @@ def _rasterize_multipolygon(outers, inners, shape):
     return relation_mask
 
 
-def _standalone_member_allowed(way, member_context):
+def _standalone_member_allowed(
+    way,
+    member_context,
+    include_vehicle_roads=False,
+    vehicle_road_width_m=6.0,
+):
     """Avoid filling multipolygon fragments as independent polygons.
 
     A relation inner can still be a genuine independently tagged golf feature
@@ -312,7 +329,11 @@ def _standalone_member_allowed(way, member_context):
     if not contexts:
         return True
 
-    mode, _width = _feature_mode_and_width_m(way)
+    mode, _width = _feature_mode_and_width_m(
+        way,
+        include_vehicle_roads=include_vehicle_roads,
+        vehicle_road_width_m=vehicle_road_width_m,
+    )
     if mode is None:
         return False
     if mode == "line":
@@ -411,7 +432,9 @@ def _cleanup_red_mask(outside):
 
 
 def apply_auto_red_mask(osm_source, image_rgb, pc, image_scale, buffer_m=5.0,
-                        x_offset=0.0, y_offset=0.0, printf=print):
+                        x_offset=0.0, y_offset=0.0, printf=print,
+                        include_vehicle_roads=False,
+                        vehicle_road_width_m=6.0):
     """Paint red outside golf/cart/water features plus a metric edge buffer.
 
     V2 understands OSM multipolygon relations. Outer-member way fragments are
@@ -458,7 +481,11 @@ def apply_auto_red_mask(osm_source, image_rgb, pc, image_scale, buffer_m=5.0,
         if str(tags.get("type", "") or "").lower() != "multipolygon":
             continue
 
-        mode, _nominal_width_m = _feature_mode_and_width_m(rel)
+        mode, _nominal_width_m = _feature_mode_and_width_m(
+            rel,
+            include_vehicle_roads=include_vehicle_roads,
+            vehicle_road_width_m=vehicle_road_width_m,
+        )
         if mode != "area":
             continue
 
@@ -504,10 +531,19 @@ def apply_auto_red_mask(osm_source, image_rgb, pc, image_scale, buffer_m=5.0,
 
     # Standalone ways and independently tagged inner features.
     for way in ways:
-        if not _standalone_member_allowed(way, member_context):
+        if not _standalone_member_allowed(
+            way,
+            member_context,
+            include_vehicle_roads=include_vehicle_roads,
+            vehicle_road_width_m=vehicle_road_width_m,
+        ):
             continue
 
-        mode, nominal_width_m = _feature_mode_and_width_m(way)
+        mode, nominal_width_m = _feature_mode_and_width_m(
+            way,
+            include_vehicle_roads=include_vehicle_roads,
+            vehicle_road_width_m=vehicle_road_width_m,
+        )
         if mode is None:
             continue
         pts = _way_points_pixels(

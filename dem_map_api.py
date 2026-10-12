@@ -44,11 +44,11 @@ DEM_DEFAULT_REDUCER_MB = 64
 DEM_DEFAULT_MERGE_MB = 256
 DEM_DEFAULT_WARP_MB = 256
 
-# Boundary-selection performance control.
-# Keep the fast bounded selector preview, but final production masking follows
-# Beta 3/3.1 semantics: render OSM + Auto Red Mask on the full-resolution DEM,
-# then crop the completed mask and DEM together using identical bounds.
+# Boundary-selection performance controls.
+# The selector never needs a production-resolution mask; build a bounded
+# preview first, then render the full-quality mask only for the accepted crop.
 DEM_BOUNDARY_PREVIEW_MAX_DIM = 1200
+DEM_FINAL_MASK_HALO_M = 100.0
 
 
 def _env_positive_int(name, default_value, minimum=1, maximum=4096):
@@ -1179,14 +1179,16 @@ def generate_dem_output(
     visual_gray = _normalize_image(dem_crop)
     visual = cv2.cvtColor(visual_gray, cv2.COLOR_GRAY2RGB)
 
-    # DEM Auto Red Mask hotfix:
-    # Restore Beta 3/3.1 production-mask semantics. The fast bounded preview
-    # remains preview-only; the authoritative final mask is rendered once on
-    # the full-resolution DEM coordinate frame and only then cropped with the
-    # exact same bounds as the DEM heightmap.
+    # TGC_DEM_AUTOMASK_BETA3_FULLFRAME_RESTORE_V1
+    # Restore Beta 3 / Beta 3.1 production-mask semantics:
+    # build the final OSM + Auto Red Mask on the full-resolution, full DEM
+    # coordinate frame first, then crop the completed mask and DEM together.
+    #
+    # The lightweight/decimated boundary preview remains unchanged; this only
+    # affects the final production mask after the user accepts a crop.
     printf(
-        "Generating final DEM mask on full DEM extent "
-        "(Beta 3/3.1 production semantics)."
+        "Generating final DEM mask on the full DEM using "
+        "Beta 3/3.1 full-frame semantics."
     )
     mask_t0 = time.perf_counter()
 
@@ -1197,13 +1199,15 @@ def generate_dem_output(
         osm_result,
         auto_red_mask_enabled=auto_red_mask_enabled,
         auto_red_mask_buffer_m=auto_red_mask_buffer_m,
+        x_offset=0.0,
+        y_offset=0.0,
         printf=printf,
     )
 
-    mask_crop = mask_full[
-        lower_y:upper_y,
-        lower_x:upper_x,
-    ]
+    # Crop the already-completed full-frame mask using exactly the same
+    # accepted bounds used for dem_crop / heightmap.  Red masking therefore
+    # cannot create a second local coordinate frame around the selected crop.
+    mask_crop = mask_full[lower_y:upper_y, lower_x:upper_x]
 
     printf(
         "Final full-frame DEM mask rendered and cropped in " +

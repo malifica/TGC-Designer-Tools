@@ -5,7 +5,36 @@ All notable fork-specific changes to `malifica/TGC-Designer-Tools` are documente
 The fork is based on work from `HiCamino/TGC-Designer-Tools`.
 
 
-## [0.5.0-2k25-beta5] - Regional themes, USGS EPT, terrain gap fill, and DEM mask hotfix
+## [0.5.0-2k25-beta6] - 2026-10-12 - CFS alignment, unmatched OSM, roads/paths, and regional-tree update
+
+### Added
+
+- Custom unmatched-OSM mode for placing any Local OSM course layout on unrelated LiDAR/DEM terrain while preserving local metric dimensions and orientation.
+- Shared custom-layout transform reused by terrain previews, CFS alignment, Auto Red Mask, and final OSM import.
+- Background CFS preview preparation and asynchronous production-mask rebuild with progress reporting.
+- Separate optional automobile-road import for supported `highway=*` classes, independent of golf cart paths.
+- `golf=path` walking-path handling independent of `golf=cartpath`.
+- Pacific Northwest regional tree profile calibrated from the Mount Rainier donor course.
+- Slope-Locked Hulkify course scaling in 10% increments.
+- Beta 6 source/workflow verification scripts and Windows build helper.
+
+### Changed
+
+- Local OSM selection is placed at the top of the LiDAR/DEM workflow and CFS alignment is finalized before the production Auto Red Mask is accepted.
+- Applying a CFS shift rebuilds `mask.png` on the final master grid using the same transform used by final feature import.
+- Unmatched OSM centering prefers `golf=hole` geometry, then other golf geometry, before falling back to full node extent.
+- Cart paths require `golf=cartpath`; walking paths require explicit `golf=path`; generic `footway`, `path`, and `pedestrian` highways are not silently promoted into golf paths.
+- Tree-size labels are `Standard (Lidar)`, `Heroic`, `Epic`, and `Mythic`; Epic is 1.20× Heroic and Mythic is 1.80× Heroic.
+- Custom unmatched-OSM mode blocks AWS EPT discovery and Terrain Gap Fill operations that rely on the original OSM geography.
+
+### Fixed
+
+- LiDAR tree masks now use the final master grid so trees remain aligned after OSM/CFS transforms.
+- Tight Auto Red Mask buffers can no longer become stale when the OSM overlay is shifted after initial terrain processing.
+- Initial custom-layout previews use the same detached-layout centering transform as CFS, mask generation, and final import.
+- Existing Beta 5 hotfix safeguards remain: true-ground AWS EPT reprojection, safe Local OSM master extents, and mask/heightmap dimension locking.
+
+## [0.5.0-2k25-beta5] - 2026-10-07 - Real-life tree planting profiles
 
 ### Added
 
@@ -14,12 +43,8 @@ The fork is based on work from `HiCamino/TGC-Designer-Tools`.
 - Finished-course analyzer for prefab usage and X/Y/Z p10/p50/p90 scale distributions.
 - Weighted custom-profile tree assignment for LiDAR and OSM candidates.
 - **Heroic (Beta 5)** scale mode with **Legacy LiDAR** retained for comparison.
-- Beta 5 Windows build, verifier, publish helper, release notes, release checklist, and GitHub Actions build.
+- Beta 5 development build and verifier scripts.
 - **Texas Hill Country** calibrated profile from `Canyon Springs SATX (L).course`, using the 51 highest-use non-ornamental prefabs (2,668 placements / 90.4% of the retained reference population).
-
-### Fixed
-
-- GeoTIFF DEM Auto Red Mask final production masking now restores Beta 3/3.1 full-frame semantics: render OSM + Auto Red Mask on the full-resolution full DEM, then crop the completed mask and DEM together using identical accepted bounds. The Beta 4 100 m crop-halo production-mask regeneration path is removed while the fast bounded selector preview is retained.
 
 ### Changed
 

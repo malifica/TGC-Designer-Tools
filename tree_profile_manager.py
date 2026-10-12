@@ -1,4 +1,4 @@
-"""Beta 5 real-life tree profile support.
+"""Beta 6 real-life tree profile support.
 
 Custom profiles are JSON files stored in ./tree_profiles. They describe a
 real-world course style: tree prefab mix/scale plus the donor course's surface
@@ -15,10 +15,13 @@ import sys
 from pathlib import Path
 
 DESIGNER_THEME_LABEL = "Designer Theme (source course)"
-HEROIC_SCALE_MODE = "Heroic (Beta 5)"
+STANDARD_SCALE_MODE = "Standard (Lidar)"
+HEROIC_SCALE_MODE = "Heroic"
 EPIC_SCALE_MODE = "Epic"
-LEGACY_SCALE_MODE = "Legacy LiDAR"
+MYTHIC_SCALE_MODE = "Mythic"
+LEGACY_SCALE_MODE = STANDARD_SCALE_MODE
 EPIC_SCALE_MULTIPLIER = 1.20
+MYTHIC_SCALE_MULTIPLIER = 1.80
 
 PLANNED_PROFILE_NAMES = (
     "Piney Woods",
@@ -348,9 +351,13 @@ def scale_for_asset(
         defaults["z"],
     )
 
-    # Epic preserves the donor-calibrated/profile-relative proportions while
-    # making the entire tree population one clear step larger than Heroic.
-    if tree_scale_mode == EPIC_SCALE_MODE:
+    # Heroic is the donor-calibrated regional-profile baseline.
+    # Epic = Heroic x1.20; Mythic = Heroic x1.80.
+    if tree_scale_mode == MYTHIC_SCALE_MODE:
+        sx *= MYTHIC_SCALE_MULTIPLIER
+        sy *= MYTHIC_SCALE_MULTIPLIER
+        sz *= MYTHIC_SCALE_MULTIPLIER
+    elif tree_scale_mode == EPIC_SCALE_MODE:
         sx *= EPIC_SCALE_MULTIPLIER
         sy *= EPIC_SCALE_MULTIPLIER
         sz *= EPIC_SCALE_MULTIPLIER

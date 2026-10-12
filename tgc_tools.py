@@ -416,6 +416,729 @@ def shift_course(course_json, easting_shift, northing_shift, course_version):
     course_json = shift_terrain(course_json, easting_shift, northing_shift, course_version)
     return shift_features(course_json, easting_shift, northing_shift, course_version)
 
+# TGC_HULKIFY_COURSE_V2_SLOPE_LOCK
+# Enlarge the course horizontally while scaling vertical TERRAIN RELIEF by the
+# same factor.  Scaling rise and run together preserves the original slope
+# percentages and terrain severity instead of flattening the course.
+def _hulkify_is_number(value):
+    return (
+        isinstance(value, (int, float)) and
+        not isinstance(value, bool) and
+        math.isfinite(float(value))
+    )
+
+
+def _hulkify_scale_absolute_point(point, center_x, center_z, factor, second_key="z"):
+    if not isinstance(point, dict):
+        return 0
+
+    changed = 0
+    if _hulkify_is_number(point.get("x")):
+        point["x"] = center_x + (float(point["x"]) - center_x) * factor
+        changed += 1
+    if _hulkify_is_number(point.get(second_key)):
+        point[second_key] = center_z + (
+            float(point[second_key]) - center_z
+        ) * factor
+        changed += 1
+    return changed
+
+
+def _hulkify_scale_relative_point(point, factor, second_key="z"):
+    if not isinstance(point, dict):
+        return 0
+
+    changed = 0
+    if _hulkify_is_number(point.get("x")):
+        point["x"] = float(point["x"]) * factor
+        changed += 1
+    if _hulkify_is_number(point.get(second_key)):
+        point[second_key] = float(point[second_key]) * factor
+        changed += 1
+    return changed
+
+
+def _hulkify_scale_sizes(container, factor, keys):
+    if not isinstance(container, dict):
+        return 0
+
+    changed = 0
+    for key in keys:
+        if _hulkify_is_number(container.get(key)):
+            container[key] = float(container[key]) * factor
+            changed += 1
+    return changed
+
+
+def _hulkify_scale_absolute_height(value, datum, factor):
+    return datum + (float(value) - datum) * factor
+
+
+def _hulkify_scale_point_height(point, datum, factor, key="y"):
+    if not isinstance(point, dict) or not _hulkify_is_number(point.get(key)):
+        return 0
+    point[key] = _hulkify_scale_absolute_height(point[key], datum, factor)
+    return 1
+
+
+def _hulkify_scale_brush(brush, center_x, center_z, factor):
+    if not isinstance(brush, dict):
+        return 0
+
+    changed = _hulkify_scale_absolute_point(
+        brush.get("position"),
+        center_x,
+        center_z,
+        factor,
+        "z",
+    )
+
+    scale = brush.get("scale")
+    if isinstance(scale, dict):
+        changed += _hulkify_scale_sizes(scale, factor, ("x", "z"))
+
+    # Some older operations use radius rather than an X/Z scale dictionary.
+    changed += _hulkify_scale_sizes(brush, factor, ("radius",))
+    return changed
+
+
+def _hulkify_scale_spline(
+    spline,
+    center_x,
+    center_z,
+    factor,
+    second_key="z",
+    elevation_datum=None,
+    vertical_factor=1.0,
+    vertical_key="y",
+):
+    if not isinstance(spline, dict):
+        return 0
+
+    changed = 0
+    absolute_vertical = bool(spline.get("absoluteY"))
+    for waypoint in spline.get("waypoints", []) or []:
+        if not isinstance(waypoint, dict):
+            continue
+        for key in ("pointOne", "pointTwo", "waypoint"):
+            point = waypoint.get(key)
+            changed += _hulkify_scale_absolute_point(
+                point,
+                center_x,
+                center_z,
+                factor,
+                second_key,
+            )
+            if (
+                absolute_vertical and
+                elevation_datum is not None and
+                vertical_factor != 1.0 and
+                vertical_key not in ("x", second_key)
+            ):
+                changed += _hulkify_scale_point_height(
+                    point,
+                    elevation_datum,
+                    vertical_factor,
+                    vertical_key,
+                )
+        changed += _hulkify_scale_sizes(
+            waypoint,
+            factor,
+            ("width", "secondaryWidth"),
+        )
+
+    changed += _hulkify_scale_sizes(
+        spline,
+        factor,
+        ("width", "secondaryWidth", "spacing"),
+    )
+    return changed
+
+
+def _hulkify_scale_map_container(
+    container,
+    center_x,
+    center_z,
+    factor,
+    second_key="z",
+):
+    """Scale map-edit containers, old brush lists, or spline lists."""
+    if isinstance(container, list):
+        changed = 0
+        for item in container:
+            changed += _hulkify_scale_map_container(
+                item,
+                center_x,
+                center_z,
+                factor,
+                second_key,
+            )
+        return changed
+
+    if not isinstance(container, dict):
+        return 0
+
+    if isinstance(container.get("position"), dict):
+        return _hulkify_scale_brush(
+            container,
+            center_x,
+            center_z,
+            factor,
+        )
+    if isinstance(container.get("waypoints"), list):
+        return _hulkify_scale_spline(
+            container,
+            center_x,
+            center_z,
+            factor,
+            second_key,
+        )
+
+    changed = 0
+    for brush in container.get("brushes", []) or []:
+        changed += _hulkify_scale_brush(
+            brush,
+            center_x,
+            center_z,
+            factor,
+        )
+    for spline in container.get("splines", []) or []:
+        changed += _hulkify_scale_spline(
+            spline,
+            center_x,
+            center_z,
+            factor,
+            second_key,
+        )
+    return changed
+
+
+def _hulkify_layer_json(course_json, course_version):
+    if course_version == 25:
+        return course_json
+    if course_version == 23:
+        return course_json["userLayers2"]
+    return course_json["userLayers"]
+
+
+def _hulkify_reference_points(course_json, course_version):
+    """Return absolute X/Z points used to preserve the current course center."""
+    layer_json = _hulkify_layer_json(course_json, course_version)
+    points = []
+
+    def add(point, second_key="z"):
+        if not isinstance(point, dict):
+            return
+        if (
+            _hulkify_is_number(point.get("x")) and
+            _hulkify_is_number(point.get(second_key))
+        ):
+            points.append((float(point["x"]), float(point[second_key])))
+
+    for key in ("height", "terrainHeight"):
+        for brush in layer_json.get(key, []) or []:
+            add(brush.get("position"))
+
+    if points:
+        return points
+
+    hole_tag = tgc_definitions.version_tags[course_version]["holes"]
+    tee_tag = tgc_definitions.version_tags[course_version]["tees"]
+    for hole in course_json.get(hole_tag, []) or []:
+        for waypoint in hole.get("waypoints", []) or []:
+            add(waypoint)
+        for tee in hole.get(tee_tag, []) or []:
+            tee_position = tee
+            if course_version == 25 and isinstance(tee, dict):
+                tee_position = tee.get("position")
+            add(tee_position)
+
+    spline_tag = tgc_definitions.version_tags[course_version]["splines"]
+    spline_second_key = "z" if course_version == 25 else "y"
+    for spline in course_json.get(spline_tag, []) or []:
+        for waypoint in spline.get("waypoints", []) or []:
+            add(waypoint.get("waypoint"), spline_second_key)
+
+    return points
+
+
+def get_course_horizontal_bounds(course_json, course_version):
+    if course_version not in tgc_definitions.version_tags:
+        return None
+
+    points = _hulkify_reference_points(course_json, course_version)
+    if not points:
+        return None
+
+    xs = [point[0] for point in points]
+    zs = [point[1] for point in points]
+    min_x = min(xs)
+    max_x = max(xs)
+    min_z = min(zs)
+    max_z = max(zs)
+    return {
+        "min_x": min_x,
+        "max_x": max_x,
+        "min_z": min_z,
+        "max_z": max_z,
+        "width": max_x - min_x,
+        "height": max_z - min_z,
+        "center_x": 0.5 * (min_x + max_x),
+        "center_z": 0.5 * (min_z + max_z),
+    }
+
+
+def get_course_vertical_relief_bounds(course_json, course_version):
+    """Return absolute terrain-target bounds used for slope-locked scaling."""
+    if course_version not in tgc_definitions.version_tags:
+        return None
+
+    layer_json = _hulkify_layer_json(course_json, course_version)
+    absolute_values = []
+    relative_values = []
+    unknown_tools = set()
+
+    for key in ("terrainHeight", "height"):
+        for operation in layer_json.get(key, []) or []:
+            if not isinstance(operation, dict):
+                continue
+            value = operation.get("value")
+            if not _hulkify_is_number(value):
+                continue
+            tool = operation.get("tool", 0)
+            try:
+                tool = int(tool)
+            except Exception:
+                unknown_tools.add(str(tool))
+                continue
+            if tool == 0:
+                absolute_values.append(float(value))
+            elif tool == 1:
+                relative_values.append(float(value))
+            else:
+                unknown_tools.add(str(tool))
+
+    if not absolute_values:
+        return {
+            "datum": 0.0,
+            "min": 0.0,
+            "max": 0.0,
+            "range": 0.0,
+            "absolute_count": 0,
+            "relative_count": len(relative_values),
+            "unknown_tools": sorted(unknown_tools),
+        }
+
+    minimum = min(absolute_values)
+    maximum = max(absolute_values)
+    return {
+        "datum": minimum,
+        "min": minimum,
+        "max": maximum,
+        "range": maximum - minimum,
+        "absolute_count": len(absolute_values),
+        "relative_count": len(relative_values),
+        "unknown_tools": sorted(unknown_tools),
+    }
+
+
+def _hulkify_scale_terrain_operation(operation, datum, vertical_factor):
+    if not isinstance(operation, dict):
+        return 0, None
+    value = operation.get("value")
+    if not _hulkify_is_number(value):
+        return 0, None
+
+    tool = operation.get("tool", 0)
+    try:
+        tool = int(tool)
+    except Exception:
+        return 0, str(tool)
+
+    if tool == 0:
+        operation["value"] = _hulkify_scale_absolute_height(
+            value,
+            datum,
+            vertical_factor,
+        )
+        return 1, None
+    if tool == 1:
+        operation["value"] = float(value) * vertical_factor
+        return 1, None
+    return 0, str(tool)
+
+
+def _hulkify_scale_water_height(water_brush, datum, vertical_factor):
+    """Scale active native-water planes; retain zero-valued history/no-op rows."""
+    if not isinstance(water_brush, dict):
+        return 0
+
+    position = water_brush.get("position")
+    y_value = position.get("y") if isinstance(position, dict) else None
+    brush_value = water_brush.get("value")
+    numeric = [
+        float(value)
+        for value in (brush_value, y_value)
+        if _hulkify_is_number(value)
+    ]
+    if not numeric:
+        return 0
+
+    # Finished 2K25 courses commonly retain zero-value water history entries.
+    # Changing those zero rows can resurrect deleted/placeholder water planes.
+    if all(abs(value) <= 1.0e-9 for value in numeric):
+        return 0
+
+    changed = 0
+    if _hulkify_is_number(brush_value):
+        water_brush["value"] = _hulkify_scale_absolute_height(
+            brush_value,
+            datum,
+            vertical_factor,
+        )
+        changed += 1
+    if isinstance(position, dict) and _hulkify_is_number(y_value):
+        position["y"] = _hulkify_scale_absolute_height(
+            y_value,
+            datum,
+            vertical_factor,
+        )
+        changed += 1
+    return changed
+
+
+# TGC_HULKIFY_10_PERCENT_V3
+def scale_course_horizontal(
+    course_json,
+    factor=1.10,
+    course_version=-1,
+    printf=print,
+    preserve_slopes=True,
+):
+    """Scale complete course geometry, slope-locking terrain by default.
+
+    X/Z positions and horizontal footprints are multiplied by ``factor``.
+    When ``preserve_slopes`` is true, absolute terrain targets are scaled about
+    the lowest absolute terrain target and relative terrain edits are multiplied
+    by the same factor.  Therefore both rise and run grow together and original
+    slope percentages are retained.
+    """
+    if course_version not in tgc_definitions.version_tags:
+        raise ValueError("Unsupported course version: " + str(course_version))
+
+    try:
+        factor = float(factor)
+    except Exception as exc:
+        raise ValueError("Horizontal scale factor must be numeric") from exc
+    if not math.isfinite(factor) or factor <= 0.0:
+        raise ValueError("Horizontal scale factor must be greater than zero")
+
+    before = get_course_horizontal_bounds(course_json, course_version)
+    if before is None:
+        raise ValueError("Course contains no horizontal geometry to scale")
+
+    relief_before = get_course_vertical_relief_bounds(
+        course_json,
+        course_version,
+    )
+    elevation_datum = float(relief_before["datum"])
+    vertical_factor = factor if preserve_slopes else 1.0
+
+    center_x = float(before["center_x"])
+    center_z = float(before["center_z"])
+    layer_json = _hulkify_layer_json(course_json, course_version)
+    second_key = "z" if course_version == 25 else "y"
+    changed = 0
+    vertical_changed = 0
+    unknown_tools = set(relief_before.get("unknown_tools", []))
+
+    # Terrain operations: horizontal positions/footprints plus slope-locked
+    # absolute/relative elevation values in their original operation order.
+    for key in ("height", "terrainHeight"):
+        for brush in layer_json.get(key, []) or []:
+            changed += _hulkify_scale_brush(
+                brush,
+                center_x,
+                center_z,
+                factor,
+            )
+            if vertical_factor != 1.0:
+                count, unknown = _hulkify_scale_terrain_operation(
+                    brush,
+                    elevation_datum,
+                    vertical_factor,
+                )
+                vertical_changed += count
+                if unknown is not None:
+                    unknown_tools.add(unknown)
+
+    surface_tag = tgc_definitions.version_tags[course_version]["surfaces"]
+    if course_version == 25 and surface_tag not in course_json:
+        surface_tag += "2"
+    for brush in layer_json.get(surface_tag, []) or []:
+        changed += _hulkify_scale_brush(
+            brush,
+            center_x,
+            center_z,
+            factor,
+        )
+
+    # Native water shares the same horizontal and vertical transform so the
+    # terrain/water relationship and shoreline heights remain coherent.
+    for water_brush in layer_json.get("water", []) or []:
+        changed += _hulkify_scale_brush(
+            water_brush,
+            center_x,
+            center_z,
+            factor,
+        )
+        if vertical_factor != 1.0:
+            vertical_changed += _hulkify_scale_water_height(
+                water_brush,
+                elevation_datum,
+                vertical_factor,
+            )
+
+    # Legacy global water level is transformed only when it is non-zero/active;
+    # zero is retained because it is normally a default/sentinel in 2K25 files.
+    if (
+        vertical_factor != 1.0 and
+        _hulkify_is_number(course_json.get("waterLevel")) and
+        abs(float(course_json.get("waterLevel"))) > 1.0e-9
+    ):
+        course_json["waterLevel"] = _hulkify_scale_absolute_height(
+            course_json["waterLevel"],
+            elevation_datum,
+            vertical_factor,
+        )
+        vertical_changed += 1
+
+    spline_tag = tgc_definitions.version_tags[course_version]["splines"]
+    for spline in course_json.get(spline_tag, []) or []:
+        changed += _hulkify_scale_spline(
+            spline,
+            center_x,
+            center_z,
+            factor,
+            second_key,
+            elevation_datum=(elevation_datum if course_version == 25 else None),
+            vertical_factor=vertical_factor,
+            vertical_key="y",
+        )
+
+    map_keys = (
+        tgc_definitions.version_tags[course_version]["oob"],
+        tgc_definitions.version_tags[course_version]["crowd"],
+        "clearDetail",
+        "clearTrees",
+        "treeDensityMap",
+        "costMap",
+        "AllMapEdits",
+    )
+    processed = set()
+    for key in map_keys:
+        if key in processed:
+            continue
+        processed.add(key)
+        if key in layer_json:
+            changed += _hulkify_scale_map_container(
+                layer_json.get(key),
+                center_x,
+                center_z,
+                factor,
+                second_key,
+            )
+        elif key in course_json:
+            changed += _hulkify_scale_map_container(
+                course_json.get(key),
+                center_x,
+                center_z,
+                factor,
+                second_key,
+            )
+
+    hole_tag = tgc_definitions.version_tags[course_version]["holes"]
+    tee_tag = tgc_definitions.version_tags[course_version]["tees"]
+    pin_tag = tgc_definitions.version_tags[course_version]["pins"]
+    for hole in course_json.get(hole_tag, []) or []:
+        for waypoint in hole.get("waypoints", []) or []:
+            changed += _hulkify_scale_absolute_point(
+                waypoint,
+                center_x,
+                center_z,
+                factor,
+                "z",
+            )
+        for tee in hole.get(tee_tag, []) or []:
+            tee_position = tee
+            if course_version == 25 and isinstance(tee, dict):
+                tee_position = tee.get("position")
+            changed += _hulkify_scale_absolute_point(
+                tee_position,
+                center_x,
+                center_z,
+                factor,
+                "z",
+            )
+        for pin in hole.get(pin_tag, []) or []:
+            pin_position = pin
+            if course_version == 25 and isinstance(pin, dict):
+                pin_position = pin.get("position")
+            if isinstance(pin_position, dict):
+                pin_second_key = "z" if "z" in pin_position else "y"
+                changed += _hulkify_scale_relative_point(
+                    pin_position,
+                    factor,
+                    pin_second_key,
+                )
+        if isinstance(hole.get("flagOffset"), dict):
+            changed += _hulkify_scale_relative_point(
+                hole["flagOffset"],
+                factor,
+                "y",
+            )
+
+    # Object locations move vertically with the transformed ground; their model
+    # scales stay unchanged so trees/buildings do not become 10% taller/wider.
+    object_tag = tgc_definitions.version_tags[course_version]["objects"]
+    for object_group in course_json.get(object_tag, []) or []:
+        if not isinstance(object_group, dict):
+            continue
+        value = object_group.get("Value", {})
+        if not isinstance(value, dict):
+            continue
+
+        for key in ("items", "clusters"):
+            for item in value.get(key, []) or []:
+                if not isinstance(item, dict):
+                    continue
+                position = item.get("position")
+                changed += _hulkify_scale_absolute_point(
+                    position,
+                    center_x,
+                    center_z,
+                    factor,
+                    "z",
+                )
+                if vertical_factor != 1.0:
+                    vertical_changed += _hulkify_scale_point_height(
+                        position,
+                        elevation_datum,
+                        vertical_factor,
+                        "y",
+                    )
+
+        for spline in value.get("splines", []) or []:
+            changed += _hulkify_scale_spline(
+                spline,
+                center_x,
+                center_z,
+                factor,
+                "z",
+                elevation_datum=elevation_datum,
+                vertical_factor=vertical_factor,
+                vertical_key="y",
+            )
+
+        for key, paths in value.items():
+            if not str(key).startswith("objectPaths") or not isinstance(paths, list):
+                continue
+            for path_record in paths:
+                if not isinstance(path_record, dict):
+                    continue
+                path = path_record.get("path", path_record)
+                changed += _hulkify_scale_spline(
+                    path,
+                    center_x,
+                    center_z,
+                    factor,
+                    "z",
+                    elevation_datum=elevation_datum,
+                    vertical_factor=vertical_factor,
+                    vertical_key="y",
+                )
+                changed += _hulkify_scale_sizes(
+                    path_record,
+                    factor,
+                    ("spacing",),
+                )
+
+    for key in ("distanceMarkers", "walkingDestinations"):
+        for record in course_json.get(key, []) or []:
+            if not isinstance(record, dict):
+                continue
+            position = record.get("position") if isinstance(record.get("position"), dict) else record
+            if isinstance(position, dict) and "x" in position and "z" in position:
+                changed += _hulkify_scale_absolute_point(
+                    position,
+                    center_x,
+                    center_z,
+                    factor,
+                    "z",
+                )
+                if vertical_factor != 1.0:
+                    vertical_changed += _hulkify_scale_point_height(
+                        position,
+                        elevation_datum,
+                        vertical_factor,
+                        "y",
+                    )
+
+    marker = course_json.get("malificaHulkify")
+    if not isinstance(marker, dict):
+        marker = {}
+        course_json["malificaHulkify"] = marker
+    marker["version"] = 2
+    marker["applicationCount"] = int(marker.get("applicationCount", 0) or 0) + 1
+    marker["lastFactor"] = factor
+    marker["combinedFactor"] = (
+        float(marker.get("combinedFactor", 1.0) or 1.0) * factor
+    )
+    marker["center"] = {"x": center_x, "z": center_z}
+    marker["verticalScale"] = vertical_factor
+    marker["verticalDatum"] = elevation_datum
+    marker["slopeLocked"] = bool(preserve_slopes)
+    marker["objectModelScaleChanged"] = False
+    marker["courseFinisherMetadataPresent"] = bool(
+        course_json.get("malificaCourseFinisher")
+    )
+
+    after = get_course_horizontal_bounds(course_json, course_version)
+    relief_after = get_course_vertical_relief_bounds(
+        course_json,
+        course_version,
+    )
+    printf(
+        "Hulkify Course: horizontal factor=" + str(round(factor, 6)) +
+        "; center=(" + str(round(center_x, 3)) + ", " +
+        str(round(center_z, 3)) + ")"
+    )
+    printf(
+        "Hulkify Course: reference span " +
+        str(round(before["width"], 3)) + " x " +
+        str(round(before["height"], 3)) + " m -> " +
+        str(round(after["width"], 3)) + " x " +
+        str(round(after["height"], 3)) + " m"
+    )
+    if preserve_slopes:
+        printf(
+            "Hulkify Course: slope lock active; terrain relief " +
+            str(round(relief_before["range"], 3)) + " m -> " +
+            str(round(relief_after["range"], 3)) +
+            " m about datum " + str(round(elevation_datum, 3)) + " m."
+        )
+    if unknown_tools:
+        printf(
+            "Hulkify Course warning: unsupported terrain tool value(s) were "
+            "left vertically unchanged: " + ", ".join(sorted(unknown_tools))
+        )
+    printf(
+        "Hulkify Course: transformed horizontal values=" + str(changed) +
+        "; transformed vertical values=" + str(vertical_changed) +
+        "; placed-object model scales unchanged."
+    )
+    return course_json
+
 # Helper function to rotate coordinates on many different element types
 def rotateCoord(elem, x_key='x', y_key='y', c=1.0, s=0.0):
     x = elem[x_key]

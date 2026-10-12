@@ -15,9 +15,12 @@ from GeoPointCloud import GeoPointCloud
 from infill_image import infill_image_scipy
 import OSMTGC
 import cfs_georef
+import osm_custom_layout
 import tgc_definitions
 import tgc_tools
 import tree_profile_manager
+
+# TGC_BETA6_CUSTOM_UNMATCHED_OSM_V5
 
 status_print_duration = 1.0 # Print progress every n seconds
 
@@ -78,6 +81,7 @@ def _sample_bilinear_2d(arr, row, col):
     fr = row - r0
     fc = col - c0
 
+# TGC_BETA6_OSM_CARTPATH_ROAD_SPLIT_V4
     return float(
         arr[r0, c0] * (1.0 - fr) * (1.0 - fc) +
         arr[r0, c1] * (1.0 - fr) * fc +
@@ -343,6 +347,7 @@ def generate_cartpath_flatten_stamps(
     course_version,
     get_pixel_fn=get_pixel,
     printf=print,
+    skip_spline_indices=None,
 ):
     """TGC_AUTO_FLATTEN_CARTPATHS_V2: gentle centerline-anchored smoothing."""
     spline_tag = tgc_definitions.version_tags[course_version]["splines"]
@@ -350,6 +355,7 @@ def generate_cartpath_flatten_stamps(
     source = _normalize_background_heightmap(heightmap)
 
     all_stamps = []
+    skip_spline_indices = set(skip_spline_indices or ())
     path_count = 0
     skipped_area_count = 0
     total_length = 0.0
@@ -357,6 +363,10 @@ def generate_cartpath_flatten_stamps(
     steep_guard_samples = 0
 
     for spline_index, spline in enumerate(splines):
+        # Automobile-road splines may share the native path surface with cart
+        # paths, but they must not be picked up by Auto Flatten Cartpaths.
+        if spline_index in skip_spline_indices:
+            continue
         try:
             width = float(spline.get("width", 0.0))
             surface = int(spline.get("surface", -1))
@@ -615,11 +625,18 @@ def get_trees(theme, tree_variety, trees, course_version=-1,
             p['Key']['type'] = tree_id
         skinny_trees.append(p)
 
+    mythic = tree_scale_mode == tree_profile_manager.MYTHIC_SCALE_MODE
     epic = tree_scale_mode == tree_profile_manager.EPIC_SCALE_MODE
     heroic = tree_scale_mode == tree_profile_manager.HEROIC_SCALE_MODE
 
-    if epic:
-        # Epic is exactly one 20% step above the current Heroic population.
+    if mythic:
+        # Mythic is exactly 1.80x the established Heroic output range.
+        min_radius_scale = 0.70 * tree_profile_manager.MYTHIC_SCALE_MULTIPLIER
+        max_radius_scale = 1.65 * tree_profile_manager.MYTHIC_SCALE_MULTIPLIER
+        min_height_scale = 0.85 * tree_profile_manager.MYTHIC_SCALE_MULTIPLIER
+        max_height_scale = 1.55 * tree_profile_manager.MYTHIC_SCALE_MULTIPLIER
+    elif epic:
+        # Epic remains exactly 1.20x Heroic.
         min_radius_scale = 0.70 * tree_profile_manager.EPIC_SCALE_MULTIPLIER
         max_radius_scale = 1.65 * tree_profile_manager.EPIC_SCALE_MULTIPLIER
         min_height_scale = 0.85 * tree_profile_manager.EPIC_SCALE_MULTIPLIER
@@ -644,7 +661,9 @@ def get_trees(theme, tree_variety, trees, course_version=-1,
     if tree_radius_range > 0.01:
         radius_multiplier = radius_scale_range / tree_radius_range
     else:
-        if epic:
+        if mythic:
+            min_radius_scale = 1.10 * tree_profile_manager.MYTHIC_SCALE_MULTIPLIER
+        elif epic:
             min_radius_scale = 1.10 * tree_profile_manager.EPIC_SCALE_MULTIPLIER
         else:
             min_radius_scale = 1.10 if heroic else 1.0
@@ -656,7 +675,9 @@ def get_trees(theme, tree_variety, trees, course_version=-1,
     if tree_height_range > 0.01:
         height_multiplier = height_scale_range / tree_height_range
     else:
-        if epic:
+        if mythic:
+            min_height_scale = 1.15 * tree_profile_manager.MYTHIC_SCALE_MULTIPLIER
+        elif epic:
             min_height_scale = 1.15 * tree_profile_manager.EPIC_SCALE_MULTIPLIER
         else:
             min_height_scale = 1.15 if heroic else 1.0
@@ -1086,9 +1107,40 @@ def generate_course(course_json, heightmap_dir_path, options_dict={}, printf=pri
                 + " m"
             )
 
+            osm_pointcloud = pc
+            if bool(options_dict.get('custom_unmatched_osm', False)):
+                min_x = float(master_grid['min_x'])
+                min_y = float(master_grid['min_y'])
+                max_x = float(master_grid.get(
+                    'max_x',
+                    min_x + float(heightmap.shape[1]) * float(master_grid['resolution'])
+                ))
+                max_y = float(master_grid.get(
+                    'max_y',
+                    min_y + float(heightmap.shape[0]) * float(master_grid['resolution'])
+                ))
+                placement = osm_custom_layout.build_custom_placement(
+                    result,
+                    (min_x + max_x) * 0.5,
+                    (min_y + max_y) * 0.5,
+                )
+                osm_pointcloud = osm_custom_layout.CustomTGCPointCloud(
+                    pc,
+                    placement,
+                )
+                info = placement.diagnostics()
+                printf(
+                    "Custom / Unmatched OSM import: absolute OSM geography ignored; "
+                    "centered %s (%d node(s), %.1f x %.1f m) on terrain before CFS shift." % (
+                        info.get('anchor_strategy', 'course anchor'),
+                        int(info.get('anchor_node_count', 0)),
+                        info['source_width_m'], info['source_height_m']
+                    )
+                )
+
             osm_trees = OSMTGC.addOSMToTGC(
                 course_json,
-                pc,
+                osm_pointcloud,
                 result,
                 x_offset=final_osm_ew,
                 y_offset=final_osm_ns,
@@ -1125,6 +1177,11 @@ def generate_course(course_json, heightmap_dir_path, options_dict={}, printf=pri
                 course_version,
                 get_pixel_fn=get_pixel,
                 printf=printf,
+                skip_spline_indices=getattr(
+                    OSMTGC,
+                    "last_imported_road_spline_indices",
+                    set(),
+                ),
             )
             layer_json["height"].extend(cartpath_flatten_stamps)
 
@@ -1178,12 +1235,24 @@ def generate_course(course_json, heightmap_dir_path, options_dict={}, printf=pri
         if len(tree_candidates) > 0:
             printf("Adding trees from LiDAR candidates")
 
+            # BETA6_LIDAR_TREE_MASK_MASTER_GRID_FIX_V1
+            # The mask array is stored in the FULL saved master-grid frame.
+            # Do not build this coordinate helper with addFromImage(im):
+            # addFromImage() rebiases its origin to the first finite terrain
+            # cell.  After OSM-master expansion that can be hundreds of metres
+            # inside the full mask, shifting every LiDAR-tree mask lookup.
+            #
+            # Anchor mask projected coordinates directly to the authoritative
+            # raster affine instead.  projToCV2() only needs projection+origin.
             mask_pc = GeoPointCloud()
-            mask_pc.addFromImage(
-                im,
-                image_scale,
-                master_grid_origin,
-                read_dictionary['projection'],
+            mask_pc.proj = read_dictionary['projection']
+            mask_pc.origin = (
+                float(master_grid['min_x']),
+                float(master_grid['min_y']),
+            )
+            printf(
+                "LiDAR tree mask georef: using full master-grid origin "
+                + str(mask_pc.origin)
             )
 
             lidar_tree_groups = get_lidar_trees(

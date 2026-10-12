@@ -2,27 +2,33 @@
 
 A streamlined 2K25-focused fork of **HiCamino/TGC-Designer-Tools** for building real-world courses from **LiDAR, GeoTIFF DEM, and OpenStreetMap data**.
 
-Current release: **v0.5.0-2k25-beta5**
+Current release: **v0.5.0-2k25-beta6**
 Maintainer: **malifica**
 Upstream: https://github.com/HiCamino/TGC-Designer-Tools
 
 This project remains under the upstream **Apache License 2.0**.
 
 
+## Beta 6
+
+Beta 6 makes Local OSM placement and CFS alignment safer and more flexible while retaining the established LiDAR/DEM workflow.
+
+- **Any Local OSM layout on any LiDAR/DEM terrain**: unmatched OSM geography can be treated as a local metric layout, centered on the terrain, then shifted in the CFS Alignment Viewer without changing the design's dimensions or orientation.
+- **CFS-first mask workflow**: OSM alignment is finalized before the production Auto Red Mask is accepted. Applying a CFS shift rebuilds `mask.png` on the final master grid so a tight preservation buffer cannot be left behind after alignment.
+- **Responsive CFS preparation and mask rebuilds** run off the Tk main thread and report progress while terrain/OSM preview work is prepared.
+- **Road/path semantics are explicit**: `golf=cartpath` is a cart path, `golf=path` is a walking path, and supported automobile `highway=*` features use a separate optional road-spline workflow.
+- **LiDAR tree filtering uses the final master grid**, keeping tree masks aligned after CFS/OSM transforms.
+- **Slope-Locked Hulkify** scales course geometry and relief together in 10% increments so rise/run slope severity is retained.
+- **Pacific Northwest** joins the regional tree profiles, calibrated from the Mount Rainier donor course. Tree-size choices are now `Standard (Lidar)`, `Heroic`, `Epic`, and `Mythic`.
+- Beta 5 hotfix behavior remains included, including true-ground AWS EPT reprojection, safe Local OSM master extents, and final mask/heightmap dimension locking.
+
+Build with `BUILD_TGC_2K25_BETA6.bat`. See `RELEASE_NOTES_v0.5.0-2k25-beta6.md` and `BUILD_WINDOWS.md`.
+
 ## Beta 5
 
-Beta 5 is the current public prerelease and publishes the current main-line feature set.
+Beta 5 introduced the real-life regional-theme system for LiDAR/OSM vegetation, JSON-backed custom profiles measured from finished Designer courses, donor playing-surface/terrain textures, expanded tree scaling, AWS EPT acquisition, Trees Only, Terrain Gap Fill, and the final Beta 5 hotfix corrections retained in Beta 6.
 
-Beta 5 includes a real-life regional-theme system for LiDAR/OSM vegetation. It adds a selectable **Heroic** tree scale and JSON-backed custom profiles measured from fully planted Designer reference courses. Planned profile families include Piney Woods, Monterey Peninsula, Upstate New York, Scotland, and Florida.
-
-Regional themes can also apply donor playing-surface and terrain textures: bunker, green, fringe, fairway, rough, heavy rough, and the four terrain/splat channels.
-
-See `BETA5_TREE_PROFILES.md`.
-
-The current Beta 5 profile set includes the calibrated regional profiles already shipped in `tree_profiles`. See `BETA5_TREE_PROFILES.md` for the current list and donor details.
-
-Beta 5 also includes public USGS AWS EPT acquisition discovery/download, Trees Only workflows, Terrain Gap Fill, OSM-defined terrain master extents, Epic tree scale, and the restored Beta 3/3.1 full-frame DEM Auto Red Mask production workflow.
-
+See `RELEASE_NOTES_v0.5.0-2k25-beta5.md`, `BETA5_TREE_PROFILES.md`, and `BETA5_HOTFIX.md`.
 
 
 ## Beta 4
@@ -37,9 +43,7 @@ Beta 4 rolls the post-Beta-3.1 work on `main` into a new Windows prerelease.
 - **Fjordland theme 54 tree support** adds the complete 44-tree reference palette without renumbering existing global 2K25 tree IDs.
 - The Beta 3.1 **automatic LiDAR CRS correction for foot/US-survey-foot projections** remains included.
 
-For Beta 5, build with `BUILD_TGC_2K25_BETA5.bat`. See `RELEASE_NOTES_v0.5.0-2k25-beta5.md` and `RELEASE_CHECKLIST_v0.5.0-2k25-beta5.md` for validation and publishing steps.
-
-The Beta 4 section below is retained as release history.
+Build with `BUILD_TGC_2K25_BETA4.bat`. See `RELEASE_NOTES_v0.5.0-2k25-beta4.md` and `RELEASE_CHECKLIST_v0.5.0-2k25-beta4.md` for validation and publishing steps.
 
 ---
 

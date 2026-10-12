@@ -13,6 +13,77 @@ status_print_duration = 1.0 # Print progress every N seconds
 
 spline_configuration = None
 
+# TGC_BETA6_OSM_CARTPATH_ROAD_SPLIT_V4
+# TGC_BETA6_OSM_GOLF_PATH_ONLY_V4_1
+# Keep explicit golf-cart paths separate from ordinary automobile roads.
+# Walking-path import is intentionally restricted to explicit golf=path ways.
+# Generic highway=footway/path/pedestrian/etc. OSM ways are not imported by
+# the golf Walking Paths control.  OSM road-like highway tags are classified
+# once here so the importer, CFS viewer, and Auto Red Mask share semantics.
+last_imported_road_spline_indices = set()
+
+_VEHICLE_ROAD_HIGHWAY_TYPES = {
+    "motorway", "motorway_link",
+    "trunk", "trunk_link",
+    "primary", "primary_link",
+    "secondary", "secondary_link",
+    "tertiary", "tertiary_link",
+    "unclassified", "residential", "living_street",
+    "service", "road", "track",
+}
+
+_WALKING_HIGHWAY_TYPES = {
+    "footway", "path", "pedestrian", "steps", "bridleway",
+}
+
+
+def _osm_access_positive(value):
+    if value is None:
+        return False
+    return str(value).strip().lower() not in ("", "no", "false", "0")
+
+
+def classifyHighwayForTGC(tags):
+    """Classify an OSM way as cartpath, road, walkingpath or None.
+
+    Beta 6 V4.1 precedence is intentional:
+      1. golf=cartpath is the ONLY cart-path authority; the underlying highway
+         subtype may still be service/path and does not change that meaning;
+      2. golf=path is the ONLY walking-path authority; generic OSM footways,
+         sidewalks, crossings, pedestrian paths, and access aisles are ignored;
+      3. motor-vehicle road classes are automobile roads;
+      4. proposed/construction ways are skipped.
+
+    This deliberately does NOT promote a generic road merely because it has a
+    golf_cart=yes/designated access tag.  Likewise, ordinary highway=footway
+    or highway=path data is not imported by the golf Walking Paths control.
+    """
+    tags = tags or {}
+    golf_type = str(tags.get("golf", "") or "").strip().lower()
+    if golf_type == "cartpath":
+        return "cartpath"
+    if golf_type == "path":
+        return "walkingpath"
+
+    highway = str(tags.get("highway", "") or "").strip().lower()
+    if not highway or highway in ("proposed", "construction"):
+        return None
+
+    motor_vehicle = str(tags.get("motor_vehicle", "") or "").strip().lower()
+    vehicle = str(tags.get("vehicle", "") or "").strip().lower()
+    motor_blocked = motor_vehicle in ("no", "false", "0") or vehicle in ("no", "false", "0")
+
+    if highway in _VEHICLE_ROAD_HIGHWAY_TYPES:
+        # A road explicitly closed to motor vehicles is not an automobile road,
+        # and V4.1 no longer reclassifies it as a walking path unless golf=path.
+        if motor_blocked:
+            return None
+        return "road"
+
+    # V4.1: all generic pedestrian/path/cycleway classes are ignored here.
+    # They become walking paths only when the OSM way is explicitly golf=path.
+    return None
+
 # Returns left, top, right, bottom
 def nodeBoundingBox(nds):
     X = [nd[0] for nd in nds]
@@ -45,6 +116,7 @@ _SPLINE_OPTIMIZATION_TOLERANCE_M = {
     "rough": 0.50,
     "heavyrough": 0.50,
     "cartpath": 0.25,
+    "road": 0.50,
     "walkingpath": 0.25,
 }
 
@@ -56,6 +128,7 @@ _SPLINE_OPTIMIZATION_MIN_POINTS = {
     "rough": 5,
     "heavyrough": 5,
     "cartpath": 2,
+    "road": 2,
     "walkingpath": 2,
 }
 
@@ -1701,6 +1774,54 @@ def newCartPath(points, area=False, course_version=-1, optimize_points=True):
 
     return cp
 
+def newRoad(points, area=False, course_version=-1, optimize_points=True):
+    """Create an automobile-road spline, independently configurable in splines.json."""
+    global spline_configuration
+    spline_json = None
+    if spline_configuration is not None:
+        spline_json = spline_configuration.get("road", None)
+
+    # A two-lane/service-road default. Users can set any desired width with
+    # splines.json -> road -> pathWidth without changing cart-path width.
+    pathWidth = 6.0
+    shrink_distance = 0.0
+    if area:
+        shrink_distance = None
+    if optimize_points:
+        points = _optimize_osm_feature_points(points, "road", closed=bool(area))
+
+    road = newSpline(
+        points,
+        pathWidth=pathWidth,
+        shrink_distance=shrink_distance,
+        handleLength=5.0,
+        tightSplines=False,
+        secondarySurface="",
+        secondaryWidth=0.0,
+        spline_json=spline_json,
+        course_version=course_version,
+    )
+
+    # Use the same native path material family as cart paths by default;
+    # road has its own splines.json primarySurface override when desired.
+    default_road_surface = "surface1" if course_version == 25 else "cartpath"
+    road["surface"] = _configured_primary_surface(
+        spline_json,
+        default_road_surface,
+        course_version,
+    )
+
+    if area:
+        road["state"] = 3
+        road["isClosed"] = True
+        road["isFilled"] = True
+    else:
+        road["state"] = 0
+        road["isClosed"] = False
+        road["isFilled"] = False
+    return road
+
+
 def newWalkingPath(points, area=False, course_version=-1, optimize_points=True):
     global spline_configuration
     spline_json = None
@@ -1952,6 +2073,7 @@ def addOSMToTGC(course_json, geopointcloud, osm_result, x_offset=0.0, y_offset=0
     global spline_configuration
     global spline_optimization_enabled
     global spline_optimization_stats
+    global last_imported_road_spline_indices
 
     if course_version not in tgc_definitions.version_tags:
         print("invalid version")
@@ -1965,6 +2087,8 @@ def addOSMToTGC(course_json, geopointcloud, osm_result, x_offset=0.0, y_offset=0
     # We can convert these directly into the game's splines
 
     spline_configuration = spline_configuration_json
+    last_imported_road_spline_indices = set()
+    highway_import_counts = {"cartpath": 0, "road": 0, "walkingpath": 0}
     spline_optimization_enabled = bool(
         options_dict.get('optimize_osm_spline_points', True)
     )
@@ -2156,8 +2280,10 @@ def addOSMToTGC(course_json, geopointcloud, osm_result, x_offset=0.0, y_offset=0
                 course_json[spline_tag].append(newWaterHazard(nds, area=True, course_version=course_version))
             elif golf_type == "cartpath" and options_dict.get('cartpath', True):
                 course_json[spline_tag].append(newCartPath(nds, area=area, course_version=course_version))
+                highway_import_counts["cartpath"] += 1
             elif golf_type == "path" and options_dict.get('path', True):
                 course_json[spline_tag].append(newWalkingPath(nds, area=area, course_version=course_version))
+                highway_import_counts["walkingpath"] += 1
             elif golf_type == "clubhouse" and options_dict.get('building', True):
                 course_json[spline_tag].append(newBuilding(nds, course_version))
             elif golf_type == "hole" and options_dict.get('hole', True):
@@ -2228,20 +2354,27 @@ def addOSMToTGC(course_json, geopointcloud, osm_result, x_offset=0.0, y_offset=0
                     )
             elif natural_type == "wood" and options_dict.get('tree', True):
                 course_json[spline_tag].append(newForest(nds, course_version))
-        elif highway_type is not None and highway_type not in ["proposed", "construction"]:
-            implicit_foot_access = {"motorway": "no",
-                                    "motorway_link": "no",
-                                    "trunk": "no",
-                                    "trunk_link": "no"}
+        elif highway_type is not None:
+            highway_class = classifyHighwayForTGC(way.tags)
 
-            way_foot_access = foot_type if foot_type is not None else implicit_foot_access.get(highway_type, "yes")
-
-            if golf_cart_type is not None and golf_cart_type != "no" and options_dict.get('cartpath', True):
-                course_json[spline_tag].append(newCartPath(nds, area=area, course_version=course_version))
-            elif way_foot_access != "no" and options_dict.get('path', True) and options_dict.get('all_osm_paths', True):
-                course_json[spline_tag].append(newWalkingPath(nds, area=area, course_version=course_version))
-        elif amenity_type == "parking" and golf_cart_type is not None and golf_cart_type != "no" and options_dict.get('cartpath', True):
-            course_json[spline_tag].append(newCartPath(nds, area=True, course_version=course_version))
+            if highway_class == "cartpath":
+                # Normally handled by the golf=cartpath branch above. Keep this
+                # shared-classifier fallback for consistency with preview/mask.
+                if options_dict.get('cartpath', True):
+                    course_json[spline_tag].append(newCartPath(nds, area=area, course_version=course_version))
+                    highway_import_counts["cartpath"] += 1
+            elif highway_class == "road":
+                # Ordinary service/residential/primary/etc. vehicle roads are
+                # never imported by the Cartpaths or Walking Paths controls.
+                if options_dict.get('road', False):
+                    road_index = len(course_json[spline_tag])
+                    course_json[spline_tag].append(newRoad(nds, area=area, course_version=course_version))
+                    last_imported_road_spline_indices.add(road_index)
+                    highway_import_counts["road"] += 1
+            elif highway_class == "walkingpath":
+                if options_dict.get('path', True) and options_dict.get('all_osm_paths', True):
+                    course_json[spline_tag].append(newWalkingPath(nds, area=area, course_version=course_version))
+                    highway_import_counts["walkingpath"] += 1
 
     printf(
         "OpenStreetMap Ways complete: " + str(num_ways) +
@@ -2447,6 +2580,12 @@ def addOSMToTGC(course_json, geopointcloud, osm_result, x_offset=0.0, y_offset=0
                     course_json[spline_tag].append(fw_spline)
 
     printf("OpenStreetMap Relations complete: " + str(num_rels) + ".")
+    printf(
+        "OSM path import summary: " +
+        str(highway_import_counts["cartpath"]) + " golf cart path(s), " +
+        str(highway_import_counts["road"]) + " automobile road(s), " +
+        str(highway_import_counts["walkingpath"]) + " walking path(s)."
+    )
 
     # Insert all the found holes
     for key in sorted(hole_dictionary):
