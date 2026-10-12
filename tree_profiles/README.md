@@ -12,7 +12,7 @@ Each profile can define:
 - calibrated X/Y/Z or uniform scale ranges
 - an optional Designer theme and playing-surface/terrain material preset
 
-The repository intentionally stores the finished regional profile data without identifying calibration/source courses.
+The repository intentionally stores the finished regional profile data without source attribution.
 
 ## Available profiles
 
