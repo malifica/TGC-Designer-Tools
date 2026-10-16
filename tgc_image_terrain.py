@@ -1061,7 +1061,10 @@ def generate_course(course_json, heightmap_dir_path, options_dict={}, printf=pri
         printf("Adding golf features to lidar data")
 
         # Get spline configuration file, if present
-        spline_json = tgc_tools.get_spline_configuration_json(heightmap_dir_path)
+        spline_json = tgc_tools.get_spline_configuration_json(
+            heightmap_dir_path,
+            printf=printf,
+        )
 
         local_osm_file = str(options_dict.get('local_osm_file', '') or '').strip()
         local_osm_mode = bool(local_osm_file)

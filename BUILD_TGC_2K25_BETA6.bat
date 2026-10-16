@@ -36,6 +36,9 @@ echo === Beta 6 full source verification ===
 python VERIFY_BETA6_SOURCE.py
 if errorlevel 1 goto :fail
 
+python VERIFY_BETA6_SPLINE_SURFACE_FIX_V1.py
+if errorlevel 1 goto :fail
+
 python VERIFY_BETA6_CFS_MASK_ALIGNMENT_WORKFLOW_V1.py
 if errorlevel 1 goto :fail
 
@@ -114,7 +117,8 @@ python -m py_compile ^
  VERIFY_BETA6_CFS_ASYNC_MASK_REBUILD_V3.py ^
  VERIFY_BETA6_OSM_ROAD_SPLIT_V4.py ^
  VERIFY_BETA6_CUSTOM_UNMATCHED_OSM_V5.py ^
- VERIFY_BETA6_CUSTOM_UNMATCHED_OSM_V5_1.py
+ VERIFY_BETA6_CUSTOM_UNMATCHED_OSM_V5_1.py ^
+ VERIFY_BETA6_SPLINE_SURFACE_FIX_V1.py
 if errorlevel 1 goto :fail
 
 echo.
@@ -164,6 +168,8 @@ copy /y "CHANGELOG.md" "%RELEASEDIR%\" >nul
 copy /y "BUILD_WINDOWS.md" "%RELEASEDIR%\" >nul
 copy /y "BETA6_TREE_PROFILES.md" "%RELEASEDIR%\" >nul
 copy /y "RELEASE_NOTES_v0.5.0-2k25-beta6.md" "%RELEASEDIR%\" >nul
+if exist "BETA6_HOTFIX.md" copy /y "BETA6_HOTFIX.md" "%RELEASEDIR%\" >nul
+if exist "extras\splines.json" copy /y "extras\splines.json" "%RELEASEDIR%\splines.json" >nul
 if exist "BETA6_OSM_CARTPATH_ROAD_SPLIT_V4.txt" copy /y "BETA6_OSM_CARTPATH_ROAD_SPLIT_V4.txt" "%RELEASEDIR%\" >nul
 if exist "BETA6_OSM_GOLF_PATH_ONLY_V4_1.txt" copy /y "BETA6_OSM_GOLF_PATH_ONLY_V4_1.txt" "%RELEASEDIR%\" >nul
 if exist "SPLINES_JSON_ROAD_EXAMPLE.json" copy /y "SPLINES_JSON_ROAD_EXAMPLE.json" "%RELEASEDIR%\" >nul

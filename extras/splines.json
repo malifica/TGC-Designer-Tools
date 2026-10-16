@@ -1,5 +1,6 @@
 {
   "bunker": {
+    "primarySurface": "bunker",
     "pathWidth": 0.01,
     "handleLength": 1.0,
     "tightSplines": true,
@@ -7,6 +8,7 @@
     "secondaryWidth": 2.5
   },
   "green": {
+    "primarySurface": "green",
     "pathWidth": 1.7,
     "handleLength": 0.2,
     "tightSplines": true,
@@ -14,6 +16,7 @@
     "secondaryWidth": 2.5
   },
   "teebox": {
+    "primarySurface": "green",
     "pathWidth": 1.7,
     "handleLength": 0.2,
     "tightSplines": true,
@@ -21,6 +24,7 @@
     "secondaryWidth": 2.5
   },
   "fairway": {
+    "primarySurface": "fairway",
     "pathWidth": 3.0,
     "handleLength": 3.0,
     "tightSplines": false,
@@ -28,6 +32,7 @@
     "secondaryWidth": 5.0
   },
   "rough": {
+    "primarySurface": "rough",
     "pathWidth": 1.7,
     "handleLength": 3.0,
     "tightSplines": false,
@@ -35,6 +40,7 @@
     "secondaryWidth": 0.0
   },
   "heavyrough": {
+    "primarySurface": "heavyrough",
     "pathWidth": 1.7,
     "handleLength": 3.0,
     "tightSplines": false,
@@ -42,6 +48,7 @@
     "secondaryWidth": 0.0
   },
   "cartpath": {
+    "primarySurface": "cartpath",
     "pathWidth": 2.0,
     "handleLength": 4.0,
     "tightSplines": false,
@@ -49,13 +56,39 @@
     "secondaryWidth": 0.0
   },
   "walkingpath": {
+    "primarySurface": "surface1",
     "pathWidth": 1.7,
     "handleLength": 2.0,
     "tightSplines": false,
     "secondarySurface": "",
     "secondaryWidth": 0.0
   },
+  "road": {
+    "primarySurface": "asphalt",
+    "pathWidth": 6.0,
+    "handleLength": 5.0,
+    "tightSplines": false,
+    "secondarySurface": "",
+    "secondaryWidth": 0.0
+  },
+  "water": {
+    "primarySurface": "mulch",
+    "pathWidth": 0.01,
+    "handleLength": 0.2,
+    "tightSplines": true,
+    "secondarySurface": "",
+    "secondaryWidth": 0.0
+  },
+  "stream": {
+    "primarySurface": "mulch",
+    "pathWidth": 2.0,
+    "handleLength": 0.5,
+    "tightSplines": false,
+    "secondarySurface": "",
+    "secondaryWidth": 0.0
+  },
   "placeholder": {
+    "primarySurface": null,
     "pathWidth": 0.01,
     "handleLength": 0.2,
     "tightSplines": true,

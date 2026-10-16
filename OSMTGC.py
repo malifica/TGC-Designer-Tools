@@ -15,6 +15,7 @@ spline_configuration = None
 
 # TGC_BETA6_OSM_CARTPATH_ROAD_SPLIT_V4
 # TGC_BETA6_OSM_GOLF_PATH_ONLY_V4_1
+# TGC_BETA6_SPLINE_SURFACE_FIX_V1
 # Keep explicit golf-cart paths separate from ordinary automobile roads.
 # Walking-path import is intentionally restricted to explicit golf=path ways.
 # Generic highway=footway/path/pedestrian/etc. OSM ways are not imported by
@@ -597,6 +598,35 @@ def newSpline(points, pathWidth=0.01, shrink_distance=None, handleLength=0.5, ti
 
     return spline
 
+def _normalized_primary_surface_name(value, course_version=-1):
+    """Normalize semantic splines.json surface names for the target game."""
+    configured = str(value or "").strip().lower()
+
+    aliases = {
+        "tee": "green",
+        "teebox": "green",
+        "heavy rough": "heavyrough",
+        "heavy_rough": "heavyrough",
+        "surface 1": "surface1",
+        "surface 2": "surface2",
+        "surface 3": "surface3",
+        "mulch": "surface2",
+        "asphalt": "surface3",
+    }
+
+    # Native 2K25 uses the first custom spline surface for the Designer
+    # cart-path category.  Keep the semantic name independent from the
+    # material slots used for OSM road and water placeholders.
+    if course_version == 25:
+        aliases.update({
+            "cartpath": "surface1",
+            "cart path": "surface1",
+            "road": "surface3",
+        })
+
+    return aliases.get(configured, configured)
+
+
 def _configured_primary_surface(
     spline_json,
     default_surface_name,
@@ -605,14 +635,15 @@ def _configured_primary_surface(
     """
     Resolve optional splines.json primarySurface.
 
-    Existing splines.json files remain fully backward compatible. If the key
-    is absent, blank, null, or unknown, the existing Python-coded surface is
-    retained.
+    Existing splines.json files remain backward compatible.  Semantic names
+    are resolved per game version so 2K25 cart paths, asphalt roads and mulch
+    water placeholders do not collapse onto the same surface id.
     """
-    default_value = tgc_definitions.featuresToSurfaces.get(
+    default_key = _normalized_primary_surface_name(
         default_surface_name,
-        1,
+        course_version,
     )
+    default_value = tgc_definitions.featuresToSurfaces.get(default_key, 1)
 
     if not isinstance(spline_json, dict):
         return default_value
@@ -628,27 +659,73 @@ def _configured_primary_surface(
             return value
         return default_value
 
-    configured = str(configured).strip().lower()
+    configured = _normalized_primary_surface_name(
+        configured,
+        course_version,
+    )
 
     if not configured:
         return default_value
-
-    aliases = {
-        "tee": "green",
-        "teebox": "green",
-        "heavy rough": "heavyrough",
-        "heavy_rough": "heavyrough",
-        "surface 1": "surface1",
-        "surface 2": "surface2",
-        "surface 3": "surface3",
-    }
-
-    configured = aliases.get(configured, configured)
 
     if configured in tgc_definitions.featuresToSurfaces:
         return tgc_definitions.featuresToSurfaces[configured]
 
     return default_value
+
+
+def _spline_section(name):
+    if not isinstance(spline_configuration, dict):
+        return None
+    value = spline_configuration.get(name, None)
+    return value if isinstance(value, dict) else None
+
+
+def _configured_width(section_name, default_width):
+    section = _spline_section(section_name)
+    if section is None:
+        return float(default_width)
+    try:
+        return float(section.get("pathWidth", default_width))
+    except (TypeError, ValueError):
+        return float(default_width)
+
+
+def _print_spline_configuration_summary(course_version, printf=print):
+    cart_json = _spline_section("cartpath")
+    road_json = _spline_section("road")
+    water_json = _spline_section("water") or _spline_section("placeholder")
+    stream_json = _spline_section("stream")
+
+    cart_surface = _configured_primary_surface(
+        cart_json, "cartpath", course_version
+    )
+    road_surface = _configured_primary_surface(
+        road_json,
+        "asphalt" if course_version == 25 else "cartpath",
+        course_version,
+    )
+    water_surface = _configured_primary_surface(
+        water_json, "mulch", course_version
+    )
+    stream_surface_json = stream_json
+    if not isinstance(stream_surface_json, dict) or (
+        "primarySurface" not in stream_surface_json
+    ):
+        stream_surface_json = water_json
+    stream_surface = _configured_primary_surface(
+        stream_surface_json, "mulch", course_version
+    )
+
+    printf(
+        "Spline surfaces/widths: cartpath=surface " +
+        str(cart_surface) + " @ " +
+        str(round(_configured_width("cartpath", 2.0), 3)) +
+        " m; road=surface " + str(road_surface) + " @ " +
+        str(round(_configured_width("road", 6.0), 3)) +
+        " m; water=surface " + str(water_surface) +
+        "; stream=surface " + str(stream_surface) + " @ " +
+        str(round(_configured_width("stream", 2.0), 3)) + " m"
+    )
 
 def newBunker(points, course_version, optimize_points=True):
     global spline_configuration
@@ -1038,7 +1115,7 @@ def _way_to_tgc_points(way, geopointcloud, x_offset, y_offset, resolve_missing_n
 # course importer historically handled only way-based water, so relation-based
 # natural=water lakes were visible in mask.png but absent from the .course.
 #
-# For 2K25, water placeholders are filled Surface 3 splines.  Since TGC filled
+# For 2K25, water placeholders are filled mulch / Surface 2 splines.  Since TGC filled
 # splines do not have native polygon holes, inner rings are represented using
 # the same narrow-neck/lollipop geometry already proven for bunker/fairway
 # islands.  Fragmented outer/inner member ways are stitched by shared endpoint
@@ -1753,9 +1830,9 @@ def newCartPath(points, area=False, course_version=-1, optimize_points=True):
     if optimize_points:
         points = _optimize_osm_feature_points(points, "cartpath", closed=bool(area))
     cp = newSpline(points, pathWidth=pathWidth, shrink_distance=shrink_distance, handleLength=4.0, tightSplines=False, secondarySurface="", secondaryWidth=0.0, spline_json=spline_json, course_version=course_version) # Smooth a lot
-    # Cartpath is surface 10 (this is the one with Cartpath logo in Designer)
-    # Remove secondary with 0 width
-    default_cartpath_surface = "surface1" if course_version == 25 else "cartpath"
+    # Use the native semantic cart-path surface.  In 2K25 this resolves to
+    # surface 7 / the Designer Cart Path category, not the asphalt road slot.
+    default_cartpath_surface = "cartpath"
     cp["surface"] = _configured_primary_surface(
         spline_json,
         default_cartpath_surface,
@@ -1802,9 +1879,9 @@ def newRoad(points, area=False, course_version=-1, optimize_points=True):
         course_version=course_version,
     )
 
-    # Use the same native path material family as cart paths by default;
-    # road has its own splines.json primarySurface override when desired.
-    default_road_surface = "surface1" if course_version == 25 else "cartpath"
+    # Automobile roads use the asphalt custom surface by default in 2K25.
+    # This remains independently configurable through road.primarySurface.
+    default_road_surface = "asphalt" if course_version == 25 else "cartpath"
     road["surface"] = _configured_primary_surface(
         spline_json,
         default_road_surface,
@@ -1851,22 +1928,55 @@ def newWalkingPath(points, area=False, course_version=-1, optimize_points=True):
 
 def newWaterHazard(points, area=True, course_version=-1):
     global spline_configuration
-    spline_json = None
-    if spline_configuration is not None:
-        spline_json = spline_configuration.get("placeholder", None)
-    # Add placeholder for water hazard.
-    # Add spline and fill with black mulch
+
+    # Water now has its own configuration section.  Fall back to the legacy
+    # placeholder section for closed-water geometry so existing projects keep
+    # their detailed shoreline settings.
+    water_json = _spline_section("water")
+    if water_json is None:
+        water_json = _spline_section("placeholder")
+    stream_json = _spline_section("stream")
+
     if area:
-        # No width, only very detailed fill shape
-        wh = newSpline(points, pathWidth = 0.01, handleLength=0.2, tightSplines=True, secondarySurface="", secondaryWidth=0.0, spline_json=spline_json, course_version=course_version)
+        # No width, only very detailed fill shape.
+        wh = newSpline(
+            points,
+            pathWidth=0.01,
+            handleLength=0.2,
+            tightSplines=True,
+            secondarySurface="",
+            secondaryWidth=0.0,
+            spline_json=water_json,
+            course_version=course_version,
+        )
+        surface_json = water_json
     else:
-        # Make smooth creek or waterway
-        wh = newSpline(points, pathWidth=2.0, shrink_distance=0.0, tightSplines=False, secondarySurface="", secondaryWidth=0.0, spline_json=None, course_version=course_version)
-    # Fill as mulch/surface #2 as a placeholder
-    wh["surface"] = tgc_definitions.featuresToSurfaces["surface2"]
-    if course_version == 25:
-        wh["surface"] = tgc_definitions.featuresToSurfaces["surface3"]
-        
+        # Make a smooth creek/waterway.  Stream geometry is independently
+        # configurable, while its primary surface inherits water when omitted.
+        wh = newSpline(
+            points,
+            pathWidth=2.0,
+            shrink_distance=0.0,
+            handleLength=0.5,
+            tightSplines=False,
+            secondarySurface="",
+            secondaryWidth=0.0,
+            spline_json=stream_json,
+            course_version=course_version,
+        )
+        surface_json = stream_json
+        if not isinstance(surface_json, dict) or (
+            "primarySurface" not in surface_json
+        ):
+            surface_json = water_json
+
+    # OSM water placeholders are mulch / Surface 2 by default.
+    wh["surface"] = _configured_primary_surface(
+        surface_json,
+        "mulch",
+        course_version,
+    )
+
     if area:
         wh["state"] = 3
         wh["isClosed"] = True
@@ -2087,6 +2197,7 @@ def addOSMToTGC(course_json, geopointcloud, osm_result, x_offset=0.0, y_offset=0
     # We can convert these directly into the game's splines
 
     spline_configuration = spline_configuration_json
+    _print_spline_configuration_summary(course_version, printf=printf)
     last_imported_road_spline_indices = set()
     highway_import_counts = {"cartpath": 0, "road": 0, "walkingpath": 0}
     spline_optimization_enabled = bool(

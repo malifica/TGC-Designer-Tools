@@ -1,4 +1,16 @@
-# TGC Designer Tools 2K25 — v0.5.0-2k25-beta6
+# TGC Designer Tools 2K25 — v0.5.0-2k25-beta6 Hotfix
+
+## Beta 6 spline-surface hotfix
+
+- OSM water polygons and streams now default to the mulch custom surface.
+- Automobile roads now default to asphalt and remain independent from golf cart paths.
+- Cart paths retain the selected Designer theme's Cart Path material while honoring configured widths and valid surface overrides.
+- Water and streams have independent `splines.json` sections, with the legacy `placeholder` section retained as a closed-water geometry fallback.
+- Invalid or misnamed `splines.json` files now produce a clear error instead of silently reverting to defaults.
+- The processing log reports effective cart-path, road, water, and stream surfaces and widths.
+- Aligned-mask road-width tracking now uses the same validated configuration loader as final OSM import.
+
+The hotfix retains the existing Beta 6 tag and established Windows asset filenames.
 
 Beta 6 builds on the Beta 5 hotfix with a safer CFS/mask workflow, detached Local OSM placement, explicit road/path handling, final-grid LiDAR tree masking, Slope-Locked Hulkify, and an expanded regional-tree system.
 

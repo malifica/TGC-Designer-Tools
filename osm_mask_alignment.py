@@ -30,6 +30,7 @@ import pyproj
 
 import OSMTGC
 import auto_red_mask
+import tgc_tools
 import osm_custom_layout
 import cfs_georef
 from GeoPointCloud import GeoPointCloud
@@ -191,17 +192,21 @@ DEFAULT_VEHICLE_ROAD_WIDTH_M = 6.0
 
 
 def _vehicle_road_width_m(folder: Path) -> float:
-    """Read the optional splines.json road.pathWidth used by OSM road import."""
-    path = Path(folder) / "splines.json"
-    if not path.is_file():
+    """Read validated splines.json road.pathWidth used by OSM road import."""
+    data = tgc_tools.get_spline_configuration_json(
+        folder,
+        printf=None,
+    )
+    if not data:
         return DEFAULT_VEHICLE_ROAD_WIDTH_M
-    try:
-        data = json.loads(path.read_text(encoding="utf-8"))
-        value = float((data.get("road") or {}).get("pathWidth", DEFAULT_VEHICLE_ROAD_WIDTH_M))
-        if math.isfinite(value) and value > 0.0:
-            return value
-    except Exception:
-        pass
+    value = float(
+        (data.get("road") or {}).get(
+            "pathWidth",
+            DEFAULT_VEHICLE_ROAD_WIDTH_M,
+        )
+    )
+    if math.isfinite(value) and value > 0.0:
+        return value
     return DEFAULT_VEHICLE_ROAD_WIDTH_M
 
 

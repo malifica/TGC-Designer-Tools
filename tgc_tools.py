@@ -163,16 +163,113 @@ def get_metadata_json(course_directory):
         
     return metadata_json
 
-def get_spline_configuration_json(course_directory):
-    try:
-        course_dir = Path(course_directory)
-        spline_json = None
-        with (course_dir / 'splines.json').open('r') as f:
-            spline_json = json.loads(f.read())  
-            
-        return spline_json
-    except:
+# TGC_BETA6_SPLINE_SURFACE_FIX_V1
+_SPLINE_SURFACE_NAMES = {
+    "bunker", "green", "tee", "teebox", "fairway", "rough",
+    "heavyrough", "heavy rough", "heavy_rough", "surface1",
+    "surface 1", "surface2", "surface 2", "surface3", "surface 3",
+    "cartpath", "cart path", "road", "mulch", "asphalt", "water",
+    "clearobjects", "cleartrees",
+}
+
+
+def _validate_spline_configuration(data, path):
+    if not isinstance(data, dict):
+        raise ValueError(str(path) + " must contain a JSON object at the top level.")
+
+    for section_name, section in data.items():
+        if not isinstance(section, dict):
+            raise ValueError(
+                str(path) + ": section '" + str(section_name) +
+                "' must be a JSON object."
+            )
+
+        for field in ("pathWidth", "handleLength", "secondaryWidth"):
+            if field not in section:
+                continue
+            try:
+                value = float(section[field])
+            except (TypeError, ValueError):
+                raise ValueError(
+                    str(path) + ": " + str(section_name) + "." + field +
+                    " must be numeric."
+                )
+            if not math.isfinite(value):
+                raise ValueError(
+                    str(path) + ": " + str(section_name) + "." + field +
+                    " must be finite."
+                )
+            if field != "secondaryWidth" and value < 0.0:
+                raise ValueError(
+                    str(path) + ": " + str(section_name) + "." + field +
+                    " cannot be negative."
+                )
+
+        if "tightSplines" in section and not isinstance(
+            section["tightSplines"], bool
+        ):
+            raise ValueError(
+                str(path) + ": " + str(section_name) +
+                ".tightSplines must be true or false."
+            )
+
+        if "primarySurface" in section:
+            surface = section["primarySurface"]
+            if surface is None:
+                continue
+            if isinstance(surface, (int, float)):
+                surface_value = int(surface)
+                if surface_value < 0 or surface_value > 255:
+                    raise ValueError(
+                        str(path) + ": " + str(section_name) +
+                        ".primarySurface must be between 0 and 255."
+                    )
+            else:
+                surface_name = str(surface).strip().lower()
+                if surface_name not in _SPLINE_SURFACE_NAMES:
+                    raise ValueError(
+                        str(path) + ": unknown primarySurface '" +
+                        str(surface) + "' in section '" +
+                        str(section_name) + "'."
+                    )
+
+    return data
+
+
+def get_spline_configuration_json(course_directory, printf=print):
+    course_dir = Path(course_directory)
+    path = course_dir / "splines.json"
+
+    if not path.is_file():
+        alternates = sorted(
+            p.name for p in course_dir.glob("splines*.json")
+            if p.name.lower() != "splines.json"
+        )
+        if alternates:
+            raise ValueError(
+                "Spline configuration must be named exactly splines.json. "
+                "Found instead: " + ", ".join(alternates)
+            )
         return None
+
+    try:
+        data = json.loads(path.read_text(encoding="utf-8-sig"))
+    except json.JSONDecodeError as exc:
+        raise ValueError(
+            "Invalid splines.json at " + str(path) + ": line " +
+            str(exc.lineno) + ", column " + str(exc.colno) + ": " +
+            str(exc.msg)
+        ) from exc
+    except OSError as exc:
+        raise ValueError(
+            "Could not read spline configuration " + str(path) + ": " +
+            str(exc)
+        ) from exc
+
+    data = _validate_spline_configuration(data, path)
+    if printf is not None:
+        printf("Loaded spline configuration: " + str(path))
+    return data
 
 def write_course_json(course_directory, course_json):
     course_dir = Path(course_directory)
