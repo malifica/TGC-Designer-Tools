@@ -1,0 +1,229 @@
+name: Publish Beta 6 Hotfix
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "BETA6_SPLINE_SURFACE_FIX_V1.patch.gz.b64"
+
+permissions:
+  contents: write
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+  PYTHONUTF8: "1"
+  HOTFIX_PATCH_B64: "BETA6_SPLINE_SURFACE_FIX_V1.patch.gz.b64"
+  TAG_NAME: "v0.5.0-2k25-beta6"
+  RELEASE_TITLE: "TGC Designer Tools 2K25 - Beta 6 Hotfix"
+  EXE_NAME: "tgc_gui_2k25_beta6"
+  PACKAGE_NAME: "TGC-Designer-Tools-2K25-v0.5.0-2k25-beta6-Windows-x64"
+
+jobs:
+  build-publish-hotfix:
+    runs-on: windows-latest
+    timeout-minutes: 75
+
+    steps:
+      - name: Check out Beta 6 source
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Apply verified V1 hotfix patch
+        shell: pwsh
+        run: |
+          $encoded = (Get-Content $env:HOTFIX_PATCH_B64 -Raw).Trim()
+          $compressed = [Convert]::FromBase64String($encoded)
+          [IO.File]::WriteAllBytes("beta6-hotfix.patch.gz", $compressed)
+
+          $input = [IO.File]::OpenRead("beta6-hotfix.patch.gz")
+          try {
+            $gzip = [IO.Compression.GzipStream]::new($input, [IO.Compression.CompressionMode]::Decompress)
+            try {
+              $output = [IO.File]::Create("beta6-hotfix.patch")
+              try { $gzip.CopyTo($output) } finally { $output.Dispose() }
+            } finally { $gzip.Dispose() }
+          } finally { $input.Dispose() }
+
+          git apply --check beta6-hotfix.patch
+          if ($LASTEXITCODE -ne 0) { throw "The verified V1 patch does not apply cleanly to current main." }
+          git apply beta6-hotfix.patch
+          if ($LASTEXITCODE -ne 0) { throw "Failed to apply the verified V1 patch." }
+
+      - name: Set up Python 3.11.6 x64
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11.6"
+          architecture: "x64"
+          cache: "pip"
+
+      - name: Install Python dependencies
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+
+      - name: Verify Beta 6 hotfix source
+        shell: pwsh
+        run: |
+          python --version
+          python VERIFY_BETA6_SPLINE_SURFACE_FIX_V1.py
+          python VERIFY_BETA6_SOURCE.py
+          python VERIFY_BETA6_CFS_MASK_ALIGNMENT_WORKFLOW_V1.py
+          python VERIFY_BETA6_WORKFLOW_UI_REORDER_V2.py
+          python VERIFY_BETA6_CFS_ASYNC_MASK_REBUILD_V3.py
+          python VERIFY_BETA6_OSM_ROAD_SPLIT_V4.py
+          python VERIFY_BETA6_CUSTOM_UNMATCHED_OSM_V5.py
+          python VERIFY_BETA6_CUSTOM_UNMATCHED_OSM_V5_1.py
+          python -m py_compile tgc_gui.py dem_map_api.py lidar_map_api.py lidar_fast_native.py usgs_lidar_parser.py usgs_ept_downloader.py infill_image.py tgc_image_terrain.py tgc_definitions.py tgc_tools.py tree_profile_manager.py tree_profile_analyzer.py OSMTGC.py auto_red_mask.py cfs_georef.py lidar_feature_filter.py osm_mask_alignment.py osm_custom_layout.py osm_alignment_viewer.py VERIFY_BETA6_SPLINE_SURFACE_FIX_V1.py
+          python -c "import rasterio; print('Rasterio', rasterio.__version__); print('GDAL', rasterio.__gdal_version__)"
+
+      - name: Install MinGW-w64
+        shell: pwsh
+        run: |
+          choco install mingw -y --no-progress
+          $gcc = Get-ChildItem -Path "C:\ProgramData\chocolatey","C:\ProgramData\mingw64","C:\tools" -Filter gcc.exe -Recurse -ErrorAction SilentlyContinue | Where-Object { $_.FullName -match "mingw64.*bin.*gcc\.exe$" } | Select-Object -First 1
+          if (-not $gcc) {
+            $cmd = Get-Command gcc.exe -ErrorAction SilentlyContinue
+            if ($cmd) { $gcc = Get-Item $cmd.Source }
+          }
+          if (-not $gcc) { throw "MinGW-w64 gcc.exe was not found after installation." }
+          "TGC_CC=$($gcc.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host "Using MinGW-w64 compiler: $($gcc.FullName)"
+
+      - name: Compile native LiDAR rasterizer
+        shell: pwsh
+        run: |
+          & "$env:TGC_CC" -O3 -shared -std=c11 -s -o tgc_lidar_fast_native.dll lidar_fast_native.c -lm
+          if ($LASTEXITCODE -ne 0) { throw "Native LiDAR compile failed." }
+          if (-not (Test-Path "tgc_lidar_fast_native.dll")) { throw "Native LiDAR DLL was not created." }
+          Write-Host "Native LiDAR DLL size:" (Get-Item "tgc_lidar_fast_native.dll").Length
+
+      - name: Build Beta 6 Hotfix EXE
+        shell: pwsh
+        run: |
+          python -m PyInstaller --noconfirm --clean --onefile --name "$env:EXE_NAME" --add-binary "./laszip/laszip-cli.exe;laszip" --add-binary "tgc_lidar_fast_native.dll;." --additional-hooks-dir "./PyInstaller/hooks/" --runtime-hook "./PyInstaller/rthook_rasterio.py" --add-data "./tree_profiles;tree_profiles" tgc_gui.py
+          if ($LASTEXITCODE -ne 0) { throw "PyInstaller failed." }
+          $exe = "dist\$env:EXE_NAME.exe"
+          if (-not (Test-Path $exe)) { throw "Expected Beta 6 EXE was not created." }
+          if ((Get-Item $exe).Length -lt 100MB) { throw "Built EXE is unexpectedly small." }
+
+      - name: Package Beta 6 Hotfix release
+        shell: pwsh
+        run: |
+          $base = "dist\release_beta6"
+          $dir = Join-Path $base $env:PACKAGE_NAME
+          New-Item -ItemType Directory -Force -Path $dir | Out-Null
+
+          Copy-Item "dist\$env:EXE_NAME.exe" $dir
+          Copy-Item "LICENSE" $dir
+          Copy-Item "README.md" $dir
+          Copy-Item "CHANGELOG.md" $dir
+          Copy-Item "BUILD_WINDOWS.md" $dir
+          Copy-Item "BETA6_TREE_PROFILES.md" $dir
+          Copy-Item "BETA6_HOTFIX.md" $dir
+          Copy-Item "RELEASE_NOTES_v0.5.0-2k25-beta6.md" $dir
+          Copy-Item "extras\splines.json" (Join-Path $dir "splines.json")
+          Copy-Item "tree_profiles" (Join-Path $dir "tree_profiles") -Recurse
+
+          $zip = Join-Path $base "$env:PACKAGE_NAME.zip"
+          Compress-Archive -Path "$dir\*" -DestinationPath $zip -Force
+
+          $exePath = "dist\$env:EXE_NAME.exe"
+          $exeHash = (Get-FileHash $exePath -Algorithm SHA256).Hash.ToLowerInvariant()
+          $zipHash = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$exeHash  $env:EXE_NAME.exe" | Out-File "$base\$env:EXE_NAME.exe.sha256.txt" -Encoding ascii
+          "$zipHash  $env:PACKAGE_NAME.zip" | Out-File "$base\$env:PACKAGE_NAME.zip.sha256.txt" -Encoding ascii
+
+          "HOTFIX_EXE_HASH=$exeHash" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "HOTFIX_ZIP_HASH=$zipHash" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host "EXE SHA256: $exeHash"
+          Write-Host "ZIP SHA256: $zipHash"
+
+      - name: Commit clean hotfix source to main
+        shell: pwsh
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git rm ".github/workflows/publish-beta6-hotfix.yml" "$env:HOTFIX_PATCH_B64"
+          Remove-Item "beta6-hotfix.patch" -Force -ErrorAction SilentlyContinue
+          Remove-Item "beta6-hotfix.patch.gz" -Force -ErrorAction SilentlyContinue
+
+          git add OSMTGC.py tgc_tools.py tgc_image_terrain.py osm_mask_alignment.py extras/splines.json BUILD_TGC_2K25_BETA6.bat RELEASE_NOTES_v0.5.0-2k25-beta6.md VERIFY_BETA6_SPLINE_SURFACE_FIX_V1.py BETA6_HOTFIX.md
+          git status --short
+          git commit -m "Beta 6 Hotfix: fix spline surfaces and configuration loading"
+          if ($LASTEXITCODE -ne 0) { throw "Failed to create the clean Beta 6 hotfix source commit." }
+
+          $hotfixSha = (git rev-parse HEAD).Trim()
+          git push origin HEAD:main
+          if ($LASTEXITCODE -ne 0) { throw "Failed to push the Beta 6 hotfix source commit." }
+          "HOTFIX_SOURCE_SHA=$hotfixSha" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host "Hotfix source commit: $hotfixSha"
+
+      - name: Update Beta 6 tag, release, and assets
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git tag -f $env:TAG_NAME $env:HOTFIX_SOURCE_SHA
+          git push origin "refs/tags/$env:TAG_NAME" --force
+          if ($LASTEXITCODE -ne 0) { throw "Failed to move the Beta 6 tag to the hotfix source commit." }
+
+          $release = gh api "repos/$env:GITHUB_REPOSITORY/releases/tags/$env:TAG_NAME" | ConvertFrom-Json
+          $releaseId = $release.id
+          if (-not $releaseId) { throw "Could not resolve the existing Beta 6 release." }
+
+          $body = Get-Content "RELEASE_NOTES_v0.5.0-2k25-beta6.md" -Raw
+          $payload = @{
+            name = $env:RELEASE_TITLE
+            body = $body
+            draft = $false
+            prerelease = $true
+            target_commitish = $env:HOTFIX_SOURCE_SHA
+          } | ConvertTo-Json -Compress
+          $payload | gh api --method PATCH "repos/$env:GITHUB_REPOSITORY/releases/$releaseId" --input - | Out-Null
+          if ($LASTEXITCODE -ne 0) { throw "Failed to update the Beta 6 release metadata." }
+
+          $base = "dist\release_beta6"
+          gh release upload $env:TAG_NAME `
+            "dist\$env:EXE_NAME.exe" `
+            "$base\$env:EXE_NAME.exe.sha256.txt" `
+            "$base\$env:PACKAGE_NAME.zip" `
+            "$base\$env:PACKAGE_NAME.zip.sha256.txt" `
+            --clobber
+          if ($LASTEXITCODE -ne 0) { throw "Failed to replace the Beta 6 release assets." }
+
+      - name: Verify published Beta 6 hotfix
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ref = gh api "repos/$env:GITHUB_REPOSITORY/git/ref/tags/$env:TAG_NAME" | ConvertFrom-Json
+          if ($ref.object.sha -ne $env:HOTFIX_SOURCE_SHA) {
+            throw "Published tag does not point to the hotfix source commit."
+          }
+
+          $release = gh api "repos/$env:GITHUB_REPOSITORY/releases/tags/$env:TAG_NAME" | ConvertFrom-Json
+          if ($release.name -ne $env:RELEASE_TITLE) { throw "Release title was not updated." }
+          if (-not $release.prerelease) { throw "Beta 6 release is no longer marked prerelease." }
+
+          $expected = @{
+            "$env:EXE_NAME.exe" = "sha256:$env:HOTFIX_EXE_HASH"
+            "$env:PACKAGE_NAME.zip" = "sha256:$env:HOTFIX_ZIP_HASH"
+            "$env:EXE_NAME.exe.sha256.txt" = $null
+            "$env:PACKAGE_NAME.zip.sha256.txt" = $null
+          }
+
+          foreach ($name in $expected.Keys) {
+            $asset = $release.assets | Where-Object { $_.name -eq $name }
+            if (-not $asset) { throw "Missing published asset: $name" }
+            if ($asset.size -le 0) { throw "Published asset is empty: $name" }
+            if ($expected[$name] -and $asset.digest -ne $expected[$name]) {
+              throw "Published digest mismatch for $name. Expected $($expected[$name]); got $($asset.digest)."
+            }
+            Write-Host "Verified $name ($($asset.size) bytes; $($asset.digest))"
+          }
+
+          Write-Host "Beta 6 hotfix publication verified at commit $env:HOTFIX_SOURCE_SHA"
