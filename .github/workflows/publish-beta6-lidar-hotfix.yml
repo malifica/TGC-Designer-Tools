@@ -26,7 +26,17 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          python PROMOTE_BETA6_LIDAR_HOTFIX.py
+          # The repository ignores *.json globally. Force-add only the explicit
+          # approved-file allowlist, including its profile and hash manifest.
+          @'
+          from pathlib import Path
+          path = Path('PROMOTE_BETA6_LIDAR_HOTFIX.py')
+          source = path.read_text(encoding='utf-8')
+          old = "command('git', 'add', *SOURCE_FILES"
+          assert source.count(old) == 1, 'Publication staging guard mismatch'
+          source = source.replace(old, "command('git', 'add', '-f', *SOURCE_FILES", 1)
+          exec(compile(source, str(path), 'exec'), {'__name__': '__main__', '__file__': str(path)})
+          '@ | python -
           if ($LASTEXITCODE -ne 0) { throw 'Beta 6 publication failed; inspect guarded promotion log.' }
       - name: Retain verified publication receipt
         uses: actions/upload-artifact@v6
