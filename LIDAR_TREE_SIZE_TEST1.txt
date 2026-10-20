@@ -1,0 +1,37 @@
+TGC Designer Tools 2K25 - Beta 6 - LiDAR Tree Size TEST 1
+
+TEST BUILD ONLY. Main and public release are not updated.
+Base main: 8003c468fd00106fec5cdef5524bea52b7960d57 (Beta 6 spline-surface hotfix).
+
+Regional themes now select tree prefabs only; their scale_defaults, per-asset
+scale percentiles and uniform_scale values no longer set generated tree size.
+All palettes share the existing Designer-Theme LiDAR radius/height calculation.
+Standard (Lidar) and Heroic retain their established mapping. Epic = Heroic x1.20;
+Mythic = Heroic x1.80 on X/Y/Z. The same accepted source tree population and mode
+produce the same transform scales regardless of theme choice.
+
+Tree detection, coordinates, masks, projection and surface filters are unchanged.
+Regional prefab pools, weights and normal/skinny selection remain. Treeless
+profiles remain treeless. Regional terrain/material presets are not removed.
+OSM-only trees have no measured LiDAR dimensions; their existing built-in default
+sizes are used instead of regional size distributions.
+
+SIZING SCOPE
+This restores the original LiDAR-derived scaling, not a new physical prefab
+calibration. Actual source radius/height values are mapped within the accepted
+population to the mode's existing transform-scale range. A native transform
+scale is not metres; different prefabs have different unscaled dimensions.
+Changing source-population minima/maxima can still alter the original mapping.
+Changing a theme alone cannot. Equal/single-tree fallback remains unchanged.
+
+USAGE
+Extract to a separate folder. Run tgc_gui_2k25_beta6_tree_size_TEST1.exe.
+Window title ends with LiDAR Tree Size TEST 1.
+Keep the released EXE for comparison. Reuse the same saved LiDAR heightmap;
+reprocessing LiDAR is not needed for this export-only tree-sizing correction.
+
+Windows CI verifies retained Beta 6 checks, actual production tree-generation
+results across bundled profiles and all four modes, extreme profile scale
+values, value-spacing rather than rank, preset ratios and single-tree defaults.
+The compiled EXE repeats those production checks using --verify-lidar-trees.
+This is software/data validation, not a PGA TOUR 2K25 rendering test.
