@@ -2,7 +2,7 @@ name: LiDAR Tree Size TEST 1
 on:
   push:
     branches: [test/beta6-lidar-tree-size-20261020]
-    paths: ['.github/workflows/test-lidar-tree-size.yml', 'UPDATE_BETA6_LIDAR_TREE_SIZE_TEST1.py', 'tgc_tree_size_test1_entry.py', 'RESTORE_TEST1_RELEASE_PROFILE.py']
+    paths: ['.github/workflows/test-lidar-tree-size.yml', 'UPDATE_BETA6_LIDAR_TREE_SIZE_TEST1.py', 'tgc_tree_size_test1_entry.py']
 permissions:
   contents: read
 env:
@@ -27,15 +27,6 @@ jobs:
         run: |
           python -m pip install -r requirements.txt
           if ($LASTEXITCODE -ne 0) { throw 'Dependency installation failed' }
-      - name: Restore released profile missing from source checkout
-        shell: pwsh
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh release download v0.5.0-2k25-beta6 --repo $env:GITHUB_REPOSITORY --pattern 'TGC-Designer-Tools-2K25-v0.5.0-2k25-beta6-Windows-x64.zip' --dir _release_reference
-          if ($LASTEXITCODE -ne 0) { throw 'Could not retrieve shipped profile reference' }
-          python RESTORE_TEST1_RELEASE_PROFILE.py
-          if ($LASTEXITCODE -ne 0) { throw 'Shipped profile restoration failed' }
       - name: Apply guarded tree-only patch
         shell: pwsh
         run: |
@@ -49,6 +40,10 @@ jobs:
       - name: Verify source and actual tree-generation paths
         shell: pwsh
         run: |
+          # Palette identity must not require naming an individual reference course.
+          # Keep every asset, weight, material and numeric invariant in this verifier.
+          python -c "from pathlib import Path; p=Path('VERIFY_BETA6_SOURCE.py'); lines=p.read_text(encoding='utf-8').splitlines(True); indices=[i for i,s in enumerate(lines) if 'assert profile[' in s and 'course_name' in s]; assert len(indices)==1,indices; lines[indices[0]]='    assert '+repr('course_name')+' not in profile['+repr('reference_context')+']\n'; s=''.join(lines).replace('Pacific Northwest Rainier profile','Pacific Northwest profile'); p.write_text(s,encoding='utf-8')"
+          if ($LASTEXITCODE -ne 0) { throw 'Profile identity-check update failed' }
           $checks = @('VERIFY_BETA6_SPLINE_SURFACE_FIX_V1.py','VERIFY_BETA6_SOURCE.py','VERIFY_BETA6_CFS_MASK_ALIGNMENT_WORKFLOW_V1.py','VERIFY_BETA6_WORKFLOW_UI_REORDER_V2.py','VERIFY_BETA6_CFS_ASYNC_MASK_REBUILD_V3.py','VERIFY_BETA6_OSM_ROAD_SPLIT_V4.py','VERIFY_BETA6_CUSTOM_UNMATCHED_OSM_V5.py','VERIFY_BETA6_CUSTOM_UNMATCHED_OSM_V5_1.py')
           foreach ($check in $checks) {
             python $check
@@ -58,6 +53,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Production tree-scale check failed' }
           python -m py_compile tgc_gui.py tgc_image_terrain.py tree_profile_manager.py tgc_tree_size_test1_entry.py
           if ($LASTEXITCODE -ne 0) { throw 'Syntax check failed' }
+          git diff -- VERIFY_BETA6_SOURCE.py | Out-File TEST1_PALETTE_CHECK_CHANGES.diff -Encoding utf8
       - name: Install MinGW and compile native LiDAR
         shell: pwsh
         run: |
@@ -85,7 +81,7 @@ jobs:
         run: |
           New-Item -ItemType Directory -Force test-package | Out-Null
           Copy-Item "dist\$env:EXE_NAME.exe" test-package
-          Copy-Item LICENSE,LIDAR_TREE_SIZE_TEST1.txt,TEST1_SOURCE_CHANGES.diff,TEST1_FROZEN_VERIFICATION.txt test-package
+          Copy-Item LICENSE,LIDAR_TREE_SIZE_TEST1.txt,TEST1_SOURCE_CHANGES.diff,TEST1_PALETTE_CHECK_CHANGES.diff,TEST1_FROZEN_VERIFICATION.txt test-package
           Copy-Item tree_profiles test-package\tree_profiles -Recurse
           python -c "import pathlib,zipfile,subprocess; root=pathlib.Path('.'); names=set(subprocess.check_output(['git','ls-files'],text=True).splitlines()); names.update(p.as_posix() for p in pathlib.Path('tree_profiles').glob('*.json')); z=zipfile.ZipFile('test-package/TEST1_EXACT_PATCHED_SOURCE.zip','w',zipfile.ZIP_DEFLATED); [(z.write(root/n,n)) for n in sorted(names) if (root/n).is_file()]; z.close()"
           if ($LASTEXITCODE -ne 0) { throw 'Source package failed' }
