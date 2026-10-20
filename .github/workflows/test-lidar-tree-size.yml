@@ -27,6 +27,15 @@ jobs:
         run: |
           python -m pip install -r requirements.txt
           if ($LASTEXITCODE -ne 0) { throw 'Dependency installation failed' }
+      - name: Restore released profile missing from source checkout
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download v0.5.0-2k25-beta6 --repo $env:GITHUB_REPOSITORY --pattern 'TGC-Designer-Tools-2K25-v0.5.0-2k25-beta6-Windows-x64.zip' --dir _release_reference
+          if ($LASTEXITCODE -ne 0) { throw 'Could not retrieve shipped profile reference' }
+          python -c "import pathlib,zipfile,hashlib; p=next(pathlib.Path('_release_reference').glob('*.zip')); assert hashlib.sha256(p.read_bytes()).hexdigest()=='00d175629e240cf203689e5b70684b924b8aff23ccaa9a269fbd8103154a582b','Release archive digest mismatch'; z=zipfile.ZipFile(p); found=[n for n in z.namelist() if n.replace(chr(92),'/').endswith('tree_profiles/pacific_northwest.json')]; assert len(found)==1,found; dest=pathlib.Path('tree_profiles/pacific_northwest.json'); data=z.read(found[0]); assert not dest.exists(),'Unexpected existing profile'; dest.write_bytes(data); print('Restored released Pacific Northwest profile:',hashlib.sha256(data).hexdigest())"
+          if ($LASTEXITCODE -ne 0) { throw 'Shipped profile restoration failed' }
       - name: Apply guarded tree-only patch
         shell: pwsh
         run: |
@@ -78,7 +87,7 @@ jobs:
           Copy-Item "dist\$env:EXE_NAME.exe" test-package
           Copy-Item LICENSE,LIDAR_TREE_SIZE_TEST1.txt,TEST1_SOURCE_CHANGES.diff,TEST1_FROZEN_VERIFICATION.txt test-package
           Copy-Item tree_profiles test-package\tree_profiles -Recurse
-          python -c "import pathlib,zipfile,subprocess; root=pathlib.Path('.'); names=subprocess.check_output(['git','ls-files'],text=True).splitlines(); z=zipfile.ZipFile('test-package/TEST1_EXACT_PATCHED_SOURCE.zip','w',zipfile.ZIP_DEFLATED); [(z.write(root/n,n)) for n in names if (root/n).is_file()]; z.close()"
+          python -c "import pathlib,zipfile,subprocess; root=pathlib.Path('.'); names=set(subprocess.check_output(['git','ls-files'],text=True).splitlines()); names.update(p.as_posix() for p in pathlib.Path('tree_profiles').glob('*.json')); z=zipfile.ZipFile('test-package/TEST1_EXACT_PATCHED_SOURCE.zip','w',zipfile.ZIP_DEFLATED); [(z.write(root/n,n)) for n in sorted(names) if (root/n).is_file()]; z.close()"
           if ($LASTEXITCODE -ne 0) { throw 'Source package failed' }
           $hash = (Get-FileHash "test-package\$env:EXE_NAME.exe" -Algorithm SHA256).Hash.ToLowerInvariant()
           "$hash  $env:EXE_NAME.exe" | Out-File test-package\SHA256.txt -Encoding ascii
