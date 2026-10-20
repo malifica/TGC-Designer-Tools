@@ -1,0 +1,93 @@
+name: LiDAR Tree Size TEST 1
+on:
+  push:
+    branches: [test/beta6-lidar-tree-size-20261020]
+    paths: ['.github/workflows/test-lidar-tree-size.yml', 'UPDATE_BETA6_LIDAR_TREE_SIZE_TEST1.py', 'tgc_tree_size_test1_entry.py']
+permissions:
+  contents: read
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+  PYTHONUTF8: '1'
+  EXE_NAME: tgc_gui_2k25_beta6_tree_size_TEST1
+jobs:
+  build-test:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11.6'
+          architecture: x64
+          cache: pip
+      - name: Install release dependencies
+        shell: pwsh
+        run: |
+          python -m pip install -r requirements.txt
+          if ($LASTEXITCODE -ne 0) { throw 'Dependency installation failed' }
+      - name: Apply guarded tree-only patch
+        shell: pwsh
+        run: |
+          python UPDATE_BETA6_LIDAR_TREE_SIZE_TEST1.py
+          if ($LASTEXITCODE -ne 0) { throw 'Patch failed' }
+          python UPDATE_BETA6_LIDAR_TREE_SIZE_TEST1.py
+          if ($LASTEXITCODE -ne 0) { throw 'Repeat-apply verification failed' }
+          $changed = @(git diff --name-only)
+          if (($changed | Sort-Object) -join ',' -ne 'tgc_gui.py,tgc_image_terrain.py') { throw "Unexpected source changes: $changed" }
+          git diff -- tgc_gui.py tgc_image_terrain.py | Out-File TEST1_SOURCE_CHANGES.diff -Encoding utf8
+      - name: Verify source and actual tree-generation paths
+        shell: pwsh
+        run: |
+          $checks = @('VERIFY_BETA6_SPLINE_SURFACE_FIX_V1.py','VERIFY_BETA6_SOURCE.py','VERIFY_BETA6_CFS_MASK_ALIGNMENT_WORKFLOW_V1.py','VERIFY_BETA6_WORKFLOW_UI_REORDER_V2.py','VERIFY_BETA6_CFS_ASYNC_MASK_REBUILD_V3.py','VERIFY_BETA6_OSM_ROAD_SPLIT_V4.py','VERIFY_BETA6_CUSTOM_UNMATCHED_OSM_V5.py','VERIFY_BETA6_CUSTOM_UNMATCHED_OSM_V5_1.py')
+          foreach ($check in $checks) {
+            python $check
+            if ($LASTEXITCODE -ne 0) { throw "Source check failed: $check" }
+          }
+          python tgc_tree_size_test1_entry.py --verify-lidar-trees
+          if ($LASTEXITCODE -ne 0) { throw 'Production tree-scale check failed' }
+          python -m py_compile tgc_gui.py tgc_image_terrain.py tree_profile_manager.py tgc_tree_size_test1_entry.py
+          if ($LASTEXITCODE -ne 0) { throw 'Syntax check failed' }
+      - name: Install MinGW and compile native LiDAR
+        shell: pwsh
+        run: |
+          choco install mingw -y --no-progress
+          $gcc = Get-ChildItem -Path 'C:\ProgramData\chocolatey','C:\ProgramData\mingw64','C:\tools' -Filter gcc.exe -Recurse -ErrorAction SilentlyContinue | Where-Object { $_.FullName -match 'mingw64.*bin.*gcc\.exe$' } | Select-Object -First 1
+          if (-not $gcc) {
+            $cmd = Get-Command gcc.exe -ErrorAction SilentlyContinue
+            if ($cmd) { $gcc = Get-Item $cmd.Source }
+          }
+          if (-not $gcc) { throw 'MinGW gcc not found' }
+          & $gcc.FullName -O3 -shared -std=c11 -s -o tgc_lidar_fast_native.dll lidar_fast_native.c -lm
+          if ($LASTEXITCODE -ne 0) { throw 'Native LiDAR DLL build failed' }
+      - name: Build separate Windows test EXE
+        shell: pwsh
+        run: |
+          python -m PyInstaller --noconfirm --clean --onefile --name $env:EXE_NAME --add-binary './laszip/laszip-cli.exe;laszip' --add-binary 'tgc_lidar_fast_native.dll;.' --additional-hooks-dir './PyInstaller/hooks/' --runtime-hook './PyInstaller/rthook_rasterio.py' --add-data './tree_profiles;tree_profiles' tgc_tree_size_test1_entry.py
+          if ($LASTEXITCODE -ne 0) { throw 'PyInstaller build failed' }
+          $exe = "dist\$env:EXE_NAME.exe"
+          if (-not (Test-Path $exe)) { throw 'EXE missing' }
+          if ((Get-Item $exe).Length -lt 100MB) { throw 'EXE unexpectedly small' }
+          & $exe --verify-lidar-trees | Tee-Object -FilePath TEST1_FROZEN_VERIFICATION.txt
+          if ($LASTEXITCODE -ne 0) { throw 'Frozen EXE tree-scale verification failed' }
+      - name: Package EXE and exact patched source
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force test-package | Out-Null
+          Copy-Item "dist\$env:EXE_NAME.exe" test-package
+          Copy-Item LICENSE,LIDAR_TREE_SIZE_TEST1.txt,TEST1_SOURCE_CHANGES.diff,TEST1_FROZEN_VERIFICATION.txt test-package
+          Copy-Item tree_profiles test-package\tree_profiles -Recurse
+          python -c "import pathlib,zipfile,subprocess; root=pathlib.Path('.'); names=subprocess.check_output(['git','ls-files'],text=True).splitlines(); z=zipfile.ZipFile('test-package/TEST1_EXACT_PATCHED_SOURCE.zip','w',zipfile.ZIP_DEFLATED); [(z.write(root/n,n)) for n in names if (root/n).is_file()]; z.close()"
+          if ($LASTEXITCODE -ne 0) { throw 'Source package failed' }
+          $hash = (Get-FileHash "test-package\$env:EXE_NAME.exe" -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$hash  $env:EXE_NAME.exe" | Out-File test-package\SHA256.txt -Encoding ascii
+          "Test branch commit: $env:GITHUB_SHA`nBase main: 8003c468fd00106fec5cdef5524bea52b7960d57`nNative LiDAR: NATIVE C`nEXE SHA256: $hash" | Out-File test-package\BUILD_IDENTITY.txt -Encoding ascii
+          Write-Host "TEST EXE SHA256: $hash"
+      - uses: actions/upload-artifact@v6
+        with:
+          name: TGC_Beta6_LiDAR_Tree_Size_TEST1_Windows_x64
+          path: test-package/
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 1
