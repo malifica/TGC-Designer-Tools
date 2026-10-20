@@ -58,6 +58,10 @@ python VERIFY_BETA6_CUSTOM_UNMATCHED_OSM_V5_1.py
 if errorlevel 1 goto :fail
 
 echo.
+echo === LiDAR tree-size hotfix verification ===
+python tgc_tree_size_test1_entry.py --verify-lidar-trees
+if errorlevel 1 goto :fail
+
 echo === Rasterio / GDAL ===
 python -c "import rasterio; print('Rasterio', rasterio.__version__); print('GDAL', rasterio.__gdal_version__)"
 if errorlevel 1 goto :fail
@@ -141,7 +145,7 @@ if exist "tgc_lidar_fast_native.dll" (
    --additional-hooks-dir "./PyInstaller/hooks/" ^
    --runtime-hook "./PyInstaller/rthook_rasterio.py" ^
    --add-data "./tree_profiles;tree_profiles" ^
-   tgc_gui.py
+   tgc_tree_size_test1_entry.py
 ) else (
   echo Native DLL unavailable; building with Python fallback.
   python -m PyInstaller ^
@@ -153,10 +157,12 @@ if exist "tgc_lidar_fast_native.dll" (
    --additional-hooks-dir "./PyInstaller/hooks/" ^
    --runtime-hook "./PyInstaller/rthook_rasterio.py" ^
    --add-data "./tree_profiles;tree_profiles" ^
-   tgc_gui.py
+   tgc_tree_size_test1_entry.py
 )
 if errorlevel 1 goto :fail
 if not exist "dist\%EXENAME%.exe" goto :fail
+"dist\%EXENAME%.exe" --verify-lidar-trees
+if errorlevel 1 goto :fail
 
 echo.
 echo === Package Beta 6 release ===
@@ -167,6 +173,7 @@ copy /y "README.md" "%RELEASEDIR%\" >nul
 copy /y "CHANGELOG.md" "%RELEASEDIR%\" >nul
 copy /y "BUILD_WINDOWS.md" "%RELEASEDIR%\" >nul
 copy /y "BETA6_TREE_PROFILES.md" "%RELEASEDIR%\" >nul
+copy /y "BETA6_LIDAR_TREE_HOTFIX.md" "%RELEASEDIR%\" >nul
 copy /y "RELEASE_NOTES_v0.5.0-2k25-beta6.md" "%RELEASEDIR%\" >nul
 if exist "BETA6_HOTFIX.md" copy /y "BETA6_HOTFIX.md" "%RELEASEDIR%\" >nul
 if exist "extras\splines.json" copy /y "extras\splines.json" "%RELEASEDIR%\splines.json" >nul

@@ -5,11 +5,13 @@
 Beta 6 uses four simple labels:
 
 1. **Standard (Lidar)** — the established LiDAR size calculation.
-2. **Heroic** — the established larger-scale regional/tree calibration.
+2. **Heroic** — the established larger LiDAR-derived size mapping.
 3. **Epic** — exactly `1.20 × Heroic`.
 4. **Mythic** — exactly `1.80 × Heroic`.
 
-For built-in Designer themes, Epic and Mythic multiply the full Heroic X/Y/Z output ranges. For regional profiles, they multiply the profile-calibrated X/Y/Z result. Heroic remains the default.
+Built-in Designer themes and regional profiles share the same LiDAR crown-radius/height calculation. Epic and Mythic multiply that shared Heroic X/Y/Z result. Regional profile scale data does not override it. Heroic remains the default.
+
+This is the established source-population mapping to native transform scales, not physical per-prefab metre calibration. Theme selection changes the model palette; identical accepted LiDAR measurements and mode produce identical transform scales.
 
 ## Pacific Northwest
 

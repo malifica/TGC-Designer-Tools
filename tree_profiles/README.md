@@ -9,7 +9,7 @@ Each profile can define:
 - a regional tree asset palette
 - normal/skinny shape classification
 - weighted asset selection
-- calibrated X/Y/Z or uniform scale ranges
+- retained historical X/Y/Z or uniform scale statistics (not used for generated tree sizing)
 - an optional Designer theme and playing-surface/terrain material preset
 
 The repository intentionally stores the finished regional profile data without source attribution.
@@ -28,7 +28,7 @@ Current profiles include:
 - San Francisco Peninsula
 - South Carolina Lowcountry
 - Coastal Links
-- Pacific Northwest when included by the active release package
+- Pacific Northwest
 
 ## Tree generation
 
@@ -36,7 +36,7 @@ Profiles with normal automatic generation provide weighted SpeedTree selections 
 
 ## Scale data
 
-Scale distributions are stored per asset or as profile defaults. Standard, Heroic, Epic, and Mythic modes apply the configured profile scaling rules without changing the selected regional asset palette.
+Historical scale statistics may remain in the JSON for compatibility, but are not used to size generated trees. All palettes share the established LiDAR crown-radius/height mapping. Standard and Heroic retain their existing ranges; Epic is 1.20 x Heroic and Mythic is 1.80 x Heroic. OSM-only candidates use the common built-in fallback instead of profile-specific scale distributions.
 
 ## Material presets
 

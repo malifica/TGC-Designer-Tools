@@ -3484,6 +3484,8 @@ style.theme_create( "TabStyle", parent="alt", settings={
 style.theme_use("TabStyle")
 
 root.title(TGC_APP_TITLE)
+# TGC_LIDAR_TREE_SIZE_TEST_TITLE_V1
+root.title(TGC_APP_TITLE + " - LiDAR Tree Size TEST 1")
 
 header_frame = Frame(root)
 output = Label(header_frame, background="lightgrey", width=75, height=1)

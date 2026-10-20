@@ -145,7 +145,7 @@ try:
     assert profile["id"] == "pacific_northwest"
     assert profile["display_name"] == "Pacific Northwest"
     assert profile["enabled"] is True
-    assert profile["reference_context"]["course_name"] == "Mount Rainier 1931 (L)"
+    assert 'course_name' not in profile['reference_context']
     assert profile["reference_context"]["course_theme_id"] == 12
     assert profile["reference_context"]["holes"] == 18
     assert profile["reference_context"]["par"] == 69
@@ -172,10 +172,10 @@ try:
     assert preset["surfaces2"][8]["name"] == "Fairway58_Nordic"
     assert preset["surfaces2"][9]["name"] == "LightRough58_Nordic"
     assert preset["surfaces2"][10]["name"] == "HeavyRough61_ShinnecockHills"
-    print("PASS - Pacific Northwest Rainier profile")
+    print("PASS - Pacific Northwest profile")
 except Exception as exc:
-    print("FAIL - Pacific Northwest Rainier profile -", exc)
-    failed.append("Pacific Northwest Rainier profile")
+    print("FAIL - Pacific Northwest profile -", exc)
+    failed.append("Pacific Northwest profile")
 
 try:
     spec = importlib.util.spec_from_file_location(

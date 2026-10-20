@@ -1,5 +1,9 @@
 # Windows Build Guide
 
+## Approved Beta 6 LiDAR hotfix
+
+The published hotfix promotes the approved Windows EXE unchanged; no release-time rebuild is performed. See `BETA6_LIDAR_TREE_HOTFIX.md` and `BETA6_LIDAR_HOTFIX_MANIFEST.json`. Future source builds use `tgc_tree_size_test1_entry.py`, the same launcher as the approved binary, and verify tree sizing before and after compilation. The retained TEST 1 title suffix identifies that approved build.
+
 This guide builds **TGC Designer Tools 2K25 - Beta 6** on Windows.
 
 ## Tested development environment

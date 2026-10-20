@@ -507,12 +507,92 @@ def get_placed_object(course_version=-1):
     return json.loads('{"Key":'+key+',"Value":{"items":[],"clusters":[]}}')
 
 
-def _population_percentile(values, value):
-    if not values or len(values) <= 1:
-        return 0.5
-    ordered = np.sort(np.asarray(values, dtype=np.float64))
-    rank = int(np.searchsorted(ordered, float(value), side='left'))
-    return max(0.0, min(1.0, float(rank) / float(len(ordered) - 1)))
+
+
+def _tree_scales_from_lidar(trees, tree_scale_mode=None):
+    """TGC_BETA6_LIDAR_TREE_SCALE_AUTHORITY_V1.
+
+    Preserve the established Designer-Theme LiDAR mapping for ALL palettes.
+    X/Z use measured crown radius; Y uses measured height. Regional profile
+    scale/uniform_scale/scale_defaults NEVER participate. These are native
+    transform scales, not a claim of per-prefab physical-metre calibration.
+    The accepted source population supplies the existing min/max mapping;
+    a theme change alone must not change any transform scale.
+    """
+    if not trees:
+        return []
+    for index, tree in enumerate(trees):
+        if len(tree) != 4:
+            raise ValueError('Tree %d must contain x, z, radius and height' % index)
+        if not all(math.isfinite(float(v)) for v in tree):
+            raise ValueError('Tree %d contains non-finite coordinates or dimensions' % index)
+        if float(tree[2]) <= 0.0 or float(tree[3]) <= 0.0:
+            raise ValueError('Tree %d must have positive source radius and height' % index)
+
+    mythic = tree_scale_mode == tree_profile_manager.MYTHIC_SCALE_MODE
+    epic = tree_scale_mode == tree_profile_manager.EPIC_SCALE_MODE
+    heroic = tree_scale_mode == tree_profile_manager.HEROIC_SCALE_MODE
+
+    if mythic:
+        # Mythic is exactly 1.80x the established Heroic output range.
+        min_radius_scale = 0.70 * tree_profile_manager.MYTHIC_SCALE_MULTIPLIER
+        max_radius_scale = 1.65 * tree_profile_manager.MYTHIC_SCALE_MULTIPLIER
+        min_height_scale = 0.85 * tree_profile_manager.MYTHIC_SCALE_MULTIPLIER
+        max_height_scale = 1.55 * tree_profile_manager.MYTHIC_SCALE_MULTIPLIER
+    elif epic:
+        # Epic remains exactly 1.20x Heroic.
+        min_radius_scale = 0.70 * tree_profile_manager.EPIC_SCALE_MULTIPLIER
+        max_radius_scale = 1.65 * tree_profile_manager.EPIC_SCALE_MULTIPLIER
+        min_height_scale = 0.85 * tree_profile_manager.EPIC_SCALE_MULTIPLIER
+        max_height_scale = 1.55 * tree_profile_manager.EPIC_SCALE_MULTIPLIER
+    elif heroic:
+        min_radius_scale = 0.70
+        max_radius_scale = 1.65
+        min_height_scale = 0.85
+        max_height_scale = 1.55
+    else:
+        min_radius_scale = 0.20
+        max_radius_scale = 1.50
+        min_height_scale = 0.50
+        max_height_scale = 1.20
+
+    radius_scale_range = max_radius_scale - min_radius_scale
+    height_scale_range = max_height_scale - min_height_scale
+
+    min_tree_radius = min(trees, key=lambda x: x[2])[2]
+    max_tree_radius = max(trees, key=lambda x: x[2])[2]
+    tree_radius_range = max_tree_radius - min_tree_radius
+    if tree_radius_range > 0.01:
+        radius_multiplier = radius_scale_range / tree_radius_range
+    else:
+        if mythic:
+            min_radius_scale = 1.10 * tree_profile_manager.MYTHIC_SCALE_MULTIPLIER
+        elif epic:
+            min_radius_scale = 1.10 * tree_profile_manager.EPIC_SCALE_MULTIPLIER
+        else:
+            min_radius_scale = 1.10 if heroic else 1.0
+        radius_multiplier = 0.0
+
+    min_tree_height = min(trees, key=lambda x: x[3])[3]
+    max_tree_height = max(trees, key=lambda x: x[3])[3]
+    tree_height_range = max_tree_height - min_tree_height
+    if tree_height_range > 0.01:
+        height_multiplier = height_scale_range / tree_height_range
+    else:
+        if mythic:
+            min_height_scale = 1.15 * tree_profile_manager.MYTHIC_SCALE_MULTIPLIER
+        elif epic:
+            min_height_scale = 1.15 * tree_profile_manager.EPIC_SCALE_MULTIPLIER
+        else:
+            min_height_scale = 1.15 if heroic else 1.0
+        height_multiplier = 0.0
+
+    return [
+        ((r-min_tree_radius)*radius_multiplier + min_radius_scale,
+         (h-min_tree_height)*height_multiplier + min_height_scale,
+         (r-min_tree_radius)*radius_multiplier + min_radius_scale)
+        for _x, _z, r, h in trees
+    ]
 
 
 def _get_profile_trees(
@@ -525,12 +605,11 @@ def _get_profile_trees(
     if course_version < 23 or not trees:
         return []
 
-    radii = [float(t[2]) for t in trees]
-    heights = [float(t[3]) for t in trees]
+    source_scales = _tree_scales_from_lidar(trees, tree_scale_mode)
     groups = {}
     has_skinny = any(a.get("shape") == "skinny" for a in profile.get("assets", []))
 
-    for tree in trees:
+    for tree, (sx, sy, sz) in zip(trees, source_scales):
         easting, northing, r, h = tree
         shape = "normal"
         if tree_source != "osm" and has_skinny and r > 0.001 and h / r >= 2.5:
@@ -546,20 +625,7 @@ def _get_profile_trees(
             group['Key']['path'] = path
             groups[path] = group
 
-        if tree_source == "osm":
-            radius_percentile = 0.5
-            height_percentile = 0.5
-        else:
-            radius_percentile = _population_percentile(radii, r)
-            height_percentile = _population_percentile(heights, h)
-
-        sx, sy, sz = tree_profile_manager.scale_for_asset(
-            profile,
-            asset,
-            radius_percentile=radius_percentile,
-            height_percentile=height_percentile,
-            tree_scale_mode=tree_scale_mode,
-        )
+        # Selection only: source_scales are independent of the chosen asset.
 
         item = get_object_item(easting, northing, random.randrange(0, 359))
         item['scale']['x'] = sx
@@ -625,70 +691,14 @@ def get_trees(theme, tree_variety, trees, course_version=-1,
             p['Key']['type'] = tree_id
         skinny_trees.append(p)
 
-    mythic = tree_scale_mode == tree_profile_manager.MYTHIC_SCALE_MODE
-    epic = tree_scale_mode == tree_profile_manager.EPIC_SCALE_MODE
-    heroic = tree_scale_mode == tree_profile_manager.HEROIC_SCALE_MODE
+    source_scales = _tree_scales_from_lidar(trees, tree_scale_mode)
 
-    if mythic:
-        # Mythic is exactly 1.80x the established Heroic output range.
-        min_radius_scale = 0.70 * tree_profile_manager.MYTHIC_SCALE_MULTIPLIER
-        max_radius_scale = 1.65 * tree_profile_manager.MYTHIC_SCALE_MULTIPLIER
-        min_height_scale = 0.85 * tree_profile_manager.MYTHIC_SCALE_MULTIPLIER
-        max_height_scale = 1.55 * tree_profile_manager.MYTHIC_SCALE_MULTIPLIER
-    elif epic:
-        # Epic remains exactly 1.20x Heroic.
-        min_radius_scale = 0.70 * tree_profile_manager.EPIC_SCALE_MULTIPLIER
-        max_radius_scale = 1.65 * tree_profile_manager.EPIC_SCALE_MULTIPLIER
-        min_height_scale = 0.85 * tree_profile_manager.EPIC_SCALE_MULTIPLIER
-        max_height_scale = 1.55 * tree_profile_manager.EPIC_SCALE_MULTIPLIER
-    elif heroic:
-        min_radius_scale = 0.70
-        max_radius_scale = 1.65
-        min_height_scale = 0.85
-        max_height_scale = 1.55
-    else:
-        min_radius_scale = 0.20
-        max_radius_scale = 1.50
-        min_height_scale = 0.50
-        max_height_scale = 1.20
-
-    radius_scale_range = max_radius_scale - min_radius_scale
-    height_scale_range = max_height_scale - min_height_scale
-
-    min_tree_radius = min(trees, key=lambda x: x[2])[2]
-    max_tree_radius = max(trees, key=lambda x: x[2])[2]
-    tree_radius_range = max_tree_radius - min_tree_radius
-    if tree_radius_range > 0.01:
-        radius_multiplier = radius_scale_range / tree_radius_range
-    else:
-        if mythic:
-            min_radius_scale = 1.10 * tree_profile_manager.MYTHIC_SCALE_MULTIPLIER
-        elif epic:
-            min_radius_scale = 1.10 * tree_profile_manager.EPIC_SCALE_MULTIPLIER
-        else:
-            min_radius_scale = 1.10 if heroic else 1.0
-        radius_multiplier = 0.0
-
-    min_tree_height = min(trees, key=lambda x: x[3])[3]
-    max_tree_height = max(trees, key=lambda x: x[3])[3]
-    tree_height_range = max_tree_height - min_tree_height
-    if tree_height_range > 0.01:
-        height_multiplier = height_scale_range / tree_height_range
-    else:
-        if mythic:
-            min_height_scale = 1.15 * tree_profile_manager.MYTHIC_SCALE_MULTIPLIER
-        elif epic:
-            min_height_scale = 1.15 * tree_profile_manager.EPIC_SCALE_MULTIPLIER
-        else:
-            min_height_scale = 1.15 if heroic else 1.0
-        height_multiplier = 0.0
-
-    for tree in trees:
+    for tree, (sx, sy, sz) in zip(trees, source_scales):
         easting, northing, r, h = tree
         t = get_object_item(easting, northing, random.randrange(0, 359))
-        t['scale']['y'] = (h-min_tree_height)*height_multiplier + min_height_scale
-        t['scale']['x'] = (r-min_tree_radius)*radius_multiplier + min_radius_scale
-        t['scale']['z'] = (r-min_tree_radius)*radius_multiplier + min_radius_scale
+        t['scale']['y'] = sy
+        t['scale']['x'] = sx
+        t['scale']['z'] = sz
 
         if h / r < 2.5 or len(skinny_trees) == 0:
             group = random.choice(normal_trees)

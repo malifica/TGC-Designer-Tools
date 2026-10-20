@@ -1,0 +1,23 @@
+{
+  "release_tag": "v0.5.0-2k25-beta6",
+  "published_filename": "tgc_gui_2k25_beta6.exe",
+  "binary_rebuilt": false,
+  "approved_build_commit": "82e5791d4978f81b6d4c471a6c8811720c6b9f9f",
+  "approved_workflow_run": 39406930184,
+  "approved_artifact_id": 12257707413,
+  "approved_artifact_sha256": "ca9af9fb1a0805ba5d215ab65ab8c2e7da531ed3ad9de5a725f178127b60d362",
+  "approved_source_archive_sha256": "39865111ced9bee6789bb0ea2f6a677c120f5a4341747cf6c6cd12eb71526880",
+  "exe_sha256": "c3ec0f85206b8f0148a235e415a48e3c63bdcf94cd760c52e92414a196cf349f",
+  "exe_bytes": 153525372,
+  "source_base_main": "8003c468fd00106fec5cdef5524bea52b7960d57",
+  "approved_source_files_sha256": {
+    "tgc_image_terrain.py": "19cf8c224d0f5e62fd5e2236493a3516af14385c3f590667e36bc5f1a014457f",
+    "tgc_gui.py": "f4dd4e1aab50edddbed15772e6e04e20e165ebf5701c993cf04a1a8d3939e900",
+    "tgc_tree_size_test1_entry.py": "0d4f8192c12e0b5985adb6df8e42a855f28da6ba3082da8f2cb5f0a48479be11",
+    "tree_profiles/pacific_northwest.json": "9a1445f0acca854e018f1b922ba3d287bbf96847293d91eeee5054a793331aa9",
+    "VERIFY_BETA6_SOURCE.py": "e1ee9d8dc63e8817b01b836815605ac6ac35a53ae232185b87bbd0332f15ce1f"
+  },
+  "window_title_note": "LiDAR Tree Size TEST 1 identifier intentionally retained in the unchanged approved EXE",
+  "course_finisher_changed": false,
+  "crazy_bunkers_changed": false
+}
