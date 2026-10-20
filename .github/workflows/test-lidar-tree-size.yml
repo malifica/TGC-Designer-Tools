@@ -2,7 +2,7 @@ name: LiDAR Tree Size TEST 1
 on:
   push:
     branches: [test/beta6-lidar-tree-size-20261020]
-    paths: ['.github/workflows/test-lidar-tree-size.yml', 'UPDATE_BETA6_LIDAR_TREE_SIZE_TEST1.py', 'tgc_tree_size_test1_entry.py']
+    paths: ['.github/workflows/test-lidar-tree-size.yml', 'UPDATE_BETA6_LIDAR_TREE_SIZE_TEST1.py', 'tgc_tree_size_test1_entry.py', 'RESTORE_TEST1_RELEASE_PROFILE.py']
 permissions:
   contents: read
 env:
@@ -34,7 +34,7 @@ jobs:
         run: |
           gh release download v0.5.0-2k25-beta6 --repo $env:GITHUB_REPOSITORY --pattern 'TGC-Designer-Tools-2K25-v0.5.0-2k25-beta6-Windows-x64.zip' --dir _release_reference
           if ($LASTEXITCODE -ne 0) { throw 'Could not retrieve shipped profile reference' }
-          python -c "import pathlib,zipfile,hashlib; p=next(pathlib.Path('_release_reference').glob('*.zip')); assert hashlib.sha256(p.read_bytes()).hexdigest()=='00d175629e240cf203689e5b70684b924b8aff23ccaa9a269fbd8103154a582b','Release archive digest mismatch'; z=zipfile.ZipFile(p); found=[n for n in z.namelist() if n.replace(chr(92),'/').endswith('tree_profiles/pacific_northwest.json')]; assert len(found)==1,found; dest=pathlib.Path('tree_profiles/pacific_northwest.json'); data=z.read(found[0]); assert not dest.exists(),'Unexpected existing profile'; dest.write_bytes(data); print('Restored released Pacific Northwest profile:',hashlib.sha256(data).hexdigest())"
+          python RESTORE_TEST1_RELEASE_PROFILE.py
           if ($LASTEXITCODE -ne 0) { throw 'Shipped profile restoration failed' }
       - name: Apply guarded tree-only patch
         shell: pwsh
