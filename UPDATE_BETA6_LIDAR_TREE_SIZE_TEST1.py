@@ -26,6 +26,7 @@ def replace_once(source, old, new):
 
 
 def patch_engine(source):
+    source = source.replace('\r\n', '\n').replace('\r', '\n')
     if MARKER in source:
         helper = function_text(source, '_tree_scales_from_lidar')
         profile = function_text(source, '_get_profile_trees')
@@ -97,6 +98,7 @@ def patch_engine(source):
 
 
 def patch_gui(source):
+    source = source.replace('\r\n', '\n').replace('\r', '\n')
     if TITLE_MARKER in source:
         return source
     source = replace_once(source, 'root.title(TGC_APP_TITLE)',
