@@ -112,10 +112,10 @@ def main():
 
         check("2K25 cart path defaults to semantic cart-path surface 7", cart["surface"] == 7, failed)
         check("2K25 cart path default width remains 2.0 m", abs(float(cart["width"]) - 2.0) < 1.0e-9, failed)
-        check("2K25 road defaults to asphalt / surface 3 id 10", road["surface"] == 10, failed)
+        check("2K25 road defaults to native asphalt category 8", road["surface"] == 8, failed)
         check("2K25 road default width remains 6.0 m", abs(float(road["width"]) - 6.0) < 1.0e-9, failed)
-        check("2K25 closed water defaults to mulch / surface 2 id 8", water["surface"] == 8, failed)
-        check("2K25 open stream defaults to mulch / surface 2 id 8", stream["surface"] == 8, failed)
+        check("2K25 closed water uses native mulch category 10", water["surface"] == 10, failed)
+        check("2K25 open stream uses native mulch category 10", stream["surface"] == 10, failed)
         check("2K25 stream default width remains 2.0 m", abs(float(stream["width"]) - 2.0) < 1.0e-9, failed)
 
         mod.spline_configuration = {
@@ -157,17 +157,17 @@ def main():
         check("valid cartpath.pathWidth 3.4 is honored", abs(float(cart["width"]) - 3.4) < 1.0e-9, failed)
         check("cartpath semantic name stays on surface 7", cart["surface"] == 7, failed)
         check("road.pathWidth 8.0 is honored", abs(float(road["width"]) - 8.0) < 1.0e-9, failed)
-        check("asphalt semantic name resolves to surface 10", road["surface"] == 10, failed)
-        check("water mulch semantic name resolves to surface 8", water["surface"] == 8, failed)
+        check("asphalt semantic name resolves to category 8", road["surface"] == 8, failed)
+        check("water mulch is locked to category 10", water["surface"] == 10, failed)
         check("stream width override is honored", abs(float(stream["width"]) - 2.6) < 1.0e-9, failed)
-        check("stream inherits/uses mulch surface 8", stream["surface"] == 8, failed)
+        check("stream uses native mulch category 10", stream["surface"] == 10, failed)
 
         messages = []
         mod._print_spline_configuration_summary(25, printf=messages.append)
         summary = "\n".join(messages)
         check("effective spline summary reports 3.4 m cart path", "cartpath=surface 7 @ 3.4 m" in summary, failed)
-        check("effective spline summary reports asphalt road surface 10", "road=surface 10 @ 8.0 m" in summary, failed)
-        check("effective spline summary reports mulch water surface 8", "water=surface 8" in summary, failed)
+        check("effective spline summary reports asphalt road category 8", "road=surface 8 @ 8.0 m" in summary, failed)
+        check("effective spline summary reports mulch water category 10", "water=surface 10" in summary, failed)
     except Exception as exc:
         print("FAIL - OSM spline construction self-test - " + str(exc))
         failed.append("OSM spline construction self-test")

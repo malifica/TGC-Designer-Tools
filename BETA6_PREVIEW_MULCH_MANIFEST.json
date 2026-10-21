@@ -1,0 +1,49 @@
+{
+  "hotfix": "Beta 6 multipolygon preview / mandatory mulch water V1",
+  "date": "2026-10-21",
+  "base_commit": "1c6b2692ae6b9d48f2d58598c09bedecc6ec592f",
+  "approved_patch_zip_sha256": "3282329c0153dce19992d2c733bc184ae27e6ad87c5a38180310ff5aa2e4690d",
+  "publication_adjustments": [
+    "Terminate six argument replacement anchors with commas to avoid false already-applied detection",
+    "Use a read-only-compatible no-relations test fixture with native overpy"
+  ],
+  "runtime_sha256": {
+    "OSMTGC.py": "ffaee4a48b4278b74337efe3fd69a98688a8067cc6826ad397bb638ef2e94f52",
+    "VERIFY_BETA6_MULTIPOLYGON_MULCH_V1.py": "af8b7455e7bbc8b573e86873a3ea9a9b02bdbd515b7e66952855d66d41a882ea",
+    "VERIFY_BETA6_SPLINE_SURFACE_FIX_V1.py": "99bcfc44899dec987974c13c472c5a759b71f43bdc56a622b7e3ca28e2dd0acd",
+    "dem_map_api.py": "f1a2df5dfcd63ef991a38081ca4182c7999a8e9ad57c3a1158815fe60267a979",
+    "lidar_map_api.py": "37d432b8b83916ab840a25823f570557d2265fe13c44a0a855e0749fb76731ce",
+    "osm_mask_alignment.py": "fb56dadd8761cc4081fa80c87eea8494ceac8c7d72229fbda48579d3b9f66c3c",
+    "osm_preview_relations.py": "995b01c4e673a1e67258878b1703ad935c5efc6011958fab3aabff5ddcafeffb",
+    "osm_water_mulch_lock.py": "b6a89b47dd0cb38c209ac9f4df329bbba5765bc750ba51d2e7c18f1320c6fc7a",
+    "tgc_gui.py": "5aab92c17ae2f82e2f48312c8329ef8e3f53dd24e728b347163b01a5765d4c69",
+    "tgc_tools.py": "ce0201fcd8edad66f813192e0e5759c399044816a01649e19d6b0940c607ef0d"
+  },
+  "preserved_sha256": {
+    "auto_red_mask.py": "956d8ac5092137749e895075076dc578d8e6aab760d64a40cf085e6753aaf5fd",
+    "lidar_fast_native.c": "b055e48a856332052f1ab9d9c59812a20aa09d56dc9a03ed18e0d61e8eb97fe7",
+    "osm_alignment_viewer.py": "447742cb73c54154bfc0fa52058bf30ba05914407e0aed5ed06f0953c40dd161",
+    "osm_custom_layout.py": "c98a02532f1d7a5c740fe629266828ef7115b088576feca6ae1d07f794dd5246",
+    "requirements.txt": "0826f421838e27f27e35245c234bd33e1e029285e4c2aebf6e91cccaefd898a3",
+    "tgc_definitions.py": "de43430eeaf97ace01099874908df5c412ec4ff19c2f7c9cc5a437386eab306f",
+    "tgc_image_terrain.py": "1304421e6f8871d655d3865a1c96b17212155753f7054b5f193aa8e418ca6303",
+    "tgc_tree_size_test1_entry.py": "0d4f8192c12e0b5985adb6df8e42a855f28da6ba3082da8f2cb5f0a48479be11",
+    "tree_profile_manager.py": "bd272d456586fc36338dec842112ce58915281056210ad9e86af748d4ba957ae",
+    "tree_profiles/README.md": "2e2c52eaf06763ebd56fca61122a6b6706ce56ccc25d27b0163cb714f2af850c",
+    "tree_profiles/_template.json": "b45b1b06d46999cde9597c900e2a0cf826723627224277a534e68a54716660c5",
+    "tree_profiles/bass_strait_coastal_links.json": "71f7ac268a9cde3bcf31d9b602735d18fe30dfa05cb765ff280ca19f34476d1e",
+    "tree_profiles/carolina_piedmont_autumn.json": "d5d43be0f5307cf947f337487cc2de6409aaa73e452a5120501c269417fbd6b0",
+    "tree_profiles/georgia_piedmont.json": "47bbee46885e6a13412a187d0aabd074a2b6e070da4dd7f6a91c9fa0bdd3a298",
+    "tree_profiles/hudson_valley_mixed_forest.json": "58cd41db6fdb510729ea397600b8cd6896b0611909070ade8438192b9eaeec91",
+    "tree_profiles/monterey_bay_coast.json": "7367bde61e357e3d64e407ec7e31aa9835f7110edfa2f65bffd7ae7921067d6a",
+    "tree_profiles/niagara_escarpment.json": "49fc3e43a95a763eb1e9b751f17b12b70e59a2f7deed4202418b85a4c0973a18",
+    "tree_profiles/northern_rockies.json": "1eef579fb7c56e5f3d9731ba3555ecd5a33c4acd6143a58b04560ea7b9513595",
+    "tree_profiles/pacific_northwest.json": "9a1445f0acca854e018f1b922ba3d287bbf96847293d91eeee5054a793331aa9",
+    "tree_profiles/san_francisco_peninsula.json": "42009ba5b3912c49bd3c9da5ba71f74c81ac410bb872ab803da54e2f548dff73",
+    "tree_profiles/south_carolina_lowcountry.json": "fbceb27b02243317a7b2b95429a04817431f8d4dbb637443dda66d117e3aa69a",
+    "tree_profiles/texas_hill_country.json": "83c6326230abd64baedc70457238c9b3ca6ae952274dc733838c465a62b39a02",
+    "tree_profiles/virginia_coastal_plain.json": "2ca5a5e540c850e7b6427cfee8000620db6017983691fc97bb5ea6b084f97135"
+  },
+  "windows_build_entry": "tgc_tree_size_test1_entry.py",
+  "native_designer_visual_test": "not performed by CI"
+}

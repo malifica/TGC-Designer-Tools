@@ -938,7 +938,7 @@ def _build_mask_image(
 
     if osm_result:
         preview_rgb = OSMTGC.addOSMToImage(
-            osm_result.ways,
+            osm_result,
             preview_rgb,
             pc,
             image_scale,

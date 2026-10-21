@@ -127,6 +127,10 @@ def pack_course_file(course_directory, course_name=None, output_file=None, cours
                 desc_read = desc.read()
                 meta_read = meta.read()
                 thumb_read = thumb.read()
+                # Final gate runs AFTER regional-theme metadata sync.
+                from osm_water_mulch_lock import finalize_serialized
+                desc_read, meta_read = finalize_serialized(
+                    desc_read, meta_read, course_version)
                 desc_encoded = base64GZEncode(desc_read.encode(file_encoding), 1).decode('utf-8')
                 meta_encoded = base64GZEncode(meta_read.encode(file_encoding), 1).decode('utf-8')
                 thumb_encoded = base64GZEncode(thumb_read.encode(file_encoding), 1).decode('utf-8')

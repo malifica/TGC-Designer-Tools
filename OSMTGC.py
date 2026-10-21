@@ -22,6 +22,8 @@ spline_configuration = None
 # the golf Walking Paths control.  OSM road-like highway tags are classified
 # once here so the importer, CFS viewer, and Auto Red Mask share semantics.
 last_imported_road_spline_indices = set()
+# Only records made by newWaterHazard in this import are material-locked.
+last_imported_water_splines = []
 
 _VEHICLE_ROAD_HIGHWAY_TYPES = {
     "motorway", "motorway_link",
@@ -621,7 +623,10 @@ def _normalized_primary_surface_name(value, course_version=-1):
         aliases.update({
             "cartpath": "surface1",
             "cart path": "surface1",
-            "road": "surface3",
+            "road": "surface2",
+            # Native 2K25 category mapping differs from legacy custom labels.
+            "asphalt": "surface2",  # road category 8
+            "mulch": "surface3",    # mulch/water-placeholder category 10
         })
 
     return aliases.get(configured, configured)
@@ -715,6 +720,10 @@ def _print_spline_configuration_summary(course_version, printf=print):
     stream_surface = _configured_primary_surface(
         stream_surface_json, "mulch", course_version
     )
+
+    if course_version == 25:
+        # Water is mandatory mulch, irrespective of legacy config aliases.
+        water_surface = stream_surface = 10
 
     printf(
         "Spline surfaces/widths: cartpath=surface " +
@@ -1970,11 +1979,12 @@ def newWaterHazard(points, area=True, course_version=-1):
         ):
             surface_json = water_json
 
-    # OSM water placeholders are mulch / Surface 2 by default.
-    wh["surface"] = _configured_primary_surface(
-        surface_json,
-        "mulch",
-        course_version,
+    # TGC_BETA6_MULTIPOLYGON_MULCH_HOTFIX_V1
+    # Native 2K25 MULCH is category 10. Category 8 is the road/hardscape
+    # category; the legacy "surface2" label is NOT the native mulch category.
+    # Width/handles remain configurable. Water material is intentionally locked.
+    wh["surface"] = 10 if course_version == 25 else _configured_primary_surface(
+        surface_json, "mulch", course_version,
     )
 
     if area:
@@ -1985,6 +1995,7 @@ def newWaterHazard(points, area=True, course_version=-1):
         wh["state"] = 0 # Todo figure out what this means
         wh["isClosed"] = False
         wh["isFilled"] = False
+    last_imported_water_splines.append(wh)
     return wh
 
 def newBuilding(points, course_version):
@@ -2184,6 +2195,9 @@ def addOSMToTGC(course_json, geopointcloud, osm_result, x_offset=0.0, y_offset=0
     global spline_optimization_enabled
     global spline_optimization_stats
     global last_imported_road_spline_indices
+    global last_imported_water_splines
+    last_imported_water_splines = []
+    course_json.pop('_tgcOsmWaterMulchV1', None)
 
     if course_version not in tgc_definitions.version_tags:
         print("invalid version")
@@ -2727,6 +2741,10 @@ def addOSMToTGC(course_json, geopointcloud, osm_result, x_offset=0.0, y_offset=0
 
     _print_spline_optimization_summary(printf=printf)
 
+    # Lock ONLY actual imported water, not every custom-surface spline.
+    from osm_water_mulch_lock import mark_import
+    mark_import(course_json, last_imported_water_splines, course_version, printf)
+
     # Return the tree list for later use
     return trees
 
@@ -2794,6 +2812,13 @@ def drawWayLineOnImage(way, color, im, pc, image_scale, thickness=1, closed=Fals
     cv2.polylines(im, nds, closed, color, thickness, lineType=cv2.LINE_AA)
 
 def addOSMToImage(ways, im, pc, image_scale, x_offset=0.0, y_offset=0.0, printf=print):
+    # TGC_BETA6_MULTIPOLYGON_MULCH_HOTFIX_V1
+    # Full Results retain relation tags and inner rings. A list still uses the
+    # untouched legacy renderer below, including its pure-blue final water pass.
+    if hasattr(ways, "ways"):
+        from osm_preview_relations import render
+        return render(ways, im, pc, image_scale, x_offset, y_offset,
+                      printf=printf, way_renderer=addOSMToImage)
     water_feature_count = 0
     waterway_feature_count = 0
 

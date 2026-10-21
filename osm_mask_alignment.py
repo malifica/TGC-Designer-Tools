@@ -652,7 +652,7 @@ def rebuild_aligned_mask(
     mask_rgb = _terrain_visual_from_heightmap(heightmap)
     _report_progress(progress_callback, 48, "Rendering aligned OSM features into mask.png...")
     mask_rgb = OSMTGC.addOSMToImage(
-        osm_result.ways,
+        osm_result,
         mask_rgb,
         grid_pc,
         resolution,

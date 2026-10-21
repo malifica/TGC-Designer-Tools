@@ -36,6 +36,9 @@ echo === Beta 6 full source verification ===
 python VERIFY_BETA6_SOURCE.py
 if errorlevel 1 goto :fail
 
+python VERIFY_BETA6_MULTIPOLYGON_MULCH_V1.py
+if errorlevel 1 goto :fail
+
 python VERIFY_BETA6_SPLINE_SURFACE_FIX_V1.py
 if errorlevel 1 goto :fail
 
@@ -174,6 +177,8 @@ copy /y "CHANGELOG.md" "%RELEASEDIR%\" >nul
 copy /y "BUILD_WINDOWS.md" "%RELEASEDIR%\" >nul
 copy /y "BETA6_TREE_PROFILES.md" "%RELEASEDIR%\" >nul
 copy /y "BETA6_LIDAR_TREE_HOTFIX.md" "%RELEASEDIR%\" >nul
+copy /y "BETA6_MULTIPOLYGON_MULCH_HOTFIX.md" "%RELEASEDIR%\" >nul
+copy /y "BETA6_PREVIEW_MULCH_MANIFEST.json" "%RELEASEDIR%\" >nul
 copy /y "RELEASE_NOTES_v0.5.0-2k25-beta6.md" "%RELEASEDIR%\" >nul
 if exist "BETA6_HOTFIX.md" copy /y "BETA6_HOTFIX.md" "%RELEASEDIR%\" >nul
 if exist "extras\splines.json" copy /y "extras\splines.json" "%RELEASEDIR%\splines.json" >nul

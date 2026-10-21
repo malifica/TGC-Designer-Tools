@@ -1,5 +1,9 @@
 # TGC Designer Tools — PGA TOUR 2K25 Fork
 
+## Beta 6 hotfix - 2026-10-21
+
+Multipolygon preview/mask rendering now works with Auto Red Mask off. OSM water and streams are locked to native mulch category 10 / Mulch05 through final export. Asphalt roads use category 8; cart paths remain category 7. The existing LiDAR tree-size correction and regional profiles are retained. See `BETA6_MULTIPOLYGON_MULCH_HOTFIX.md` for scope and project-refresh steps.
+
 A streamlined 2K25-focused fork of **HiCamino/TGC-Designer-Tools** for building real-world courses from **LiDAR, GeoTIFF DEM, and OpenStreetMap data**.
 
 Current release: **v0.5.0-2k25-beta6**

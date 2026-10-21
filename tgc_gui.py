@@ -151,7 +151,7 @@ def _apply_custom_unmatched_preview_overlay(
     )
 
     image = OSMTGC.addOSMToImage(
-        osm_result.ways,
+        osm_result,
         image,
         custom_pc,
         image_scale,

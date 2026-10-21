@@ -379,7 +379,7 @@ def prepare_lidar_previews(lidar_dir_path, sample_scale, output_dir_path, force_
 
     if result:
         im = OSMTGC.addOSMToImage(
-            result.ways,
+            result,
             im,
             pc,
             sample_scale,
@@ -676,7 +676,7 @@ def generate_lidar_heightmap(pc, img_points, sample_scale, output_dir_path, osm_
     imc = normalize_image(imc)
     imc = cv2.cvtColor(imc, cv2.COLOR_GRAY2RGB)
     if osm_results is not None:
-        imc = OSMTGC.addOSMToImage(osm_results.ways, imc, pc, sample_scale)
+        imc = OSMTGC.addOSMToImage(osm_results, imc, pc, sample_scale)
         if auto_red_mask_enabled:
             imc = auto_red_mask.apply_auto_red_mask(
                 osm_results,
@@ -807,7 +807,7 @@ def _write_osm_master_mask(
     )
 
     mask_rgb = OSMTGC.addOSMToImage(
-        osm_result.ways,
+        osm_result,
         mask_rgb,
         grid_pc,
         resolution,
