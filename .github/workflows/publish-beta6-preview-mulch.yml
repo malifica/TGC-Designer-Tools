@@ -3,7 +3,7 @@ name: Publish Beta 6 Preview and Mulch Hotfix
 on:
   push:
     branches: [main]
-    paths: [BETA6_PREVIEW_MULCH_TRANSFER.json.gz.b64]
+    paths: [BETA6_PREVIEW_MULCH_TRANSFER.json.gz.b64, .github/workflows/publish-beta6-preview-mulch.yml]
 
 permissions:
   contents: write
@@ -38,42 +38,47 @@ jobs:
           architecture: x64
           cache: pip
 
-      - name: Apply the exact supplied hotfix and preserve unrelated source
+      - name: Apply scoped hotfix with corrected installer anchors
         shell: python
         run: |
           from pathlib import Path
           import base64, gzip, hashlib, importlib.util, json, os, re, subprocess, tempfile
-          root = Path.cwd()
-          base = os.environ['BASE_SHA']
-          stage = {'BETA6_PREVIEW_MULCH_TRANSFER.json.gz.b64', '.github/workflows/publish-beta6-preview-mulch.yml'}
-          subprocess.run(['git', 'merge-base', '--is-ancestor', base, 'HEAD'], check=True)
-          changes = set(subprocess.check_output(['git', 'diff', '--name-only', base, 'HEAD'], text=True).splitlines())
-          if changes != stage:
-              raise RuntimeError('Unexpected concurrent source changes before publication: ' + repr(changes))
-          packed = base64.b64decode((root/'BETA6_PREVIEW_MULCH_TRANSFER.json.gz.b64').read_text().strip(), validate=True)
-          if hashlib.sha256(packed).hexdigest() != '2a7c5964ce0fa7f5b0e6bb4b9339ae76de8ec9fe8173686d213f769a692153f6':
-              raise RuntimeError('Hotfix transfer SHA-256 mismatch')
-          files = json.loads(gzip.decompress(packed))
-          expected = {'APPLY_BETA6_MULTIPOLYGON_MULCH_HOTFIX_V1.py', 'edits.json', 'VERIFY_BETA6_MULTIPOLYGON_MULCH_V1.py', 'payload/osm_preview_relations.py', 'payload/osm_water_mulch_lock.py'}
-          if set(files) != expected:
-              raise RuntimeError('Unexpected hotfix package members')
-          tracked = subprocess.check_output(['git', 'ls-files'], text=True).splitlines()
-          before = {p: hashlib.sha256((root/p).read_bytes()).hexdigest() for p in tracked if p not in stage}
+          root=Path.cwd(); base=os.environ['BASE_SHA']
+          stage={'BETA6_PREVIEW_MULCH_TRANSFER.json.gz.b64','.github/workflows/publish-beta6-preview-mulch.yml'}
+          subprocess.run(['git','merge-base','--is-ancestor',base,'HEAD'],check=True)
+          changes=set(subprocess.check_output(['git','diff','--name-only',base,'HEAD'],text=True).splitlines())
+          if changes!=stage:raise RuntimeError('Unexpected concurrent source changes: '+repr(changes))
+          packed=base64.b64decode((root/'BETA6_PREVIEW_MULCH_TRANSFER.json.gz.b64').read_text().strip(),validate=True)
+          assert hashlib.sha256(packed).hexdigest()=='2a7c5964ce0fa7f5b0e6bb4b9339ae76de8ec9fe8173686d213f769a692153f6','Transfer SHA256 mismatch'
+          files=json.loads(gzip.decompress(packed))
+          expected={'APPLY_BETA6_MULTIPOLYGON_MULCH_HOTFIX_V1.py','edits.json','VERIFY_BETA6_MULTIPOLYGON_MULCH_V1.py','payload/osm_preview_relations.py','payload/osm_water_mulch_lock.py'}
+          assert set(files)==expected,'Unexpected package members'
+          # A new argument name is a prefix of the old .ways expression. Include
+          # the comma in both anchors so the installer cannot mistake old for new.
+          edits=json.loads(files['edits.json']); corrected=0
+          for e in edits:
+              if e['new'] in e['old'] and e['old'].endswith('.ways') and 'addOSMToImage' in e['old']:
+                  e['old']+=',';e['new']+=',';corrected+=1
+          assert corrected==6,'Unexpected preview-anchor count'
+          files['edits.json']=json.dumps(edits,indent=2)
+          vf='VERIFY_BETA6_MULTIPOLYGON_MULCH_V1.py'
+          old='r=osm_fixture();r.relations=[]'
+          assert files[vf].count(old)==1,'Unexpected test fixture'
+          files[vf]=files[vf].replace(old,'r=osm_fixture();r=types.SimpleNamespace(ways=r.ways,relations=[],nodes=r.nodes)')
+          tracked=subprocess.check_output(['git','ls-files'],text=True).splitlines()
+          before={p:hashlib.sha256((root/p).read_bytes()).hexdigest() for p in tracked if p not in stage}
           with tempfile.TemporaryDirectory(prefix='beta6-preview-mulch-') as temp:
-              package = Path(temp)
-              for name, text in files.items():
-                  dest = package/name
-                  dest.parent.mkdir(parents=True, exist_ok=True)
-                  dest.write_bytes(text.encode('utf-8'))
-              spec = importlib.util.spec_from_file_location('approved_hotfix', package/'APPLY_BETA6_MULTIPOLYGON_MULCH_HOTFIX_V1.py')
-              updater = importlib.util.module_from_spec(spec)
-              spec.loader.exec_module(updater)
-              updater.apply(root, package)
-          runtime = {'OSMTGC.py', 'lidar_map_api.py', 'dem_map_api.py', 'osm_mask_alignment.py', 'tgc_gui.py', 'tgc_tools.py', 'VERIFY_BETA6_SPLINE_SURFACE_FIX_V1.py'}
-          for path, digest in before.items():
-              if path not in runtime and hashlib.sha256((root/path).read_bytes()).hexdigest() != digest:
-                  raise RuntimeError('Unrelated source was changed: ' + path)
-          highlights = '''## Multipolygon preview and mandatory mulch-water hotfix - 2026-10-21
+              package=Path(temp)
+              for name,text in files.items():
+                  dest=package/name;dest.parent.mkdir(parents=True,exist_ok=True);dest.write_bytes(text.encode('utf-8'))
+              spec=importlib.util.spec_from_file_location('approved_hotfix',package/'APPLY_BETA6_MULTIPOLYGON_MULCH_HOTFIX_V1.py')
+              updater=importlib.util.module_from_spec(spec);spec.loader.exec_module(updater)
+              updater.apply(root,package)
+              assert updater.apply(root,package) is None,'Installer second run changed source'
+          runtime={'OSMTGC.py','lidar_map_api.py','dem_map_api.py','osm_mask_alignment.py','tgc_gui.py','tgc_tools.py','VERIFY_BETA6_SPLINE_SURFACE_FIX_V1.py'}
+          for path,digest in before.items():
+              if path not in runtime and hashlib.sha256((root/path).read_bytes()).hexdigest()!=digest:raise RuntimeError('Unrelated source changed: '+path)
+          highlights='''## Multipolygon preview and mandatory mulch-water hotfix - 2026-10-21
 
           - Relation-owned golf and water multipolygons render in the selection preview and mask whether Auto Red Mask is ON or OFF.
           - Complete relation tags, outer boundaries and inner islands are retained in the ordinary LiDAR/DEM overlay and aligned/custom-OSM mask paths.
@@ -83,49 +88,30 @@ jobs:
 
           Existing projects: use Rebuild Mask from Current OSM Alignment to regenerate mask.png from the saved heightmap and alignment. Refresh the selection preview separately when needed. Reimport the course features for the water correction; old exported files and PNGs are not rewritten automatically.
 
-          This release is built from the exact supplied hotfix on the current Beta 6 source, retaining the LiDAR tree-sizing hotfix and its existing entry point. Automated checks validate geometry and serialized material assignments; native Designer appearance still requires a visual check.
+          This release applies the supplied hotfix to current Beta 6, including a correction to its installer anchors so all six preview call-site edits are actually applied. The native-overpy test fixture is corrected without changing application behavior. The LiDAR tree-sizing hotfix and existing entry point are retained. Automated checks validate geometry and serialized material assignments; native Designer appearance still requires a visual check.
 
           '''
-          highlights = '\n'.join(line[10:] if line.startswith('          ') else line for line in highlights.split('\n'))
-          def insert_after_title(name, text):
-              p = root/name
-              old = p.read_text(encoding='utf-8-sig')
-              title, sep, body = old.partition('\n')
-              if not sep or not title.startswith('#'):
-                  raise RuntimeError('Unexpected document heading: ' + name)
+          def insert_after_title(name,text):
+              p=root/name;old=p.read_text(encoding='utf-8-sig');title,sep,body=old.partition('\n')
+              if not sep or not title.startswith('#'):raise RuntimeError('Unexpected heading: '+name)
               p.write_bytes((title+'\n\n'+text+body.lstrip('\n')).encode('utf-8'))
-          notes = root/'RELEASE_NOTES_v0.5.0-2k25-beta6.md'
-          text = notes.read_text(encoding='utf-8-sig')
-          text = re.sub(r'^\*\*Approved executable:\*\*[^\n]*\n?', '', text, flags=re.M)
-          notes.write_bytes(text.encode('utf-8'))
-          insert_after_title(notes.name, highlights)
-          insert_after_title('BETA6_HOTFIX.md', highlights)
-          insert_after_title('CHANGELOG.md', highlights)
-          insert_after_title('README.md', '## Beta 6 hotfix - 2026-10-21\n\nMultipolygon preview/mask rendering now works with Auto Red Mask off. OSM water and streams are locked to native mulch category 10 / Mulch05 through final export. Asphalt roads use category 8; cart paths remain category 7. The existing LiDAR tree-size correction and regional profiles are retained. See `BETA6_MULTIPOLYGON_MULCH_HOTFIX.md` for the scope and project-refresh steps.\n\n')
+          notes=root/'RELEASE_NOTES_v0.5.0-2k25-beta6.md'
+          text=notes.read_text(encoding='utf-8-sig');text=re.sub(r'^\*\*Approved executable:\*\*[^\n]*\n?','',text,flags=re.M);notes.write_bytes(text.encode('utf-8'))
+          insert_after_title(notes.name,highlights);insert_after_title('BETA6_HOTFIX.md',highlights);insert_after_title('CHANGELOG.md',highlights)
+          insert_after_title('README.md','## Beta 6 hotfix - 2026-10-21\n\nMultipolygon preview/mask rendering now works with Auto Red Mask off. OSM water and streams are locked to native mulch category 10 / Mulch05 through final export. Asphalt roads use category 8; cart paths remain category 7. The existing LiDAR tree-size correction and regional profiles are retained. See `BETA6_MULTIPOLYGON_MULCH_HOTFIX.md` for scope and project-refresh steps.\n\n')
           (root/'BETA6_MULTIPOLYGON_MULCH_HOTFIX.md').write_bytes(('# Beta 6 - Multipolygon Preview and Mulch Water\n\n'+highlights).encode('utf-8'))
-          build = root/'BUILD_TGC_2K25_BETA6.bat'
-          text = build.read_text(encoding='utf-8-sig')
-          anchor = 'python VERIFY_BETA6_SPLINE_SURFACE_FIX_V1.py\nif errorlevel 1 goto :fail'
-          if text.count(anchor) != 1:
-              raise RuntimeError('Unexpected Beta 6 build-verifier anchor')
-          text = text.replace(anchor, 'python VERIFY_BETA6_MULTIPOLYGON_MULCH_V1.py\nif errorlevel 1 goto :fail\n\n'+anchor)
-          anchor = 'copy /y "BETA6_LIDAR_TREE_HOTFIX.md" "%RELEASEDIR%\\" >nul'
-          if text.count(anchor) != 1:
-              raise RuntimeError('Unexpected Beta 6 packaging anchor')
-          text = text.replace(anchor, anchor+'\ncopy /y "BETA6_MULTIPOLYGON_MULCH_HOTFIX.md" "%RELEASEDIR%\\" >nul\ncopy /y "BETA6_PREVIEW_MULCH_MANIFEST.json" "%RELEASEDIR%\\" >nul')
+          build=root/'BUILD_TGC_2K25_BETA6.bat';text=build.read_text(encoding='utf-8-sig')
+          anchor='python VERIFY_BETA6_SPLINE_SURFACE_FIX_V1.py\nif errorlevel 1 goto :fail'
+          assert text.count(anchor)==1,'Build-verifier anchor mismatch'
+          text=text.replace(anchor,'python VERIFY_BETA6_MULTIPOLYGON_MULCH_V1.py\nif errorlevel 1 goto :fail\n\n'+anchor)
+          anchor='copy /y "BETA6_LIDAR_TREE_HOTFIX.md" "%RELEASEDIR%\\" >nul'
+          assert text.count(anchor)==1,'Build-package anchor mismatch'
+          text=text.replace(anchor,anchor+'\ncopy /y "BETA6_MULTIPOLYGON_MULCH_HOTFIX.md" "%RELEASEDIR%\\" >nul\ncopy /y "BETA6_PREVIEW_MULCH_MANIFEST.json" "%RELEASEDIR%\\" >nul')
           build.write_bytes(text.replace('\n','\r\n').encode('utf-8'))
-          new_modules = {'osm_preview_relations.py', 'osm_water_mulch_lock.py', 'VERIFY_BETA6_MULTIPOLYGON_MULCH_V1.py'}
-          manifest = {
-              'hotfix': 'Beta 6 multipolygon preview / mandatory mulch water V1',
-              'date': '2026-10-21', 'base_commit': base,
-              'approved_patch_zip_sha256': '3282329c0153dce19992d2c733bc184ae27e6ad87c5a38180310ff5aa2e4690d',
-              'runtime_sha256': {p:hashlib.sha256((root/p).read_bytes()).hexdigest() for p in sorted(runtime|new_modules)},
-              'preserved_sha256': {p:h for p,h in before.items() if p.startswith('tree_profiles/') or p in {'auto_red_mask.py','tree_profile_manager.py','tgc_image_terrain.py','tgc_definitions.py','osm_alignment_viewer.py','osm_custom_layout.py','tgc_tree_size_test1_entry.py','lidar_fast_native.c','requirements.txt'}},
-              'windows_build_entry': 'tgc_tree_size_test1_entry.py',
-              'native_designer_visual_test': 'not performed by CI'
-          }
+          new_modules={'osm_preview_relations.py','osm_water_mulch_lock.py','VERIFY_BETA6_MULTIPOLYGON_MULCH_V1.py'}
+          manifest={'hotfix':'Beta 6 multipolygon preview / mandatory mulch water V1','date':'2026-10-21','base_commit':base,'approved_patch_zip_sha256':'3282329c0153dce19992d2c733bc184ae27e6ad87c5a38180310ff5aa2e4690d','publication_adjustments':['Terminate six argument replacement anchors with commas to avoid false already-applied detection','Use a read-only-compatible no-relations test fixture with native overpy'],'runtime_sha256':{p:hashlib.sha256((root/p).read_bytes()).hexdigest() for p in sorted(runtime|new_modules)},'preserved_sha256':{p:h for p,h in before.items() if p.startswith('tree_profiles/') or p in {'auto_red_mask.py','tree_profile_manager.py','tgc_image_terrain.py','tgc_definitions.py','osm_alignment_viewer.py','osm_custom_layout.py','tgc_tree_size_test1_entry.py','lidar_fast_native.c','requirements.txt'}},'windows_build_entry':'tgc_tree_size_test1_entry.py','native_designer_visual_test':'not performed by CI'}
           (root/'BETA6_PREVIEW_MULCH_MANIFEST.json').write_bytes((json.dumps(manifest,indent=2)+'\n').encode('utf-8'))
-          print('Exact patch applied. Tree code/profiles, terrain, CFS transforms and Auto Red Mask logic are unchanged.')
+          print('All six preview edits applied. Idempotence and unrelated source preservation passed.')
 
       - name: Install existing pinned Python dependencies
         shell: pwsh
@@ -136,12 +122,10 @@ jobs:
       - name: Run hotfix and retained Beta 6 checks with native overpy
         shell: python
         run: |
-          import subprocess, sys
-          import overpy
-          scripts = ['VERIFY_BETA6_MULTIPOLYGON_MULCH_V1.py','VERIFY_BETA6_SPLINE_SURFACE_FIX_V1.py','VERIFY_BETA6_SOURCE.py','VERIFY_BETA6_CFS_MASK_ALIGNMENT_WORKFLOW_V1.py','VERIFY_BETA6_WORKFLOW_UI_REORDER_V2.py','VERIFY_BETA6_CFS_ASYNC_MASK_REBUILD_V3.py','VERIFY_BETA6_OSM_ROAD_SPLIT_V4.py','VERIFY_BETA6_CUSTOM_UNMATCHED_OSM_V5.py','VERIFY_BETA6_CUSTOM_UNMATCHED_OSM_V5_1.py']
+          import subprocess,sys,overpy
+          scripts=['VERIFY_BETA6_MULTIPOLYGON_MULCH_V1.py','VERIFY_BETA6_SPLINE_SURFACE_FIX_V1.py','VERIFY_BETA6_SOURCE.py','VERIFY_BETA6_CFS_MASK_ALIGNMENT_WORKFLOW_V1.py','VERIFY_BETA6_WORKFLOW_UI_REORDER_V2.py','VERIFY_BETA6_CFS_ASYNC_MASK_REBUILD_V3.py','VERIFY_BETA6_OSM_ROAD_SPLIT_V4.py','VERIFY_BETA6_CUSTOM_UNMATCHED_OSM_V5.py','VERIFY_BETA6_CUSTOM_UNMATCHED_OSM_V5_1.py']
           for script in scripts:
-              print('\n=== '+script+' ===',flush=True)
-              subprocess.run([sys.executable,script],check=True)
+              print('\n=== '+script+' ===',flush=True);subprocess.run([sys.executable,script],check=True)
           subprocess.run([sys.executable,'tgc_tree_size_test1_entry.py','--verify-lidar-trees'],check=True)
           subprocess.run([sys.executable,'-m','py_compile','OSMTGC.py','osm_preview_relations.py','osm_water_mulch_lock.py','lidar_map_api.py','dem_map_api.py','osm_mask_alignment.py','tgc_gui.py','tgc_tools.py'],check=True)
 
@@ -150,16 +134,13 @@ jobs:
         run: |
           choco install mingw -y --no-progress
           if ($LASTEXITCODE -ne 0) { throw 'MinGW installation failed.' }
-          $gcc = Get-ChildItem -Path 'C:\ProgramData\chocolatey','C:\ProgramData\mingw64','C:\tools' -Filter gcc.exe -Recurse -ErrorAction SilentlyContinue | Where-Object { $_.FullName -match 'mingw64.*bin.*gcc\.exe$' } | Select-Object -First 1
-          if (-not $gcc) {
-            $cmd = Get-Command gcc.exe -ErrorAction SilentlyContinue
-            if ($cmd) { $gcc = Get-Item $cmd.Source }
-          }
+          $gcc=Get-ChildItem -Path 'C:\ProgramData\chocolatey','C:\ProgramData\mingw64','C:\tools' -Filter gcc.exe -Recurse -ErrorAction SilentlyContinue | Where-Object { $_.FullName -match 'mingw64.*bin.*gcc\.exe$' } | Select-Object -First 1
+          if (-not $gcc) { $cmd=Get-Command gcc.exe -ErrorAction SilentlyContinue; if ($cmd) { $gcc=Get-Item $cmd.Source } }
           if (-not $gcc) { throw 'MinGW-w64 compiler not found.' }
           & $gcc.FullName -O3 -shared -std=c11 -s -o tgc_lidar_fast_native.dll lidar_fast_native.c -lm
           if ($LASTEXITCODE -ne 0) { throw 'Native LiDAR compilation failed.' }
 
-      - name: Build the hotfix EXE once using the retained tree entry point
+      - name: Build hotfix EXE using retained tree entry point
         shell: pwsh
         run: |
           python -m PyInstaller --noconfirm --clean --onefile --name "$env:EXE_NAME" --add-binary './laszip/laszip-cli.exe;laszip' --add-binary 'tgc_lidar_fast_native.dll;.' --additional-hooks-dir './PyInstaller/hooks/' --runtime-hook './PyInstaller/rthook_rasterio.py' --add-data './tree_profiles;tree_profiles' tgc_tree_size_test1_entry.py
@@ -174,14 +155,12 @@ jobs:
         shell: python
         run: |
           from pathlib import Path
-          import hashlib, json, os, shutil, zipfile
-          root=Path.cwd(); base=root/'dist'/'release_beta6'; base.mkdir(parents=True,exist_ok=True)
-          name=os.environ['PACKAGE_NAME']; exe=os.environ['EXE_NAME']+'.exe'; package=base/name; package.mkdir()
+          import hashlib,json,os,shutil,zipfile
+          root=Path.cwd();base=root/'dist'/'release_beta6';base.mkdir(parents=True,exist_ok=True)
+          name=os.environ['PACKAGE_NAME'];exe=os.environ['EXE_NAME']+'.exe';package=base/name;package.mkdir()
           shutil.copy2(root/'dist'/exe,package/exe)
-          for doc in ['LICENSE','README.md','CHANGELOG.md','BUILD_WINDOWS.md','BETA6_TREE_PROFILES.md','BETA6_LIDAR_TREE_HOTFIX.md','BETA6_HOTFIX.md','BETA6_MULTIPOLYGON_MULCH_HOTFIX.md','BETA6_PREVIEW_MULCH_MANIFEST.json','RELEASE_NOTES_v0.5.0-2k25-beta6.md']:
-              shutil.copy2(root/doc,package/doc)
-          shutil.copy2(root/'extras'/'splines.json',package/'splines.json')
-          shutil.copytree(root/'tree_profiles',package/'tree_profiles')
+          for doc in ['LICENSE','README.md','CHANGELOG.md','BUILD_WINDOWS.md','BETA6_TREE_PROFILES.md','BETA6_LIDAR_TREE_HOTFIX.md','BETA6_HOTFIX.md','BETA6_MULTIPOLYGON_MULCH_HOTFIX.md','BETA6_PREVIEW_MULCH_MANIFEST.json','RELEASE_NOTES_v0.5.0-2k25-beta6.md']:shutil.copy2(root/doc,package/doc)
+          shutil.copy2(root/'extras'/'splines.json',package/'splines.json');shutil.copytree(root/'tree_profiles',package/'tree_profiles')
           for doc in ['BETA6_OSM_CARTPATH_ROAD_SPLIT_V4.txt','BETA6_OSM_GOLF_PATH_ONLY_V4_1.txt','SPLINES_JSON_ROAD_EXAMPLE.json','BETA6_CUSTOM_UNMATCHED_OSM_V5_1.txt']:
               if (root/doc).is_file():shutil.copy2(root/doc,package/doc)
           archive=base/(name+'.zip')
@@ -195,10 +174,8 @@ jobs:
               return h.hexdigest()
           assets={}
           for p in [root/'dist'/exe,archive]:
-              h=digest(p); check=base/(p.name+'.sha256.txt'); check.write_bytes((h+'  '+p.name+'\n').encode('ascii'))
-              assets[p.name]={'sha256':h,'bytes':p.stat().st_size}
-              assets[check.name]={'sha256':digest(check),'bytes':check.stat().st_size}
-              print(p.name,h,p.stat().st_size)
+              h=digest(p);check=base/(p.name+'.sha256.txt');check.write_bytes((h+'  '+p.name+'\n').encode('ascii'))
+              assets[p.name]={'sha256':h,'bytes':p.stat().st_size};assets[check.name]={'sha256':digest(check),'bytes':check.stat().st_size};print(p.name,h,p.stat().st_size)
           (base/'published-assets.json').write_text(json.dumps(assets,indent=2))
           with zipfile.ZipFile(archive) as z:
               assert hashlib.sha256(z.read(exe)).hexdigest()==assets[exe]['sha256']
@@ -218,11 +195,11 @@ jobs:
             dist/release_beta6/*.sha256.txt
             dist/release_beta6/published-assets.json
 
-      - name: Commit only the clean hotfix source and documentation
+      - name: Commit only clean hotfix source and documentation
         shell: python
         run: |
           from pathlib import Path
-          import hashlib, json, os, subprocess
+          import hashlib,json,os,subprocess
           def git(*args):return subprocess.check_output(['git',*args],text=True).strip()
           remote=git('ls-remote','origin','refs/heads/main').split()[0]
           if remote!=os.environ['GITHUB_SHA']:raise RuntimeError('main advanced during build; stopping without overwriting it')
@@ -236,17 +213,14 @@ jobs:
           allowed=set(manifest['runtime_sha256'])|{'BUILD_TGC_2K25_BETA6.bat','README.md','CHANGELOG.md','BETA6_HOTFIX.md','BETA6_MULTIPOLYGON_MULCH_HOTFIX.md','BETA6_PREVIEW_MULCH_MANIFEST.json','RELEASE_NOTES_v0.5.0-2k25-beta6.md'}
           modified=set(git('diff','--name-only').splitlines())
           if modified-allowed:raise RuntimeError('Unexpected tracked changes: '+repr(modified-allowed))
-          git('config','user.name','github-actions[bot]')
-          git('config','user.email','41898282+github-actions[bot]@users.noreply.github.com')
-          git('rm','.github/workflows/publish-beta6-preview-mulch.yml','BETA6_PREVIEW_MULCH_TRANSFER.json.gz.b64')
-          git('add',*sorted(allowed))
+          git('config','user.name','github-actions[bot]');git('config','user.email','41898282+github-actions[bot]@users.noreply.github.com')
+          git('rm','.github/workflows/publish-beta6-preview-mulch.yml','BETA6_PREVIEW_MULCH_TRANSFER.json.gz.b64');git('add',*sorted(allowed))
           git('commit','-m','Beta 6 Hotfix: restore multipolygon previews and lock water to native mulch')
-          sha=git('rev-parse','HEAD')
-          git('push','origin','HEAD:main')
+          sha=git('rev-parse','HEAD');git('push','origin','HEAD:main')
           with open(os.environ['GITHUB_ENV'],'a',encoding='utf-8') as f:f.write('HOTFIX_SOURCE_SHA='+sha+'\n')
           print('Clean hotfix source committed:',sha)
 
-      - name: Replace the existing Beta 6 assets and update its tag and notes
+      - name: Replace existing Beta 6 assets and update tag and notes
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
@@ -256,7 +230,7 @@ jobs:
           git push origin "--force-with-lease=refs/tags/$($env:TAG_NAME):$($env:BASE_SHA)" "refs/tags/$env:TAG_NAME"
           if ($LASTEXITCODE -ne 0) { throw 'Tag changed unexpectedly; publication stopped.' }
           gh release upload $env:TAG_NAME "dist\$env:EXE_NAME.exe" "dist\release_beta6\$env:EXE_NAME.exe.sha256.txt" "dist\release_beta6\$env:PACKAGE_NAME.zip" "dist\release_beta6\$env:PACKAGE_NAME.zip.sha256.txt" --clobber
-          if ($LASTEXITCODE -ne 0) { throw 'Release upload failed; built artifacts are retained for recovery.' }
+          if ($LASTEXITCODE -ne 0) { throw 'Release upload failed; built artifacts retained for recovery.' }
           $body=Get-Content 'RELEASE_NOTES_v0.5.0-2k25-beta6.md' -Raw
           $payload=@{name=$env:RELEASE_TITLE;body=$body;draft=$false;prerelease=$true;target_commitish=$env:HOTFIX_SOURCE_SHA}|ConvertTo-Json -Compress
           $payload | gh api --method PATCH "repos/$env:GITHUB_REPOSITORY/releases/410916440" --input - | Out-Null
@@ -270,18 +244,15 @@ jobs:
           from pathlib import Path
           import json,os,subprocess
           def api(path):return json.loads(subprocess.check_output(['gh','api','repos/'+os.environ['GITHUB_REPOSITORY']+'/'+path],text=True,encoding='utf-8'))
-          sha=os.environ['HOTFIX_SOURCE_SHA']; tag=os.environ['TAG_NAME']
+          sha=os.environ['HOTFIX_SOURCE_SHA'];tag=os.environ['TAG_NAME']
           assert api('git/ref/heads/main')['object']['sha']==sha
           assert api('git/ref/tags/'+tag)['object']['sha']==sha
           r=api('releases/tags/'+tag)
           assert r['name']==os.environ['RELEASE_TITLE'] and r['prerelease'] and not r['draft']
           assert r['target_commitish']==sha
-          expected=json.loads(Path('dist/release_beta6/published-assets.json').read_text())
-          assets={a['name']:a for a in r['assets']}
+          expected=json.loads(Path('dist/release_beta6/published-assets.json').read_text());assets={a['name']:a for a in r['assets']}
           for name,data in expected.items():
-              a=assets[name]
-              assert a['state']=='uploaded' and a['size']==data['bytes']
-              assert a['digest']=='sha256:'+data['sha256'],name
+              a=assets[name];assert a['state']=='uploaded' and a['size']==data['bytes'];assert a['digest']=='sha256:'+data['sha256'],name
               print('VERIFIED',name,a['size'],a['digest'])
           assert 'Multipolygon preview and mandatory mulch-water hotfix' in r['body']
           print('PUBLICATION COMPLETE',sha,r['html_url'])
