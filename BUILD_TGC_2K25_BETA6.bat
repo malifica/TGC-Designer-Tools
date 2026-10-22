@@ -36,6 +36,9 @@ echo === Beta 6 full source verification ===
 python VERIFY_BETA6_SOURCE.py
 if errorlevel 1 goto :fail
 
+python VERIFY_BETA6_TREE_TOPOLOGY.py
+if errorlevel 1 goto :fail
+
 python VERIFY_BETA6_MULTIPOLYGON_MULCH_V1.py
 if errorlevel 1 goto :fail
 
@@ -142,6 +145,7 @@ if exist "tgc_lidar_fast_native.dll" (
    --noconfirm ^
    --clean ^
    --onefile ^
+   --hidden-import lidar_tree_topology ^
    --name "%EXENAME%" ^
    --add-binary "./laszip/laszip-cli.exe;laszip" ^
    --add-binary "tgc_lidar_fast_native.dll;." ^
@@ -155,6 +159,7 @@ if exist "tgc_lidar_fast_native.dll" (
    --noconfirm ^
    --clean ^
    --onefile ^
+   --hidden-import lidar_tree_topology ^
    --name "%EXENAME%" ^
    --add-binary "./laszip/laszip-cli.exe;laszip" ^
    --additional-hooks-dir "./PyInstaller/hooks/" ^
@@ -179,6 +184,8 @@ copy /y "BETA6_TREE_PROFILES.md" "%RELEASEDIR%\" >nul
 copy /y "BETA6_LIDAR_TREE_HOTFIX.md" "%RELEASEDIR%\" >nul
 copy /y "BETA6_MULTIPOLYGON_MULCH_HOTFIX.md" "%RELEASEDIR%\" >nul
 copy /y "BETA6_PREVIEW_MULCH_MANIFEST.json" "%RELEASEDIR%\" >nul
+copy /y "BETA6_TREE_NOTICE_HOTFIX.md" "%RELEASEDIR%\" >nul
+copy /y "BETA6_TREE_NOTICE_MANIFEST.json" "%RELEASEDIR%\" >nul
 copy /y "RELEASE_NOTES_v0.5.0-2k25-beta6.md" "%RELEASEDIR%\" >nul
 if exist "BETA6_HOTFIX.md" copy /y "BETA6_HOTFIX.md" "%RELEASEDIR%\" >nul
 if exist "extras\splines.json" copy /y "extras\splines.json" "%RELEASEDIR%\splines.json" >nul

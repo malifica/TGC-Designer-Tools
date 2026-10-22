@@ -790,6 +790,8 @@ def set_constants(course_json, flatten_fairways=False, flatten_greens=False, cou
     return course_json
 
 def generate_course(course_json, heightmap_dir_path, options_dict={}, printf=print, course_version=-1):
+    # TGC_TREE_SURFACE_TOPOLOGY_V1
+    tree_osm_context = None
     if course_version not in tgc_definitions.version_tags:
         print("invalid version")
         print(course_version)
@@ -1163,6 +1165,8 @@ def generate_course(course_json, heightmap_dir_path, options_dict={}, printf=pri
                 course_version=course_version,
                 resolve_missing_nodes=not local_osm_mode
             )
+            # TGC_TREE_SURFACE_TOPOLOGY_V1 - same OSM result and final projection, read-only.
+            tree_osm_context = (result, osm_pointcloud, final_osm_ew, final_osm_ns, dict(options_dict))
 
         if len(osm_trees) > 0:
             printf("Adding trees from OpenStreetMap")
@@ -1234,6 +1238,7 @@ def generate_course(course_json, heightmap_dir_path, options_dict={}, printf=pri
         tree_surface_filter = lidar_feature_filter.build_lidar_tree_surface_filter(
             course_json,
             course_version,
+                                  osm_context=tree_osm_context,
             printf=printf,
         )
         tree_candidates = (

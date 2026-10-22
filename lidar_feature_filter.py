@@ -519,12 +519,10 @@ def candidate_within_distance(
 # returns, but a candidate should never survive on a maintained playing
 # surface simply because it is near the golf course.
 #
-# Precedence:
-#   1. Green/tee or bunker -> reject.
-#   2. Explicit rough spline -> allow (rough can intentionally sit inside a
-#      fairway around a real tree).
-#   3. Fairway -> reject.
-#   4. Everything else -> allow.
+# Eligibility resolves each maintained surface separately. A fully contained
+# rough island can exempt its containing green/fairway/bunker; broad or crossing
+# background rough cannot. OSM source topology is read in the exact final
+# importer frame; rough inner rings never grant rough-surface permission.
 #
 # OSM-mapped trees are added through a different path and are unaffected.
 # -------------------------------------------------------------------------
@@ -626,69 +624,11 @@ def _surface_region_entry(spline, course_version):
     }
 
 
-def build_lidar_tree_surface_filter(
-    course_json,
-    course_version,
-    printf=print,
-):
-    """Build primary playing-surface regions used to reject false LiDAR trees."""
-    if course_version not in tgc_definitions.version_tags:
-        return None
-
-    spline_tag = tgc_definitions.version_tags[course_version]["splines"]
-
-    regions = {
-        "bunker": [],
-        "green_tee": [],
-        "fairway": [],
-        "rough": [],
-    }
-
-    for spline in course_json.get(spline_tag, []) or []:
-        if not bool(
-            spline.get(
-                "isFilled",
-                spline.get("ClosedPath", False),
-            )
-        ):
-            continue
-
-        try:
-            surface = int(spline.get("surface", -999))
-        except Exception:
-            continue
-
-        if surface == 0:
-            key = "bunker"
-        elif surface == 1:
-            key = "green_tee"
-        elif surface == 2:
-            key = "fairway"
-        elif surface == 3:
-            key = "rough"
-        else:
-            continue
-
-        entry = _surface_region_entry(
-            spline,
-            course_version,
-        )
-        if entry is not None:
-            regions[key].append(entry)
-
-    printf(
-        "LiDAR tree playing-surface filter: "
-        + str(len(regions["green_tee"]))
-        + " green/tee, "
-        + str(len(regions["bunker"]))
-        + " bunker, "
-        + str(len(regions["fairway"]))
-        + " fairway, "
-        + str(len(regions["rough"]))
-        + " rough region(s)."
-    )
-
-    return regions
+def build_lidar_tree_surface_filter(course_json, course_version, printf=print, osm_context=None):
+    # TGC_TREE_SURFACE_TOPOLOGY_V1
+    from lidar_tree_topology import build_filter
+    return build_filter(course_json, course_version, _surface_region_entry,
+                        printf=printf, osm_context=osm_context)
 
 
 def _point_hits_surface_regions(x, z, regions):
@@ -709,102 +649,10 @@ def _point_hits_surface_regions(x, z, regions):
     return False
 
 
-def filter_lidar_tree_candidates_by_playing_surfaces(
-    lidar_trees,
-    pc,
-    surface_filter,
-    printf=print,
-):
-    """Reject LiDAR-generated trees from maintained playing surfaces.
-
-    Green/tee and bunker are absolute exclusions.  An explicit rough spline
-    overrides fairway so deliberately mapped rough islands can retain real
-    trees.
-    """
-    if not surface_filter:
-        printf(
-            "LiDAR tree playing-surface filter: no course-surface geometry "
-            "available; candidates unchanged."
-        )
-        return list(lidar_trees)
-
-    kept = []
-    rejected_green_tee = 0
-    rejected_bunker = 0
-    rejected_fairway = 0
-    rough_overrides = 0
-
-    for tree in lidar_trees:
-        try:
-            easting, northing, radius, height = tree
-            x, _y, z = pc.projToTGC(
-                float(easting),
-                float(northing),
-                0.0,
-            )
-        except Exception:
-            continue
-
-        # Green/tee and bunker are always hard exclusions.
-        if _point_hits_surface_regions(
-            x,
-            z,
-            surface_filter["green_tee"],
-        ):
-            rejected_green_tee += 1
-            continue
-
-        if _point_hits_surface_regions(
-            x,
-            z,
-            surface_filter["bunker"],
-        ):
-            rejected_bunker += 1
-            continue
-
-        # Deliberately mapped rough islands override an underlying fairway.
-        if _point_hits_surface_regions(
-            x,
-            z,
-            surface_filter["rough"],
-        ):
-            rough_overrides += 1
-            kept.append(tree)
-            continue
-
-        if _point_hits_surface_regions(
-            x,
-            z,
-            surface_filter["fairway"],
-        ):
-            rejected_fairway += 1
-            continue
-
-        kept.append(tree)
-
-    rejected = (
-        rejected_green_tee
-        + rejected_bunker
-        + rejected_fairway
-    )
-
-    printf(
-        "LiDAR tree playing-surface filter: kept "
-        + str(len(kept))
-        + "/"
-        + str(len(lidar_trees))
-        + "; rejected "
-        + str(rejected_green_tee)
-        + " green/tee, "
-        + str(rejected_bunker)
-        + " bunker, "
-        + str(rejected_fairway)
-        + " fairway candidate(s); rough overrides="
-        + str(rough_overrides)
-        + "."
-    )
-
-    return kept
+def filter_lidar_tree_candidates_by_playing_surfaces(lidar_trees, pc, surface_filter, printf=print):
+    # TGC_TREE_SURFACE_TOPOLOGY_V1
+    from lidar_tree_topology import filter_candidates
+    return filter_candidates(lidar_trees, pc, surface_filter, printf=printf)
 
 
 def filter_lidar_tree_candidates(
