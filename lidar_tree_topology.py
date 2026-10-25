@@ -6,8 +6,8 @@ a rough region exempts a maintained surface ONLY when its complete outer
 boundary is strictly inside that particular surface. The exception is local:
 a separate green/bunker/tee covering that point still rejects the candidate.
 
-TGC_TREE_SURFACE_NOTICE_DENY_V1: invalid OSM items become no-tree regions.
-OSM tree-topology faults do not abort course generation.
+TGC_BETA7_RESOLVED_SHAPES_V1: unresolved OSM items are ignored with notices.
+No global rejection, quarantine boxes, or invented exclusion polygons.
 Uses existing numpy/OpenCV dependencies. No shapely dependency is introduced.
 """
 from collections import Counter, defaultdict
@@ -16,7 +16,7 @@ import cv2
 import numpy as np
 
 MARKER = 'TGC_TREE_SURFACE_TOPOLOGY_V1'
-NOTICE_MARKER = 'TGC_TREE_SURFACE_NOTICE_DENY_V1'
+NOTICE_MARKER = 'TGC_BETA7_RESOLVED_SHAPES_V1'
 _MAINTAINED = {'green', 'tee', 'fairway', 'bunker'}
 _ROUGH = {'rough', 'heavyrough'}
 _SURFACE = {0: 'bunker', 1: 'green', 2: 'fairway', 3: 'rough', 4: 'heavyrough'}
@@ -121,17 +121,11 @@ class SurfaceFilter(dict):
         self.exclusions = exclusions
         self.warnings = warnings
         self.last_counts = {}
-        self.global_denials = tuple(global_denials)
-        self.quarantine = [a for a in exclusions if a.kind == 'ambiguous']
+        # Compatibility field only; unresolved items NEVER become a veto.
+        self.global_denials = ()
+        self.quarantine = []
 
     def decision(self, x, z):
-        if self.global_denials:
-            return False, 'unresolved_osm', self.global_denials[0]
-        # Invalid source regions override every island permission, regardless
-        # of source order or another overlapping correctly tagged rough area.
-        for area in self.quarantine:
-            if area.outer.hit(x, z, area.margin):
-                return False, 'ambiguous', area.source
         island = False
         for area in self.exclusions:
             if not area.outer.hit(x, z, area.margin):
@@ -210,10 +204,11 @@ def _stitch(relation, lookup, role, warn):
 
 
 class SourceAreas(list):
-    """List-compatible source geometry, with explicit global-deny diagnostics."""
+    """Only resolved shapes; ignored item identifiers remain available for diagnostics."""
     def __init__(self):
         super().__init__()
-        self.global_denials = []
+        self.global_denials = []  # Compatibility only: always empty.
+        self.ignored_items = []
 
 
 def source_areas(context, warn):
@@ -237,60 +232,13 @@ def source_areas(context, warn):
     def ring(ns):
         return Ring(points(ns))
 
-    def envelope(p):
-        # This box is only a conservative no-tree area; it is never exported
-        # as a surface or used to grant rough-island permission.
-        arr = np.asarray(p, dtype=np.float64).reshape((-1, 2))
-        if not len(arr) or not np.isfinite(arr).all():
-            raise ValueError('no complete finite geometry')
-        lo = arr.min(axis=0) - _EDGE_EPS
-        hi = arr.max(axis=0) + _EDGE_EPS
-        return Ring([(lo[0], lo[1]), (hi[0], lo[1]),
-                     (hi[0], hi[1]), (lo[0], hi[1])])
-
-    def deny_all(label, reason):
+    def skip_item(label, reason, *unused, **unused_keywords):
+        # Deliberately do NOT construct a box, hull, or guessed closing edge.
+        # Another independently resolved feature may still reject a tree here.
         message = label + ': ' + reason
-        areas.global_denials.append(message)
-        warn(message + '; complete affected bounds unavailable. '
-             'ALL new LiDAR trees disabled for this import; course processing continues.')
-
-    def quarantine(label, reason, outer_rings=None, outer_ways=None, exact=False):
-        """Block an invalid item's full outer footprint, deliberately ignoring holes.
-
-        Complete valid rings allow local exclusion. Open/branched or crossing
-        geometry with ALL nodes present uses one enclosing box. Missing data
-        without trustworthy bounds suppresses trees, not course generation.
-        """
-        blocked = []
-        method = 'outer footprint(s)'
-        if exact and outer_rings:
-            try:
-                blocked = [ring(ns) for ns in outer_rings]
-                if not all(simple_ring(r) for r in blocked):
-                    blocked = []
-            except Exception:
-                blocked = []
-        if not blocked:
-            try:
-                if not outer_ways or any(w is None for w in outer_ways):
-                    raise ValueError('outer member unavailable')
-                p = []
-                for w in outer_ways:
-                    ns = _nodes(w)
-                    if not ns:
-                        raise ValueError('outer way has no nodes')
-                    p.extend(points(ns))
-                blocked = [envelope(p)]
-                method = 'conservative exclusion envelope'
-            except Exception:
-                deny_all(label, reason)
-                return
-        for i, out in enumerate(blocked):
-            areas.append(Area('ambiguous', out, source=label+' no-tree zone '+str(i+1),
-                              margin=_EDGE_EPS))
-        warn('%s: %s; trees disabled in %d %s, including any inner areas. '
-             'No rough-island override for this item; course processing continues.' %
-             (label, reason, len(blocked), method))
+        areas.ignored_items.append(message)
+        warn(message + '; unresolved item ignored. No trees rejected by this item; '
+             'other resolved shapes and independent filters still apply; course processing continues.')
 
     for rel in relations:
         if str(_tags(rel).get('type', '')).lower() != 'multipolygon':
@@ -317,25 +265,21 @@ def source_areas(context, warn):
             if str(getattr(m, 'role', '') or '').lower() != 'outer':
                 continue
             outer_ways.append(lookup.get(m.ref) if _member_is_way(m) else None)
-            if _member_is_way(m):
-                consumed.add((m.ref, kind))
-                if ambiguous:
-                    consumed.update((m.ref, token) for token in tokens)
         try:
             ou, outer_ok = _stitch(rel, lookup, 'outer', warn)
             inn, inner_ok = _stitch(rel, lookup, 'inner', warn)
         except Exception as exc:
-            quarantine(label, 'unreadable topology (%s: %s)' % (type(exc).__name__, str(exc)[:160]),
+            skip_item(label, 'unreadable topology (%s: %s)' % (type(exc).__name__, str(exc)[:160]),
                        outer_ways=outer_ways)
             continue
         if ambiguous:
-            quarantine(label, 'ambiguous golf=%s' % kind, ou, outer_ways, outer_ok)
+            skip_item(label, 'ambiguous golf=%s' % kind, ou, outer_ways, outer_ok)
             continue
         if not outer_ok or not ou:
-            quarantine(label, 'incomplete outer topology', ou, outer_ways)
+            skip_item(label, 'incomplete outer topology', ou, outer_ways)
             continue
         if not inner_ok:
-            quarantine(label, 'incomplete inner topology', ou, outer_ways, True)
+            skip_item(label, 'incomplete inner topology', ou, outer_ways, True)
             continue
         try:
             holes = [ring(ns) for ns in inn]
@@ -343,14 +287,16 @@ def source_areas(context, warn):
             if not all(simple_ring(r) for r in outers + holes):
                 raise ValueError('self-crossing boundary')
             # A complete rough component is required before granting permission.
-            if kind in _ROUGH:
-                for hole in holes:
-                    if sum(strictly_inside(hole, out) for out in outers) != 1:
-                        raise ValueError('rough inner ring is not inside exactly one outer')
+            for hole in holes:
+                if sum(strictly_inside(hole, out) for out in outers) != 1:
+                    raise ValueError('inner ring is not inside exactly one outer')
         except Exception as exc:
-            quarantine(label, 'unusable geometry (%s: %s)' %
+            skip_item(label, 'unusable geometry (%s: %s)' %
                        (type(exc).__name__, str(exc)[:160]), ou, outer_ways, True)
             continue
+        for m in members:
+            if _member_is_way(m) and str(getattr(m, 'role', '') or '').lower() == 'outer':
+                consumed.add((m.ref, kind))
         for i, out in enumerate(outers):
             areas.append(Area(kind, out, holes,
                               'OSM relation %s outer %d' % (rel.id, i+1)))
@@ -368,19 +314,19 @@ def source_areas(context, warn):
             ns = _nodes(way)
             closed = len(ns) >= 4 and ns[0].id == ns[-1].id
             if ambiguous:
-                quarantine(label, 'ambiguous golf=%s' % kind,
+                skip_item(label, 'ambiguous golf=%s' % kind,
                            [ns] if closed else [], [way], closed)
                 continue
             if not closed:
-                quarantine(label, 'open/incomplete area boundary', outer_ways=[way])
+                skip_item(label, 'open/incomplete area boundary', outer_ways=[way])
                 continue
             r = ring(ns)
             if not simple_ring(r):
-                quarantine(label, 'self-crossing area boundary', outer_ways=[way])
+                skip_item(label, 'self-crossing area boundary', outer_ways=[way])
                 continue
             areas.append(Area(kind, r, source=label))
         except Exception as exc:
-            quarantine(label, 'unusable geometry (%s: %s)' %
+            skip_item(label, 'unusable geometry (%s: %s)' %
                        (type(exc).__name__, str(exc)[:160]), outer_ways=[way])
     return areas
 
@@ -411,7 +357,11 @@ def build_filter(course_json, course_version, region_builder, printf=print, osm_
             continue
         if kind is None:
             continue
-        entry = region_builder(s, course_version)
+        try:
+            entry = region_builder(s, course_version)
+        except Exception as exc:
+            warn('native spline %d: unreadable boundary (%s); unresolved shape ignored' % (i, str(exc)[:160]))
+            continue
         if entry is None:
             continue
         key = 'green_tee' if kind == 'green' else ('rough' if kind in _ROUGH else kind)
@@ -422,20 +372,17 @@ def build_filter(course_json, course_version, region_builder, printf=print, osm_
         except ValueError as exc:
             warn('native spline %d: %s' % (i, exc))
     exclusions = [a for a in native if a.kind in _MAINTAINED]
-    global_denials = []
     if osm_context is not None:
         try:
             semantic = source_areas(osm_context, warn)
         except Exception as exc:
-            # This catch is confined to the read-only tree-topology reader.
-            # Never approve trees using partially failed source geometry.
+            # Reader failure is not authority to suppress unrelated trees.
             semantic = SourceAreas()
-            message = 'unreadable OSM tree topology (%s: %s)' % (type(exc).__name__, str(exc)[:160])
-            semantic.global_denials.append(message)
-            warn(message + '; ALL new LiDAR trees disabled for this import; course processing continues.')
-        global_denials = semantic.global_denials
+            warn('unreadable OSM tree topology (%s: %s); source topology ignored; '
+                 'resolved native shapes remain active; course processing continues.' %
+                 (type(exc).__name__, str(exc)[:160]))
         rough = [a for a in semantic if a.kind in _ROUGH]
-        exclusions.extend(a for a in semantic if a.kind in _MAINTAINED or a.kind == 'ambiguous')
+        exclusions.extend(a for a in semantic if a.kind in _MAINTAINED)
         mode = 'OSM outer-minus-inner + native Bezier boundaries'
     else:
         rough = [a for a in native if a.kind in _ROUGH and simple_ring(a.outer)]
@@ -444,15 +391,13 @@ def build_filter(course_json, course_version, region_builder, printf=print, osm_
     # region. A confirmed island in one region cannot overrule a second green.
     links = 0
     for a in exclusions:
-        if a.kind == 'ambiguous':
-            continue
         for r in rough:
             if strictly_inside(r.outer, a.outer):
                 a.islands.append(r)
                 links += 1
-    printf('LiDAR tree topology: %s; %d maintained/ambiguous regions; %d rough areas; %d local island links.' %
+    printf('LiDAR tree topology: %s; %d resolved maintained regions; %d rough areas; %d local island links.' %
            (mode, len(exclusions), len(rough), links))
-    return SurfaceFilter(legacy, exclusions, warnings, global_denials)
+    return SurfaceFilter(legacy, exclusions, warnings)
 
 
 def filter_candidates(lidar_trees, pc, surface_filter, printf=print):
@@ -460,9 +405,9 @@ def filter_candidates(lidar_trees, pc, surface_filter, printf=print):
         printf('LiDAR tree playing-surface filter: no surface geometry available; candidates unchanged.')
         return list(lidar_trees)
     if not hasattr(surface_filter, 'decision'):
-        printf('LiDAR tree topology NOTICE: incompatible tree surface filter; '
-               'ALL new LiDAR trees disabled for this import; course processing continues.')
-        return []
+        printf('LiDAR tree topology NOTICE: incompatible tree surface filter ignored; '
+               'surface-stage candidates unchanged; course processing continues.')
+        return list(lidar_trees)
     kept = []
     counts = Counter()
     total = 0

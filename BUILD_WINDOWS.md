@@ -1,5 +1,9 @@
 # Windows Build Guide
 
+## Current release: Beta 7
+
+Use `BUILD_TGC_2K25_BETA7.bat` in the source checkout after setting up the existing `.venv_local_osm` environment. Output: `dist\tgc_gui_2k25_beta7.exe`. The builder stages the executable and replaces an earlier Beta 7 only after a successful build. Beta 6 is not overwritten. The older commands below describe previous release environments.
+
 ## Approved Beta 6 LiDAR hotfix
 
 The published hotfix promotes the approved Windows EXE unchanged; no release-time rebuild is performed. See `BETA6_LIDAR_TREE_HOTFIX.md` and `BETA6_LIDAR_HOTFIX_MANIFEST.json`. Future source builds use `tgc_tree_size_test1_entry.py`, the same launcher as the approved binary, and verify tree sizing before and after compilation. The retained TEST 1 title suffix identifies that approved build.

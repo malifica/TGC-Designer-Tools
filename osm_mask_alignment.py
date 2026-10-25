@@ -71,16 +71,9 @@ class _FastGridProjector:
         self._cache = {}
         self._fallback = None
         try:
-            target = pyproj.CRS.from_user_input(
-                getattr(projection, "crs", None)
-                or getattr(projection, "srs", None)
-                or projection
-            )
-            self._transformer = pyproj.Transformer.from_crs(
-                pyproj.CRS.from_epsg(4326),
-                target,
-                always_xy=True,
-            )
+            from tgc_cfs_display import importer_transformer
+            self._transformer = (None if custom_placement is not None
+                                 else importer_transformer(projection))
         except Exception:
             self._transformer = None
             self._fallback = GeoPointCloud()
@@ -263,7 +256,9 @@ def _signature(
         else DEFAULT_VEHICLE_ROAD_WIDTH_M
     )
 
+    from tgc_cfs_display import ALIGNMENT_GEOMETRY_VERSION
     return {
+        "alignment_geometry_version": ALIGNMENT_GEOMETRY_VERSION,
         "schema_version": SCHEMA_VERSION,
         "patch_id": PATCH_ID,
         "heightmap_directory": str(folder.resolve()),
@@ -322,6 +317,8 @@ def _signatures_match(recorded: Dict[str, Any], expected: Dict[str, Any]) -> Tup
         return False, "The alignment sidecar was created by an older workflow."
     if int(recorded.get("schema_version", -1)) != SCHEMA_VERSION:
         return False, "The alignment sidecar schema does not match this build."
+    if recorded.get("alignment_geometry_version") != expected.get("alignment_geometry_version"):
+        return False, "Beta 7 alignment coordinates changed; review CFS and Apply + Rebuild Mask."
     if recorded.get("master_grid_fingerprint") != expected.get("master_grid_fingerprint"):
         return False, "The heightmap/master grid changed after the mask was recorded."
     if recorded.get("osm_sha256") != expected.get("osm_sha256"):

@@ -932,40 +932,16 @@ def _build_mask_image(
     y_offset=0.0,
     printf=print,
 ):
-    """Render the DEM grayscale + OSM + optional Auto Red Mask for one region."""
-    preview_gray = _normalize_image(dem_region)
-    preview_rgb = cv2.cvtColor(preview_gray, cv2.COLOR_GRAY2RGB)
-
-    if osm_result:
-        preview_rgb = OSMTGC.addOSMToImage(
-            osm_result,
-            preview_rgb,
-            pc,
-            image_scale,
-            x_offset=x_offset,
-            y_offset=y_offset,
-            printf=printf,
-        )
-        printf("OSM features rendered into DEM preview/mask.")
-
-        if auto_red_mask_enabled:
-            preview_rgb = auto_red_mask.apply_auto_red_mask(
-                osm_result,
-                preview_rgb,
-                pc,
-                image_scale,
-                buffer_m=auto_red_mask_buffer_m,
-                x_offset=x_offset,
-                y_offset=y_offset,
-                printf=printf,
-            )
-    elif auto_red_mask_enabled:
-        printf(
-            "Auto Red Mask requested, but no OSM result is available; "
-            "leaving DEM mask unchanged."
-        )
-
-    return preview_rgb
+    """Render the same DEM/OSM mask with cached transforms and phase reporting."""
+    from tgc_dem_preview import build_mask
+    return build_mask(
+        dem_region, pc, image_scale, osm_result,
+        normalize=_normalize_image, draw=OSMTGC.addOSMToImage,
+        auto_mask=auto_red_mask.apply_auto_red_mask,
+        auto_red_mask_enabled=auto_red_mask_enabled,
+        auto_red_mask_buffer_m=auto_red_mask_buffer_m,
+        x_offset=x_offset, y_offset=y_offset, printf=printf,
+    )
 
 
 def _prepare_boundary_preview(

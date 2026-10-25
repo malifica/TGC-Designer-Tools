@@ -19,6 +19,7 @@ import scipy
 import pyproj
 import sys
 import time
+import tgc_output_progress
 import urllib
 
 import OSMTGC
@@ -663,7 +664,9 @@ def generate_lidar_heightmap(pc, img_points, sample_scale, output_dir_path, osm_
     )
     printf("LiDAR building footprint candidates stored: " + str(len(buildings)))
 
-    printf("Writing files to disk")
+    printf("Preparing and writing LiDAR output files")
+    output_progress = tgc_output_progress.OutputProgress(printf, "LiDAR crop output")
+    output_pc = tgc_output_progress.image_projector(pc, output_progress)
     # Preserve historical output semantics. The raw point cloud is not written
     # unless lidar_to_disk is explicitly enabled (that path remains unsupported).
     output_points = []
@@ -672,16 +675,19 @@ def generate_lidar_heightmap(pc, img_points, sample_scale, output_dir_path, osm_
 
     # Preserve the historical mask/preview base image exactly: the high-res
     # ground visual is normalized first, then OSM/mask colors are painted over it.
+    output_progress.stage(10, "Normalizing the full-resolution mask background")
     imc = np.copy(high_res_visual)
     imc = normalize_image(imc)
     imc = cv2.cvtColor(imc, cv2.COLOR_GRAY2RGB)
     if osm_results is not None:
-        imc = OSMTGC.addOSMToImage(osm_results, imc, pc, sample_scale)
+        output_progress.stage(25, "Rendering OSM features and multipolygon holes")
+        imc = OSMTGC.addOSMToImage(osm_results, imc, output_pc, sample_scale, printf=printf)
         if auto_red_mask_enabled:
+            output_progress.stage(50, "Building the Auto Red Mask and buffers")
             imc = auto_red_mask.apply_auto_red_mask(
                 osm_results,
                 imc,
-                pc,
+                output_pc,
                 sample_scale,
                 buffer_m=auto_red_mask_buffer_m,
                 printf=printf,
@@ -691,11 +697,14 @@ def generate_lidar_heightmap(pc, img_points, sample_scale, output_dir_path, osm_
     imc = imc[lower_y:upper_y, lower_x:upper_x]
     imc = np.flip(imc, 0)
     printf("Saving mask as: " + str(output_dir_path) + '/mask.png')
-    cv2.imwrite(
+    output_progress.stage(65, "Encoding and saving mask.png")
+    tgc_output_progress.save_png(
         output_dir_path + '/mask.png',
         cv2.cvtColor(255.0 * imc, cv2.COLOR_RGB2BGR),
+        output_progress,
     )
 
+    output_progress.stage(75, "Preparing the saved heightmap and preview")
     high_res_visual = high_res_visual[lower_y:upper_y, lower_x:upper_x]
     high_res_visual = normalize_image(high_res_visual)
     high_res_visual = cv2.cvtColor(high_res_visual, cv2.COLOR_GRAY2RGB)
@@ -724,7 +733,9 @@ def generate_lidar_heightmap(pc, img_points, sample_scale, output_dir_path, osm_
     cfs_georef.describe_master_grid(master_grid, printf=printf)
     cfs_georef.write_master_grid_json(output_dir_path, master_grid)
     printf("Saving data as: " + str(output_dir_path) + '/heightmap.npy')
-    np.save(output_dir_path + '/heightmap', output_data)
+    output_progress.stage(90, "Serializing and saving heightmap.npy")
+    tgc_output_progress.save_npy(output_dir_path + '/heightmap', output_data, output_progress)
+    output_progress.finish("Crop output saved; master-grid pass may follow" if defer_mask_edit_message else "LiDAR output files saved")
 
     # TGC_OSM_MASTER_MASK_READY_MESSAGE_V1
     if not defer_mask_edit_message:
@@ -783,9 +794,14 @@ def _write_osm_master_mask(
     auto_red_mask_enabled=True,
     auto_red_mask_buffer_m=5.0,
     printf=print,
+    output_progress=None,
 ):
     """Rebuild mask.png on the current master grid after a grid resize."""
     # TGC_OSM_MASTER_MASK_WRITE_VERIFY_V1
+    own_progress = output_progress is None
+    if own_progress:
+        output_progress = tgc_output_progress.OutputProgress(printf, "Master mask output")
+    output_progress.stage(75, "Preparing the master-grid mask")
     heightmap = np.asarray(terrain_data["heightmap"])
     grid = cfs_georef.get_master_grid(
         terrain_data,
@@ -806,6 +822,8 @@ def _write_osm_master_mask(
         float(grid["min_y"]),
     )
 
+    output_progress.stage(80, "Rendering master-grid OSM features")
+    grid_pc = tgc_output_progress.image_projector(grid_pc, output_progress)
     mask_rgb = OSMTGC.addOSMToImage(
         osm_result,
         mask_rgb,
@@ -815,6 +833,7 @@ def _write_osm_master_mask(
     )
 
     if auto_red_mask_enabled:
+        output_progress.stage(88, "Building master-grid Auto Red Mask")
         mask_rgb = auto_red_mask.apply_auto_red_mask(
             osm_result,
             mask_rgb,
@@ -826,16 +845,19 @@ def _write_osm_master_mask(
 
     mask_disk = np.flip(mask_rgb, 0)
     mask_path = terrain_path.parent / "mask.png"
-    write_ok = cv2.imwrite(
+    output_progress.stage(94, "Encoding and saving master-grid mask.png")
+    write_ok = tgc_output_progress.save_png(
         str(mask_path),
         cv2.cvtColor(
             (255.0 * np.clip(mask_disk, 0.0, 1.0)).astype(np.uint8),
             cv2.COLOR_RGB2BGR,
         ),
+        progress=output_progress,
     )
     if not write_ok:
         raise RuntimeError("OSM Master Grid could not write mask.png")
 
+    output_progress.stage(98, "Verifying saved mask dimensions")
     written = cv2.imread(str(mask_path), cv2.IMREAD_COLOR)
     expected_shape = tuple(int(value) for value in heightmap.shape[:2])
     actual_shape = None if written is None else tuple(int(value) for value in written.shape[:2])
@@ -848,6 +870,8 @@ def _write_osm_master_mask(
         "OSM Master Grid mask verified: " +
         str(expected_shape[1]) + " x " + str(expected_shape[0]) + " pixels."
     )
+    if own_progress:
+        output_progress.finish("Master mask saved and verified")
 
 
 def reframe_heightmap_to_osm_master(
@@ -879,6 +903,8 @@ def reframe_heightmap_to_osm_master(
             "Local OSM file was not found: " + str(osm_path)
         )
 
+    output_progress = tgc_output_progress.OutputProgress(printf, "OSM master-grid output")
+    output_progress.stage(5, "Reading the saved LiDAR crop")
     data = np.load(
         str(terrain_path),
         allow_pickle=True,
@@ -909,6 +935,7 @@ def reframe_heightmap_to_osm_master(
     # AWS EPT downloader so local and streaming workflows use one extent rule.
     from usgs_ept_downloader import read_osm_course_bounds
 
+    output_progress.stage(15, "Calculating the existing OSM master extent")
     bbox = read_osm_course_bounds(
         str(osm_path),
         buffer_m=float(buffer_m),
@@ -954,8 +981,10 @@ def reframe_heightmap_to_osm_master(
     )
 
     if same_grid:
+        output_progress.stage(40, "Preparing master-grid preview")
         data["visual"] = _terrain_visual_from_heightmap(old_heightmap)
-        np.save(str(terrain_path), data)
+        output_progress.stage(60, "Saving master-grid heightmap.npy")
+        tgc_output_progress.save_npy(str(terrain_path), data, output_progress)
         _write_osm_master_mask(
             data,
             terrain_path,
@@ -963,12 +992,15 @@ def reframe_heightmap_to_osm_master(
             auto_red_mask_enabled=auto_red_mask_enabled,
             auto_red_mask_buffer_m=auto_red_mask_buffer_m,
             printf=printf,
+            output_progress=output_progress,
         )
+        output_progress.finish("Master grid and mask saved and verified")
         printf(
             "OSM Master Grid: existing grid already matches Local OSM extent."
         )
         return dict(old_grid)
 
+    output_progress.stage(25, "Allocating and copying the master-grid terrain")
     if old_heightmap.ndim == 2:
         new_heightmap = np.full(
             (new_rows, new_cols),
@@ -1003,6 +1035,7 @@ def reframe_heightmap_to_osm_master(
                 old_heightmap[src_r0:src_r1, src_c0:src_c1, :]
             )
 
+    output_progress.stage(35, "Preserving the pre-master heightmap backup")
     backup_path = terrain_path.parent / "heightmap_before_osm_master.npy"
     if not backup_path.exists():
         shutil.copy2(terrain_path, backup_path)
@@ -1034,6 +1067,7 @@ def reframe_heightmap_to_osm_master(
         "osm_file": str(osm_path),
     }
 
+    output_progress.stage(45, "Preparing the final master-grid preview")
     data["heightmap"] = new_heightmap
     data["visual"] = _terrain_visual_from_heightmap(new_heightmap)
     data["master_grid"] = new_grid
@@ -1042,7 +1076,8 @@ def reframe_heightmap_to_osm_master(
     data["osm_master_buffer_m"] = float(buffer_m)
     data["osm_master_file"] = str(osm_path)
 
-    np.save(str(terrain_path), data)
+    output_progress.stage(60, "Saving master-grid heightmap.npy")
+    tgc_output_progress.save_npy(str(terrain_path), data, output_progress)
     cfs_georef.write_master_grid_json(
         terrain_path.parent,
         new_grid,
@@ -1054,6 +1089,7 @@ def reframe_heightmap_to_osm_master(
         auto_red_mask_enabled=auto_red_mask_enabled,
         auto_red_mask_buffer_m=auto_red_mask_buffer_m,
         printf=printf,
+        output_progress=output_progress,
     )
 
     primary_finite = int(np.count_nonzero(np.isfinite(
@@ -1072,6 +1108,7 @@ def reframe_heightmap_to_osm_master(
         str(primary_finite) + "; cells available for gap fill=" +
         str(max(0, total_cells - primary_finite)) + "."
     )
+    output_progress.finish("Master grid and mask saved and verified")
     return new_grid
 
 

@@ -92,10 +92,127 @@ def main(root=ROOT,osm_path=None):
             r=osm_fixture('water');im=arm.apply_auto_red_mask(r,draw(r),Flat(),1,buffer_m=5,printf=silent)
             np.testing.assert_array_equal(im[15,15],(0,0,1));np.testing.assert_array_equal(im[80,80],(1,0,0));self.assertFalse(np.array_equal(im[30,30],(0,0,1)))
         def test_09_all_production_image_calls_have_results(self):
-            for filename,count in [('lidar_map_api.py',3),('dem_map_api.py',1),('osm_mask_alignment.py',1),('tgc_gui.py',1)]:
-                calls=[n for n in ast.walk(ast.parse((root/filename).read_text(encoding='utf-8-sig'))) if isinstance(n,ast.Call) and isinstance(n.func,ast.Attribute) and n.func.attr=='addOSMToImage']
-                self.assertEqual(len(calls),count)
-                for call in calls:self.assertFalse(isinstance(call.args[0],ast.Attribute) and call.args[0].attr=='ways')
+            # TGC_DEM_PREVIEW_VERIFIER_COMPAT_V2
+            # Guard the COMPLETE Result, not the location of the drawing call.
+            # DEM can call OSMTGC directly or pass it as a callback to the
+            # reviewed tgc_dem_preview.build_mask helper. Never accept zero
+            # calls merely by reducing an expected count or skipping this test.
+            def is_name(node, name):
+                return isinstance(node, ast.Name) and node.id == name
+
+            def named_attribute(node, owner, name):
+                return (isinstance(node, ast.Attribute) and node.attr == name
+                        and is_name(node.value, owner))
+
+            def image_calls(tree):
+                return [n for n in ast.walk(tree)
+                        if isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute)
+                        and n.func.attr == 'addOSMToImage']
+
+            for filename, count in [('lidar_map_api.py', 3),
+                                    ('osm_mask_alignment.py', 1), ('tgc_gui.py', 1)]:
+                tree = ast.parse((root / filename).read_text(encoding='utf-8-sig'))
+                calls = image_calls(tree)
+                self.assertEqual(len(calls), count,
+                                 '%s: missing or unexpected OSM rendering route' % filename)
+                for call in calls:
+                    self.assertTrue(call.args and isinstance(call.args[0], ast.Name)
+                                    and call.args[0].id in ('osm_result', 'osm_results', 'result'),
+                                    '%s:%d must forward the complete OSM result, not .ways' %
+                                    (filename, call.lineno))
+
+            filename = 'dem_map_api.py'
+            tree = ast.parse((root / filename).read_text(encoding='utf-8-sig'))
+            functions = {n.name: n for n in tree.body if isinstance(n, ast.FunctionDef)}
+            self.assertIn('_build_mask_image', functions)
+            self.assertIn('_normalize_image', functions)
+            fn = functions['_build_mask_image']
+            direct = image_calls(tree)
+            delegates = [n for n in ast.walk(fn) if isinstance(n, ast.Call)
+                         and is_name(n.func, 'build_mask')]
+            if direct:
+                self.assertEqual(len(direct), 1, 'DEM must have exactly one direct renderer')
+                self.assertIn(direct[0], list(ast.walk(fn)))
+                self.assertEqual(len(delegates), 0, 'DEM must not draw twice')
+                self.assertTrue(direct[0].args and is_name(direct[0].args[0], 'osm_result'),
+                                'DEM direct renderer must receive complete osm_result')
+            else:
+                self.assertEqual(len(delegates), 1,
+                                 'DEM has no direct renderer: require the real build_mask delegate')
+                imports = [n for n in ast.walk(fn) if isinstance(n, ast.ImportFrom)
+                           and n.module == 'tgc_dem_preview'
+                           and any(a.name == 'build_mask' and a.asname is None for a in n.names)]
+                self.assertEqual(len(imports), 1, 'DEM delegate must resolve to tgc_dem_preview')
+                call = delegates[0]
+                self.assertEqual(len(call.args), 4)
+                self.assertTrue(all(is_name(n, name) for n, name in zip(
+                    call.args, ('dem_region', 'pc', 'image_scale', 'osm_result'))),
+                    'DEM delegate must forward full Result and unchanged terrain/grid arguments')
+                kw = {k.arg: k.value for k in call.keywords}
+                self.assertTrue(named_attribute(kw.get('draw'), 'OSMTGC', 'addOSMToImage'),
+                                'DEM helper must receive the real relation-aware renderer')
+                self.assertTrue(named_attribute(kw.get('auto_mask'), 'auto_red_mask', 'apply_auto_red_mask'))
+                self.assertTrue(is_name(kw.get('normalize'), '_normalize_image'))
+                for name in ('auto_red_mask_enabled', 'auto_red_mask_buffer_m',
+                             'x_offset', 'y_offset', 'printf'):
+                    self.assertTrue(is_name(kw.get(name), name), 'DEM lost option: ' + name)
+                self.assertTrue((root / 'tgc_dem_preview.py').is_file(), 'Missing DEM helper')
+
+            # Execute the INSTALLED production functions, not a test copy of
+            # their implementation. Spies observe the complete native/adapter
+            # Result at both renderer boundaries and call the real renderers.
+            # This additionally detects dropped inner members, discarded
+            # relations, a no-op helper, duplicate drawing and broken options.
+            import cv2
+            seen = []
+            original_draw = osm.addOSMToImage
+            original_auto = arm.apply_auto_red_mask
+
+            def assert_complete(data, stage):
+                self.assertTrue(hasattr(data, 'ways') and hasattr(data, 'relations'),
+                                stage + ': complete Result required')
+                relations = list(data.relations)
+                self.assertEqual([r.id for r in relations], [200], stage + ': relation lost')
+                ids = {w.id for w in data.ways}
+                for rel in relations:
+                    self.assertTrue(any(m.role == 'inner' for m in rel.members), stage + ': inner ring lost')
+                    for member in rel.members:
+                        self.assertIn(member.ref, ids, stage + ': member way missing')
+
+            def draw_spy(data, *args, **kwargs):
+                assert_complete(data, 'DEM overlay')
+                seen.append('draw')
+                return original_draw(data, *args, **kwargs)
+
+            def auto_spy(data, *args, **kwargs):
+                assert_complete(data, 'DEM Auto Red Mask')
+                seen.append('auto')
+                return original_auto(data, *args, **kwargs)
+
+            scope = {'np': np, 'cv2': cv2, 'math': math,
+                     'OSMTGC': types.SimpleNamespace(addOSMToImage=draw_spy),
+                     'auto_red_mask': types.SimpleNamespace(apply_auto_red_mask=auto_spy)}
+            selected = ast.Module(body=[functions['_normalize_image'], fn], type_ignores=[])
+            exec(compile(selected, str(root / filename), 'exec'), scope)
+            raster = (np.arange(90 * 100, dtype=np.float32).reshape(90, 100) % 997)
+            for kind in ('fairway', 'rough', 'water'):
+                for auto_on in (False, True):
+                    for x, y in ((0., 0.), (7., -3.)):
+                        with self.subTest(kind=kind, auto_mask=auto_on, offset=(x, y)):
+                            result = osm_fixture(kind, fragmented=True)
+                            expected = cv2.cvtColor(scope['_normalize_image'](raster), cv2.COLOR_GRAY2RGB)
+                            expected = original_draw(result, expected, Flat(), 1.,
+                                                     x_offset=x, y_offset=y, printf=silent)
+                            if auto_on:
+                                expected = original_auto(result, expected, Flat(), 1., buffer_m=5.,
+                                                         x_offset=x, y_offset=y, printf=silent)
+                            seen.clear()
+                            got = scope['_build_mask_image'](
+                                raster, Flat(), 1., result, auto_red_mask_enabled=auto_on,
+                                auto_red_mask_buffer_m=5., x_offset=x, y_offset=y, printf=silent)
+                            self.assertEqual(seen, ['draw', 'auto'] if auto_on else ['draw'])
+                            np.testing.assert_array_equal(got, expected,
+                                err_msg='Installed DEM route changed water/islands/mask pixels')
         def test_10_default_water_and_stream_category_10(self):
             for area in (False,True):self.assertEqual(osm.newWaterHazard(points,area,25)['surface'],10)
         def test_11_legacy_overrides_cannot_turn_water_into_road(self):

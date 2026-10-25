@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.5.0-2k25-beta7
+
+- **Much faster LiDAR and DEM preview/mask processing.** Reworked coordinate-transform handling prepares and reuses the appropriate transformation instead of constructing it for every OSM node. Affected OSM-heavy stages that previously took many minutes can now complete in seconds; gains depend on the project and hardware.
+- **Clearer processing progress.** Named phases, phase-based percentages, elapsed time, and file-write activity make long operations easier to follow.
+- **CFS alignment improvements.** The viewer and aligned-mask rebuild use the same transformation convention as course import, with corrected raster-to-screen placement.
+- **Better CFS display controls.** Hillshade is the default; brightness and contrast sliders, reset controls, and zoom up to 30× improve detailed alignment. High zoom renders only the visible background area.
+- **Current-project folder defaults.** CFS and mask rebuilding start from the selected working folder instead of an earlier project's remembered heightmap location.
+- **Independent LiDAR tree controls.** OSM/surface filtering defaults OFF, red-mask tree exclusion defaults ON, and the existing 50 m course-feature filter remains ON and independent.
+- **Unresolved OSM relations no longer disable every tree.** Problematic items are identified in the status output and skipped. Enabled surface filtering checks valid shapes and retains confirmed rough-island exceptions without inventing exclusion boxes.
+- **More focused DEM previews.** Golf features, roads, streams, water, and necessary relation members are retained; unrelated coastline and residential land-use areas are excluded from the render-feature set. Residential roads remain supported.
+
 ## Tree topology and nonfatal OSM notices hotfix
 
 - Maintained green, fairway and bunker areas reject new LiDAR trees; confirmed fully contained rough islands remain eligible, subject to other exclusions.

@@ -111,11 +111,11 @@ class Tests(unittest.TestCase):
         ways=[Way(1,rect(0,0,10,10)),Way(2,rect(20,0,30,10)),Way(3,rect(4,4,6,6),'rough')]
         sf=build(course(),source(ways,[relation(100,'fairway',(1,'outer'),(2,'outer'),(3,'inner'))]))
         self.assertTrue(allowed(sf));self.assertFalse(allowed(sf,25,5))
-    def test_27_ambiguous_relation_notices_and_blocks_item(self):
+    def test_27_ambiguous_relation_is_skipped_with_notice(self):
         sf=build(course(),source([Way(1,rect(0,0,10,10))],[relation(100,'rough;bunker',(1,'outer'))]))
-        self.assertFalse(allowed(sf));self.assertTrue(allowed(sf,20,20))
-        self.assertFalse(sf.global_denials)
-        self.assertTrue(any('ambiguous golf=rough;bunker' in w and 'continues' in w for w in sf.warnings))
+        self.assertTrue(allowed(sf));self.assertTrue(allowed(sf,20,20))
+        self.assertFalse(sf.global_denials);self.assertFalse(sf.quarantine)
+        self.assertTrue(any('ambiguous golf=rough;bunker' in w and 'ignored' in w for w in sf.warnings))
     def test_28_width_coverage_preserved(self):
         sf=build(course(spline(2,rect(0,0,10,10),width=2)))
         self.assertFalse(allowed(sf,-.8,5));self.assertTrue(allowed(sf,-1.1,5))
@@ -153,6 +153,7 @@ class Tests(unittest.TestCase):
     def test_35_native_overpy_readonly_result(self):
         try: import overpy
         except ImportError: self.skipTest('native overpy unavailable in this environment')
+        if not getattr(overpy, '__file__', None): self.skipTest('XML test adapter; native overpy unavailable')
         data = '<osm version="0.6">'+''.join('<node id="%d" lat="%s" lon="%s"/>' % (i+1,z,x) for i,(x,z) in enumerate(rect(0,0,10,10)+rect(4,4,6,6)))
         data += '<way id="1">'+''.join('<nd ref="%d"/>' % i for i in [1,2,3,4,1])+'</way>'
         data += '<way id="2">'+''.join('<nd ref="%d"/>' % i for i in [5,6,7,8,5])+'<tag k="golf" v="rough"/></way>'
@@ -160,10 +161,11 @@ class Tests(unittest.TestCase):
         result=overpy.Overpass().parse_xml(data)
         sf=build(course(),(result,Direct(),0,0,{}))
         self.assertTrue(allowed(sf));self.assertFalse(allowed(sf,2,2));self.assertEqual(len(result.relations),1)
-    def test_36_missing_outer_suppresses_trees_not_course(self):
+    def test_36_missing_outer_is_ignored_not_global_denial(self):
         sf=build(course(),source([],[relation(100,'green',(999,'outer'))]))
-        self.assertTrue(sf.global_denials);self.assertFalse(allowed(sf,200,200))
-        self.assertTrue(any('ALL new LiDAR trees' in w for w in sf.warnings))
+        self.assertFalse(sf.global_denials);self.assertTrue(allowed(sf,200,200))
+        self.assertTrue(any('ignored' in w for w in sf.warnings))
+        self.assertFalse(any('ALL new LiDAR trees' in w for w in sf.warnings))
     def test_37_state_only_native_surface(self):
         s=spline(1,rect(0,0,10,10));del s['isFilled'];s['state']=3
         self.assertFalse(allowed(build(course(s))))
@@ -173,41 +175,42 @@ class Tests(unittest.TestCase):
         self.assertTrue(allowed(sf));self.assertFalse(allowed(sf,8,8))
 
 
-    def test_39_invalid_item_overrides_valid_rough_island(self):
+    def test_39_invalid_item_cannot_override_valid_rough_island(self):
         ways=[Way(1,rect(0,0,10,10)),Way(2,rect(4,4,6,6),'rough')]
         sf=build(course(spline(2,rect(0,0,10,10))),source(ways,[relation(100,'rough;bunker',(1,'outer'),(2,'inner'))]))
-        self.assertFalse(allowed(sf));self.assertEqual(sf.decision(5,5)[1],'ambiguous')
-    def test_40_disjoint_bad_outers_do_not_block_gap(self):
+        self.assertTrue(allowed(sf));self.assertEqual(sf.decision(5,5)[1],'rough_island')
+    def test_40_disjoint_bad_outers_do_not_create_exclusion_shapes(self):
         ways=[Way(1,rect(0,0,10,10)),Way(2,rect(20,0,30,10))]
         sf=build(course(),source(ways,[relation(100,'rough;bunker',(1,'outer'),(2,'outer'))]))
-        self.assertFalse(allowed(sf));self.assertFalse(allowed(sf,25,5));self.assertTrue(allowed(sf,15,5))
-        self.assertEqual(len(sf.quarantine),2)
-    def test_41_bad_inner_no_permission_even_outside_maintained(self):
+        for x in (5,15,25): self.assertTrue(allowed(sf,x,5))
+        self.assertEqual(len(sf.exclusions),0)
+    def test_41_bad_inner_skips_relation_not_outer_fill(self):
         sf=build(course(),source([Way(1,rect(0,0,10,10))],[relation(100,'rough',(1,'outer'),(999,'inner'))]))
-        self.assertFalse(allowed(sf));self.assertTrue(allowed(sf,20,20));self.assertFalse(sf.global_denials)
-    def test_42_mixed_tag_on_standalone_way(self):
+        self.assertTrue(allowed(sf));self.assertTrue(allowed(sf,20,20));self.assertFalse(sf.global_denials)
+    def test_42_mixed_tag_on_standalone_way_is_skipped(self):
         sf=build(course(),source([Way(1,rect(0,0,10,10),'rough;bunker')]))
-        self.assertFalse(allowed(sf));self.assertTrue(allowed(sf,20,20))
+        self.assertTrue(allowed(sf));self.assertTrue(allowed(sf,20,20));self.assertTrue(sf.warnings)
     def test_43_case_and_spaces_in_ambiguous_tokens(self):
         sf=build(course(),source([Way(1,rect(0,0,10,10))],[relation(100,' Rough ; BUNKER ',(1,'outer'))]))
-        self.assertFalse(allowed(sf));self.assertTrue(sf.warnings)
-    def test_44_known_open_outer_uses_local_envelope(self):
+        self.assertTrue(allowed(sf));self.assertTrue(sf.warnings)
+    def test_44_known_open_outer_never_creates_envelope(self):
         w=Way(1,[(0,0),(10,0),(10,10)],closed=False)
         sf=build(course(),source([w],[relation(100,'green',(1,'outer'))]))
-        self.assertFalse(allowed(sf));self.assertFalse(allowed(sf,1,9));self.assertTrue(allowed(sf,20,20))
-        self.assertFalse(sf.global_denials);self.assertTrue(any('envelope' in w for w in sf.warnings))
-    def test_45_missing_second_outer_cannot_bound_whole_item(self):
+        self.assertTrue(allowed(sf));self.assertTrue(allowed(sf,1,9));self.assertTrue(allowed(sf,20,20))
+        self.assertFalse(sf.global_denials);self.assertEqual(sf.exclusions,[])
+    def test_45_missing_second_outer_skips_whole_unresolved_item(self):
         sf=build(course(),source([Way(1,rect(0,0,10,10))],[relation(100,'rough;bunker',(1,'outer'),(999,'outer'))]))
-        self.assertTrue(sf.global_denials);self.assertFalse(allowed(sf,20,20))
-    def test_46_projection_error_no_stop_no_tree(self):
+        self.assertFalse(sf.global_denials);self.assertTrue(allowed(sf));self.assertTrue(allowed(sf,20,20))
+    def test_46_source_projection_error_is_notice_not_global_denial(self):
         class Broken(Direct):
             def latlonToTGC(self,*args):raise RuntimeError('bad projection')
         ctx=list(source([Way(1,rect(0,0,10,10),'fairway')]))
         ctx[1]=Broken();sf=build(course(),tuple(ctx))
-        self.assertTrue(sf.global_denials);self.assertFalse(allowed(sf,20,20))
-    def test_47_global_deny_overrides_good_islands(self):
-        sf=build(course(spline(1,rect(0,0,10,10)),spline(3,rect(4,4,6,6))),source([],[relation(100,'green',(999,'outer'))]))
-        self.assertFalse(allowed(sf))
+        self.assertFalse(sf.global_denials);self.assertTrue(allowed(sf,20,20));self.assertTrue(sf.warnings)
+    def test_47_missing_relation_does_not_override_native_island(self):
+        c=course(spline(1,rect(0,0,10,10)),spline(3,rect(4,4,6,6)))
+        ctx=source([Way(2,rect(4,4,6,6),'rough')],[relation(100,'green',(999,'outer'))])
+        sf=build(c,ctx);self.assertTrue(allowed(sf));self.assertFalse(allowed(sf,2,2))
     def test_48_ambiguous_source_is_not_changed(self):
         ways=[Way(1,rect(0,0,10,10)),Way(2,rect(4,4,6,6),'rough')]
         rel=relation(100,'rough;bunker',(1,'outer'),(2,'inner'));ctx=source(ways,[rel])
@@ -215,52 +218,52 @@ class Tests(unittest.TestCase):
         build(course(),ctx)
         after=(rel.tags,[(m.ref,m.role) for m in rel.members],[(w.id,w.tags,[(n.id,n.lat,n.lon) for n in w.ns]) for w in ways])
         self.assertEqual(before,after)
-    def test_49_incompatible_filter_returns_no_trees(self):
-        logs=[]
-        self.assertEqual(t.filter_candidates([(20,20,1,10)],Direct(),{},logs.append),[])
+    def test_49_incompatible_filter_leaves_candidates_unchanged(self):
+        logs=[];trees=[(20,20,1,10)]
+        self.assertEqual(t.filter_candidates(trees,Direct(),{},logs.append),trees)
         self.assertTrue(any('NOTICE' in line and 'continues' in line for line in logs))
     def test_50_notice_includes_object_and_continuation(self):
         logs=[];ctx=source([Way(1,rect(0,0,10,10))],[relation(21751752,'rough;bunker',(1,'outer'))])
         sf=f.build_lidar_tree_surface_filter(course(),25,printf=logs.append,osm_context=ctx)
         msg='\n'.join(logs)
         self.assertIn('NOTICE',msg);self.assertIn('21751752',msg);self.assertIn('rough;bunker',msg);self.assertIn('continues',msg)
-    def test_51_rejection_count_and_unaffected_trees(self):
+    def test_51_skipped_item_has_no_rejection_counts(self):
         sf=build(course(),source([Way(1,rect(0,0,10,10))],[relation(100,'rough;bunker',(1,'outer'))]))
         trees=[(5,5,1,10),(20,20,2,11)]
         kept=t.filter_candidates(trees,Direct(),sf,lambda *_:None)
-        self.assertEqual(kept,trees[1:]);self.assertEqual(sf.last_counts['rejected_ambiguous'],1)
-    def test_52_self_crossing_rough_gets_conservative_box(self):
+        self.assertEqual(kept,trees);self.assertFalse(any(k.startswith('rejected_') for k in sf.last_counts))
+    def test_52_self_crossing_rough_never_creates_box(self):
         w=Way(1,[(0,0),(10,10),(0,10),(10,0)],'rough')
         sf=build(course(),source([w]))
-        self.assertFalse(allowed(sf,2,5));self.assertTrue(allowed(sf,20,20));self.assertFalse(sf.global_denials)
-    def test_53_untagged_relation_conflicting_outer_tags(self):
+        self.assertTrue(allowed(sf,2,5));self.assertTrue(allowed(sf,20,20));self.assertEqual(sf.exclusions,[])
+    def test_53_invalid_parent_keeps_independently_valid_members(self):
         ways=[Way(1,rect(0,0,10,10),'rough'),Way(2,rect(20,0,30,10),'bunker')]
         sf=build(course(),source(ways,[relation(100,'',(1,'outer'),(2,'outer'))]))
-        self.assertFalse(allowed(sf));self.assertFalse(allowed(sf,25,5));self.assertTrue(allowed(sf,15,5))
-    def test_54_invalid_inner_geometry_quarantines_outer(self):
+        self.assertTrue(allowed(sf));self.assertFalse(allowed(sf,25,5));self.assertTrue(allowed(sf,15,5))
+    def test_54_invalid_inner_skips_relation_without_filling_outer(self):
         ways=[Way(1,rect(0,0,10,10)),Way(2,[(4,4),(4,5),(4,6)])]
         sf=build(course(),source(ways,[relation(100,'rough',(1,'outer'),(2,'inner'))]))
-        self.assertFalse(allowed(sf));self.assertTrue(allowed(sf,20,20))
-    def test_55_missing_way_nodes_unbounded(self):
+        self.assertTrue(allowed(sf));self.assertTrue(allowed(sf,20,20));self.assertEqual(sf.exclusions,[])
+    def test_55_missing_way_nodes_no_global_denial(self):
         w=Way(1,rect(0,0,10,10),'fairway')
         def missing(**kw):raise RuntimeError('missing node')
         w.get_nodes=missing;sf=build(course(),source([w]))
-        self.assertTrue(sf.global_denials);self.assertFalse(allowed(sf,20,20))
-    def test_56_invalid_context_still_returns_safe_filter(self):
-        sf=build(course(),('incomplete context',))
-        self.assertTrue(sf.global_denials);self.assertFalse(allowed(sf,20,20))
+        self.assertFalse(sf.global_denials);self.assertTrue(allowed(sf,20,20))
+    def test_56_invalid_context_ignores_source_but_keeps_native_shapes(self):
+        sf=build(course(spline(2,rect(0,0,10,10))),('incomplete context',))
+        self.assertFalse(sf.global_denials);self.assertTrue(allowed(sf,20,20));self.assertFalse(allowed(sf,2,2))
     def test_57_unrelated_healthy_island_still_works(self):
         ways=[Way(1,rect(0,0,10,10)),Way(2,rect(20,0,30,10),'green'),Way(3,rect(24,4,26,6),'rough')]
         sf=build(course(),source(ways,[relation(100,'rough;bunker',(1,'outer'))]))
-        self.assertFalse(allowed(sf));self.assertTrue(allowed(sf,25,5));self.assertFalse(allowed(sf,22,2))
+        self.assertTrue(allowed(sf));self.assertTrue(allowed(sf,25,5));self.assertFalse(allowed(sf,22,2))
     def test_58_healthy_empty_osm_remains_permissive(self):
         sf=build(course(),source([]));self.assertTrue(allowed(sf));self.assertFalse(sf.warnings)
     def test_59_unrelated_nongolf_relation_not_error(self):
         rel=relation(100,'forest',(999,'outer'));sf=build(course(),source([],[rel]))
         self.assertTrue(allowed(sf));self.assertFalse(sf.warnings)
-    def test_60_ambiguous_nonfinite_outer_no_exception(self):
+    def test_60_ambiguous_nonfinite_outer_is_ignored(self):
         w=Way(1,rect(0,0,10,10));w.ns[1].lon=float('nan')
         sf=build(course(),source([w],[relation(100,'rough;bunker',(1,'outer'))]))
-        self.assertTrue(sf.global_denials);self.assertFalse(allowed(sf,20,20))
+        self.assertFalse(sf.global_denials);self.assertTrue(allowed(sf,20,20));self.assertTrue(sf.warnings)
 
 if __name__=='__main__':unittest.main(verbosity=2)

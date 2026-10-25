@@ -713,9 +713,12 @@ def get_trees(theme, tree_variety, trees, course_version=-1,
     return output
 
 
-def get_lidar_trees(theme, tree_variety, lidar_trees, pc, mask, mask_pc, image_scale, course_version=-1, tree_profile=None, tree_scale_mode=None):
-    # Convert to TGC coordinates
+def get_lidar_trees(theme, tree_variety, lidar_trees, pc, mask, mask_pc, image_scale, course_version=-1, tree_profile=None, tree_scale_mode=None, exclude_red_mask=True, printf=print):
+    # TGC_BETA7_TREE_CONTROLS_V1. Only red-pixel exclusion is optional.
+    # Keep the authoritative source-grid bounds and all projection math unchanged.
     trees = []
+    rejected_red = 0
+    rejected_bounds = 0
     for tree in lidar_trees:
         easting, northing, r, h = tree
         # Use mask to only add trees on desired areas
@@ -725,15 +728,24 @@ def get_lidar_trees(theme, tree_variety, lidar_trees, pc, mask, mask_pc, image_s
 
         # Edge rounding can put candidates one pixel outside the cropped mask.
         if row < 0 or column < 0 or row >= mask.shape[0] or column >= mask.shape[1]:
+            rejected_bounds += 1
             continue
 
-        mask_color = mask[(row, column)]
-        # Color order is BGR, support both MS Paint Red Colors
-        if not (mask_color[0] < 40 and mask_color[1] < 40 and mask_color[2] > 130):
-            # Use standard pointcloud tp project trees into final TGC coordinates
-            x, y, z = pc.projToTGC(easting, northing, 0.0)
-            trees.append((x, z, r, h))
+        if exclude_red_mask:
+            mask_color = mask[(row, column)]
+            # Same BGR red threshold as before; terrain/mask pixels are not changed.
+            if mask_color[0] < 40 and mask_color[1] < 40 and mask_color[2] > 130:
+                rejected_red += 1
+                continue
+        x, y, z = pc.projToTGC(easting, northing, 0.0)
+        trees.append((x, z, r, h))
 
+    printf(
+        "LiDAR tree red-mask exclusion: %s; kept %d/%d; red-mask rejected=%d; "
+        "outside saved grid=%d. Terrain masking is unchanged." %
+        ("ON" if exclude_red_mask else "OFF", len(trees), len(lidar_trees),
+         rejected_red, rejected_bounds)
+    )
     return get_trees(
         theme,
         tree_variety,
@@ -1231,24 +1243,25 @@ def generate_course(course_json, heightmap_dir_path, options_dict={}, printf=pri
                 printf=printf,
             )
 
-        # Always reject LiDAR-generated tree candidates from maintained
-        # playing surfaces.  Explicit rough splines override fairway so a
-        # deliberately mapped rough island around a real fairway tree remains
-        # eligible.  OSM-mapped trees use a separate path and are unaffected.
-        tree_surface_filter = lidar_feature_filter.build_lidar_tree_surface_filter(
-            course_json,
-            course_version,
-                                  osm_context=tree_osm_context,
-            printf=printf,
-        )
-        tree_candidates = (
-            lidar_feature_filter.filter_lidar_tree_candidates_by_playing_surfaces(
+        # TGC_BETA7_TREE_CONTROLS_V1: diagnostics and enforcement are separate.
+        from tgc_tree_filter_controls import report_controls, report_osm_notices
+        report_controls(options_dict, printf=printf)
+        if bool(options_dict.get('filter_lidar_trees_surfaces', False)):
+            tree_surface_filter = lidar_feature_filter.build_lidar_tree_surface_filter(
+                course_json,
+                course_version,
+                osm_context=tree_osm_context,
+                printf=printf,
+            )
+            tree_candidates = lidar_feature_filter.filter_lidar_tree_candidates_by_playing_surfaces(
                 tree_candidates,
                 pc,
                 tree_surface_filter,
                 printf=printf,
             )
-        )
+        else:
+            # Report bad source items without allowing that diagnostic to veto trees.
+            report_osm_notices(tree_osm_context, printf=printf)
 
         if len(tree_candidates) > 0:
             printf("Adding trees from LiDAR candidates")
@@ -1284,6 +1297,8 @@ def generate_course(course_json, heightmap_dir_path, options_dict={}, printf=pri
                 course_version,
                 tree_profile=options_dict.get('tree_profile'),
                 tree_scale_mode=options_dict.get('tree_scale_mode'),
+                exclude_red_mask=bool(options_dict.get('exclude_lidar_trees_red_mask', True)),
+                printf=printf,
             )
 
             lidar_tree_items = sum(

@@ -1,489 +1,129 @@
-# TGC Designer Tools — PGA TOUR 2K25 Fork
+# TGC Designer Tools — PGA TOUR 2K25
 
-## Beta 6 tree-filter hotfix
+Build PGA TOUR 2K25 courses from **LiDAR, GeoTIFF DEMs, and OpenStreetMap**. Import real-world terrain and course features, align the layout visually, choose regional vegetation, and export a `.course` file for Designer.
 
-Tree eligibility now respects rough-island topology. Ambiguous OSM items produce NOTICE messages and conservative no-tree restrictions instead of stopping tree filtering. The standard Beta 6 filename and window title are retained. See `BETA6_TREE_NOTICE_HOTFIX.md`.
+**Current release: v0.5.0-2k25-beta7** · **Windows x64** · Maintained by **malifica**
 
-## Beta 6 hotfix - 2026-10-21
+[Download Beta 7](https://github.com/malifica/TGC-Designer-Tools/releases/tag/v0.5.0-2k25-beta7) · [Release notes](RELEASE_NOTES_v0.5.0-2k25-beta7.md) · [Change history](CHANGELOG.md)
 
-Multipolygon preview/mask rendering now works with Auto Red Mask off. OSM water and streams are locked to native mulch category 10 / Mulch05 through final export. Asphalt roads use category 8; cart paths remain category 7. The existing LiDAR tree-size correction and regional profiles are retained. See `BETA6_MULTIPOLYGON_MULCH_HOTFIX.md` for scope and project-refresh steps.
+## Beta 7 highlights
 
-A streamlined 2K25-focused fork of **HiCamino/TGC-Designer-Tools** for building real-world courses from **LiDAR, GeoTIFF DEM, and OpenStreetMap data**.
+- **Much faster LiDAR and DEM preview/mask processing** through reworked coordinate-transform handling. Transformations are prepared once and reused instead of being rebuilt for every OSM node.
+- **Visible output progress**, named processing phases, elapsed time, and file-write activity instead of a long, unexplained “Writing files to disk” pause.
+- **Improved CFS alignment consistency** between the displayed OSM overlay, rebuilt mask, and imported course features.
+- **Hillshade opens by default**, with brightness and contrast sliders, reset controls, and zoom up to **30×**.
+- **Current-project folder selection** for CFS and mask rebuilding, preventing a previous project's heightmap folder from becoming the default.
+- **Independent LiDAR tree controls** for OSM playing surfaces, red-mask exclusions, and the existing 50 m course-proximity filter.
+- **Malformed OSM relations produce notices and are skipped**; an unresolved relation no longer disables all LiDAR trees.
+- Retains the established terrain generation, regional profiles, tree sizing, water/mulch handling, multipolygon support, and Custom/Unmatched OSM workflow.
 
-Current release: **v0.5.0-2k25-beta6**
-Maintainer: **malifica**
-Upstream: https://github.com/HiCamino/TGC-Designer-Tools
+## Faster LiDAR and DEM processing
 
-This project remains under the upstream **Apache License 2.0**.
+Beta 7 substantially reworks how coordinate transformations are handled throughout preview and feature preparation. Earlier processing repeatedly constructed the same geographic transformation for individual OSM nodes. Large OSM files and coordinate systems with more expensive datum transformations could therefore spend many minutes preparing a small preview.
 
+The tool now reuses the appropriate transformation for each projection pair, including repeated preview, mask, and import lookups. **Affected preview/mask stages that previously took many minutes can complete in seconds.** The improvement is especially noticeable on OSM-heavy projects and complex coordinate systems. Total processing time still depends on point count, raster size, storage, and hardware; this is not a fixed speed multiplier for every LiDAR operation.
 
-## Beta 6
+This acceleration does **not** change terrain resolution, coordinate units, datum settings, or the selected terrain brushes. It is not a shortcut that replaces projected meters with map pixels, and it does not require a CUDA-capable GPU.
 
-## LiDAR tree-sizing hotfix - 2026-10-20
+DEM preview screening keeps golf features, roads, streams, water, and required multipolygon members while excluding unrelated standalone coastline and residential land-use areas from the render-feature set. Residential **roads** remain eligible. The original OSM file is not modified.
 
-- Regional themes now select tree models without replacing LiDAR-derived tree scales.
-- Built-in and regional tree palettes share the same source crown-radius and height calculation.
-- Standard (Lidar) and Heroic retain their established LiDAR mapping; Epic is 1.20 x Heroic and Mythic is 1.80 x Heroic on X/Y/Z.
-- Profile scale defaults, per-asset scale distributions and uniform-scale settings no longer override generated tree sizing.
-- Tree detection, coordinates, final-grid masks, playing-surface exclusions, OSM alignment and material presets are unchanged.
-- Pacific Northwest is included in both the bundled and editable profile directories.
-- All previous Beta 6 spline-surface and CFS/mask hotfixes remain included.
+The status output distinguishes normalization, OSM drawing, automatic masking, and file writing. Progress percentages are phase-based rather than time-remaining estimates; elapsed time and available activity counters remain visible during longer operations.
 
-The existing processed LiDAR heightmap can be reused; this correction does not require repeating LiDAR processing.
+## CFS alignment viewer
 
-This restores the established source-measurement-to-transform-scale mapping, not a new metre-for-metre calibration of every tree model. Different native models can have different unscaled dimensions.
+Use CFS to compare OSM outlines with the saved terrain, then adjust the layout before importing course features.
 
-**Approved executable:** the Windows EXE is promoted byte-for-byte from the successfully tested build, without recompilation. The public filename is `tgc_gui_2k25_beta6.exe`; its window title still includes `LiDAR Tree Size TEST 1` as the original build identifier. That label is expected in this hotfix.
+- **Hillshade, Visual, and Blend** views; Hillshade is the default.
+- **Brightness: 25–200%** and **contrast: 25–300%**, both initially 100%.
+- **Zoom up to 30×**, mouse-wheel zoom, zoom buttons/selector, Fit, and scrollbars.
+- High zoom renders the visible background region instead of enlarging the entire terrain image in memory.
+- Drag the OSM overlay or enter east/west and north/south adjustments. Arrow keys move by 0.10 m; Shift+Arrow moves by 1 m.
+- **Apply + Rebuild Mask** saves the adjustment and rebuilds the mask using that placement.
 
+Brightness and contrast affect only the viewer background, not elevations, OSM colors, the saved mask, or the exported course. The overlay represents source OSM outlines; native spline optimization, handles, and widths can affect the final rendered edge.
 
-Beta 6 makes Local OSM placement and CFS alignment safer and more flexible while retaining the established LiDAR/DEM workflow.
+CFS and mask rebuilding start from the **currently selected project folder**. When it contains `heightmap.npy`, that heightmap is used directly; otherwise the folder chooser starts there. The selected Local OSM file remains explicit, including for intentionally unmatched layouts.
 
-- **Any Local OSM layout on any LiDAR/DEM terrain**: unmatched OSM geography can be treated as a local metric layout, centered on the terrain, then shifted in the CFS Alignment Viewer without changing the design's dimensions or orientation.
-- **CFS-first mask workflow**: OSM alignment is finalized before the production Auto Red Mask is accepted. Applying a CFS shift rebuilds `mask.png` on the final master grid so a tight preservation buffer cannot be left behind after alignment.
-- **Responsive CFS preparation and mask rebuilds** run off the Tk main thread and report progress while terrain/OSM preview work is prepared.
-- **Road/path semantics are explicit**: `golf=cartpath` is a cart path, `golf=path` is a walking path, and supported automobile `highway=*` features use a separate optional road-spline workflow.
-- **LiDAR tree filtering uses the final master grid**, keeping tree masks aligned after CFS/OSM transforms.
-- **Slope-Locked Hulkify** scales course geometry and relief together in 10% increments so rise/run slope severity is retained.
-- **Pacific Northwest** joins the calibrated regional tree profiles. Tree-size choices are now `Standard (Lidar)`, `Heroic`, `Epic`, and `Mythic`.
-- Beta 5 hotfix behavior remains included, including true-ground AWS EPT reprojection, safe Local OSM master extents, and final mask/heightmap dimension locking.
+### Upgrading an existing project
 
-Build with `BUILD_TGC_2K25_BETA6.bat`. See `RELEASE_NOTES_v0.5.0-2k25-beta6.md` and `BUILD_WINDOWS.md`.
+Keep a backup of the project and any manually edited mask. Reopen CFS, review alignment in the corrected viewer, then use **Apply + Rebuild Mask** and regenerate the course features. Older tracked alignments may require this refresh. Rebuilding replaces `mask.png`, so make manual mask edits afterward.
 
-## Beta 5
+**The existing processed heightmap can be reused.** These changes do not require downloading or processing the original LiDAR again. Previously exported courses are not automatically updated.
 
-Beta 5 introduced the real-life regional-theme system for LiDAR/OSM vegetation, JSON-backed calibrated regional profiles, coordinated playing-surface/terrain textures, expanded tree scaling, AWS EPT acquisition, Trees Only, Terrain Gap Fill, and the final Beta 5 hotfix corrections retained in Beta 6.
+## LiDAR tree controls
 
-See `RELEASE_NOTES_v0.5.0-2k25-beta5.md`, `BETA5_TREE_PROFILES.md`, and `BETA5_HOTFIX.md`.
+Enable **Add Trees From Lidar** to generate trees from the candidates stored in the processed heightmap. The following controls operate independently:
 
+| Control | Default | Effect |
+|---|---|---|
+| OSM LiDAR Tree Filter: Fairway / Green / Bunker / Rough | **OFF** | When enabled, checks candidates against resolved playing-surface shapes and preserves confirmed rough-island exceptions. |
+| Exclude LiDAR Trees from Red-Masked Areas | **ON** | Rejects candidates on red mask pixels. Turn it off to retain those candidates, subject to the other enabled checks. |
+| Filter LiDAR Trees: within 50 m of Course Features | **ON** | Limits candidates to the existing 50 m course-feature neighborhood. |
 
-## Beta 4
+Turning off red-mask **tree** exclusion does not restore terrain removed by the red mask or disable Auto Red Mask. Saved-grid boundary checks still apply.
 
-Beta 4 rolls the post-Beta-3.1 work on `main` into a new Windows prerelease.
+Unresolved, incomplete, or ambiguously tagged OSM items are reported in the tool's status output and ignored by the surface filter. The filter does not invent an enclosing exclusion area or use an unresolved relation to reject every tree. Other valid shapes continue to apply when surface filtering is enabled. It remains possible for all candidates to fail genuine individual checks; the change removes the global veto caused by malformed relations.
 
-- **Dynamic course preview sizing** now follows actual course bounds.
-- **Faster DEM course-boundary selection** prepares a bounded preview off-thread, then renders the final full-resolution selected area with a 100 m processing halo.
-- **Par-aware OSM hole normalization** handles standard par-3, par-4, and par-5 route-node patterns.
-- **LiDAR tree playing-surface filtering** rejects candidates on greens/tees, bunkers, and un-overridden fairways while allowing explicit rough islands.
-- **OSM multipolygon lakes/ponds** are now imported into the actual course with stitched relation geometry and preserved islands.
-- **Fjordland theme 54 tree support** adds the complete 44-tree reference palette without renumbering existing global 2K25 tree IDs.
-- The Beta 3.1 **automatic LiDAR CRS correction for foot/US-survey-foot projections** remains included.
+These controls affect **newly generated LiDAR trees**, not trees already in a finished course. They do not change LiDAR tree detection, model-size calculations, or the separate OSM-mapped-tree workflow.
 
-Build with `BUILD_TGC_2K25_BETA4.bat`. See `RELEASE_NOTES_v0.5.0-2k25-beta4.md` and `RELEASE_CHECKLIST_v0.5.0-2k25-beta4.md` for validation and publishing steps.
+## Terrain and data options
 
----
+### Local LiDAR and GeoTIFF DEM
 
-## What Beta 3 adds
+Use local LAS/LAZ files or one or more georeferenced GeoTIFF DEMs. The tool supports automatic coordinate-system handling, separate horizontal/vertical units where supplied, DEM mosaics, NoData-aware processing, and source-aware map-scale selection.
 
-- **PGA TOUR 2K25** course-structure support.
-- **Local OSM / JOSM** in the normal LiDAR and DEM workflow.
-- **GeoTIFF DEM** support, including multi-tile mosaics and automatic CRS/EPSG handling.
-- **CFS projected-master-grid georeference lock** shared by terrain and OSM so later feature import uses the same projected affine.
-- **CFS Alignment Viewer** with drag/keyboard nudging, Visual / Hillshade / Blend views, higher-contrast terrain hillshade, and a thin tracing-style OSM overlay.
-- **Auto Red Mask** enabled by default with a user-selectable **5–30 m** golf/cart preservation buffer (**5 m default**).
-- Conservative mask cleanup: a **2 px minimum red width** plus removal of **enclosed red islands smaller than 25 raster pixels**.
-- Correct **OSM multipolygon outer/inner handling** in the automatic mask.
-- Green preview fill for compound fairway/rough relations and pure-blue relation water.
-- **OSM multipolygon lakes imported into the course**: stitched `natural=water` / `water=*` relations become 2K25 water placeholder splines, with inner islands retained as physical holes and incomplete relations skipped safely.
-- **DEM Fast** vectorized/chunked terrain reduction and threaded heavy processing.
-- **LiDAR Fast** vectorized filtering/reprojection/raster preparation plus an optional exact native-C ground rasterizer and exact Python fallback.
-- Modern LAS/LAZ compound-CRS handling with separate horizontal and vertical units.
-- Dense terrain generation with selectable brush/footprint and source-derived background terrain.
-- Improved 2K25 LiDAR tree placement and OSM bunker inner-island conversion.
-- **50 m LiDAR Tree and Building filters**, enabled by default for their corresponding LiDAR feature types.
-- **Optimize OSM Spline Points**, enabled by default, with conservative shape-preservation guards.
-- **Adaptive terrain removed from the main TGCTool and GUI**; Adaptive conversion is a separate downstream tool.
-- **Course Finisher remains a separate downstream tool** and is not folded into the main TGCTool repository release.
+Dense / Original terrain generation retains selectable brush types **72, 15, 9, and 10** and brush footprints. Optional coarse background fill and the separate outside background-landscape feature remain available. The experimental detailed-purple-terrain option is not included.
 
----
+### USGS AWS EPT from Local OSM
+
+Select a Local OSM file and use **USGS AWS EPT From Local OSM** to discover available acquisitions and download a course-sized subset. The acquisition chooser exposes available collection information. Public EPT downloads do not require an AWS account or Requester Pays credentials.
+
+The existing local-metric reprojection, Trees Only workflow, and Terrain Gap Fill using older/fallback acquisitions remain available. AWS discovery and gap-fill operations depend on real-world geography and are not used for detached Custom/Unmatched OSM placement.
+
+### Any Local OSM on any terrain
+
+Custom/Unmatched OSM treats the course layout as a local metric design and places it on the selected terrain without changing its size or orientation. Use CFS for the final translation. The same placement is used for the preview, mask, and imported features.
+
+### Surfaces and water
+
+OSM water polygons and streams use the native **mulch** surface. Automobile roads use **asphalt** and remain separate from **cart paths**. Widths and supported spline settings remain configurable through `splines.json`.
+
+Multipolygon previews and masks retain relation-owned areas and inner islands regardless of the Auto Red Mask switch. Source completeness and correct tagging still matter; notices identify unusable features rather than silently inventing geometry.
+
+### Regional themes and tree size
+
+Regional profiles provide weighted tree palettes and coordinated playing-surface and terrain materials. Built-in Designer palettes remain available. LiDAR-derived dimensions continue to control tree scaling independently of the chosen regional palette, with **Standard (Lidar), Heroic, Epic, and Mythic** modes.
+
+**Slope-Locked Hulkify** retains the established 10% enlargement workflow, scaling horizontal geometry and relief together to preserve slope severity.
 
 ## Recommended workflow
 
-When using a local OSM file, select it **before processing LiDAR or DEM data**.
+1. Select the project folder and import the source `.course`.
+2. Select the Local OSM file before processing LiDAR or a GeoTIFF DEM.
+3. Choose the map scale, process the terrain, and accept the desired area.
+4. Open CFS, review the layout against the terrain, then apply the alignment and rebuild the mask.
+5. Inspect `mask.png` and make any manual edits after the automatic rebuild.
+6. Choose terrain brushes, regional/theme options, and tree-filter settings.
+7. Import terrain and features, export the course, and inspect it in Designer.
 
-1. Open/import the target `.course`.
-2. Select **Local OSM File** if using a JOSM/OSM export.
-3. Choose **Map Scale**.
-4. Process **LiDAR or GeoTIFF DEM**.
-5. Open **CFS Alignment Viewer** and verify the OSM overlay against the terrain.
-6. Nudge the OSM alignment only when needed, then apply the shift back to the main window.
-7. Crop/select the course area.
-8. Inspect `mask.png`; Auto Red Mask preserves course features and masks unrelated detailed terrain.
-9. Choose terrain-generation settings.
-10. Import terrain and OSM features.
-11. Export the generated `.course`.
+The main application creates the course. **Course Finisher, Course Architect, and Adaptive Terrain Converter remain separate tools** and are not updated by this release.
 
-Cart-path finishing and native-water finishing are intentionally downstream operations and are handled by the separate Course Finisher workflow rather than the main TGCTool.
+## Windows downloads and source build
 
----
+The Windows release contains `tgc_gui_2k25_beta7.exe`. Its title is **TGC Designer Tools 2K25 - Beta 7**. Download the Windows ZIP for the executable, editable profiles, spline configuration, and documentation. SHA-256 files accompany both the standalone EXE and ZIP.
 
-## CFS georeference lock and Alignment Viewer
-
-Beta 3 uses a **CFS projected master grid** so terrain previews, mask generation, OSM alignment, and later OSM-to-course conversion share the same projected reference instead of independently reconstructing/recentering the raster.
-
-The **CFS Alignment Viewer** provides three terrain views:
-
-- **Blend** — combined visual/relief view;
-- **Visual** — source preview colors;
-- **Hillshade** — terrain-relief view for checking subtle grading and contour alignment.
-
-The Hillshade view is intentionally more expressive than a default cartographic hillshade. It uses preview-only relief exaggeration, a lower simulated sun angle, and a robust contrast stretch so gentle golf-course slopes, banks, drainage and shaping are easier to see. These display changes **do not alter the source elevations or generated terrain**.
-
-OSM/golf features are shown as a tracing overlay rather than a heavy finished drawing:
-
-- constant **2 screen-pixel** stroke while zooming;
-- a denser Tk `gray75` stipple for a partially transparent tracing effect;
-- terrain remains visible underneath while the user aligns features.
-
-Alignment controls include mouse dragging, zoom controls, **0.10 m Arrow-key nudges**, and **1.0 m Shift+Arrow nudges**. The final shift can be copied back to the main Import Terrain and Features controls.
-
----
-
-## Auto Red Mask
-
-Auto Red Mask is **ON by default**. It preserves OSM golf/cart-path features plus a user-selectable **5–30 m buffer** and paints unrelated detailed terrain red. The default remains **5 m**, and the GUI clearly labels **5 m minimum / 30 m maximum**.
-
-After the metric buffer is rasterized, Beta 3 applies two conservative internal cleanup rules:
-
-- **2 px minimum red width** — suppresses one-pixel red hairs/slivers while retaining genuine two-pixel-wide structures;
-- **25-pixel enclosed-island minimum** — enclosed red connected regions smaller than 25 raster pixels are removed.
-
-The large border-connected exterior red region is never removed by the 25-pixel island rule. One mask pixel corresponds to the current processing Map Scale, and `mask.png` remains manually editable if the user wants more or less masking than the automatic cleanup provides.
-
-Beta 3 reconstructs OSM `type=multipolygon` relations before rasterization:
-
-- fragmented **outer** member ways are stitched into rings;
-- **inner** rings are subtracted from their owning outer area;
-- independently tagged inner golf features remain eligible for preservation;
-- multipolygon water is kept and painted pure blue;
-- open/incomplete relation fragments are not silently fill-closed into false polygons.
-
-The preview also fills compound fairways bright green and compound rough darker green so `mask.png` shows the relation area being retained.
-
-Mask semantics remain simple:
-
-- **red** = remove from detailed terrain;
-- **blue** = water/preserve behavior;
-- other colors = preview only / non-red terrain.
-
----
-
-## Optimize OSM Spline Points
-
-**Optimize OSM Spline Points** is enabled by default for imported OSM geometry.
-
-The optimizer runs before normal TGC spline-handle generation and conservatively removes redundant OSM vertices from supported features:
-
-- bunkers;
-- greens;
-- tee boxes;
-- fairways;
-- rough / heavy rough;
-- cart paths;
-- walking paths.
-
-The simplifier is feature-aware. It uses tighter tolerances on greens, bunkers, and tee boxes and larger tolerances on broad fairway/rough geometry. Safety guards preserve open-path endpoints, sharp corners, polygon winding, minimum point counts, and polygon area within a conservative limit.
-
-Special lollipop/neck geometry used for bunker/fairway inner-island handling is protected from optimization after that geometry is created.
-
-The goal is to reduce spline point count and course object usage without visibly changing the imported OSM shape.
-
----
-
-## 50 m LiDAR Tree / Building Filters
-
-Beta 3 includes two course-proximity filters, both enabled by default when their corresponding LiDAR feature type is used:
-
-- **Filter LiDAR Trees: within 50 m of Course Features**
-- **Filter LiDAR Buildings: within 50 m of Course Features**
-
-The 50 m reference index is built only from core course geometry:
-
-- bunkers;
-- greens / tee boxes;
-- fairways;
-- rough;
-- hole centerline routes.
-
-Walking paths, cart paths, building placeholders, and other utility splines are deliberately excluded from the reference index so remote LiDAR objects cannot validate themselves against unrelated geometry.
-
-LiDAR tree candidates farther than 50 m from the indexed course geometry are discarded. LiDAR Class-6 building footprints use the same 50 m course-proximity rule before being added to the course.
-
-LiDAR-generated trees also pass a playing-surface exclusion after OSM/course splines are imported. Green/tee and bunker surfaces always reject LiDAR tree candidates. Explicit rough splines are allowed and override an underlying fairway, so a deliberately mapped rough island can retain a real tree. Fairway candidates are rejected when no rough override exists. OSM-mapped trees are unaffected.
-
-These filters reduce object count and prevent distant trees/buildings or false unclassified LiDAR tree returns from consuming the PGA TOUR 2K25 course meter.
-
-### 2K25 theme tree palettes
-
-TGCTool has explicit 2K25 tree-asset palettes for the following themes:
-
-- Desert
-- Boreal
-- Tropical
-- Countryside
-- Harvest
-- Winter
-- Delta
-- Rustic
-- Swiss
-- Steppe
-- Autumn
-- Highlands
-- Temperate
-- Fjordland
-
-Fjordland is theme ID **54**. Its complete theme-tree palette includes **44 actual tree prefabs**, split into broad/wider and narrow/columnar groups for the existing LiDAR tree-shape selection logic. Theme shrub/bush assets are deliberately excluded from LiDAR tree placement.
-
-For themes without a dedicated narrow-tree subset, TGCTool falls back to the normal theme palette.
-
----
-
-## Terrain generation and background terrain
-
-The main TGCTool now supports **Dense / Original only** for terrain creation. **Adaptive terrain generation has been removed from the main tool and from its GUI.** Terrain brush and absolute brush footprint remain user selectable.
-
-Common brush IDs exposed by this fork:
-
-| Brush | Practical use |
-|---:|---|
-| 72 | raw / minimal smoothing |
-| 15 | light smoothing |
-| 9 | medium smoothing |
-| 10 | soft / broad smoothing |
-
-### Add Background Terrain / Remove Cliffs
-
-When the low-resolution background fill is enabled, TGCTool samples the same source elevation data at the requested **Background Scale** and writes those coarse **Brush 10** stamps **before** the regular dense terrain stamps.
-
-Because Brush 10 is a very soft circular brush, its footprint is written at **2.5 × the Background Scale** to overlap/fill the coarse lattice smoothly. For example, a 16 m Background Scale uses a 40 m Brush-10 footprint. The normal selected terrain brush is then written afterward at the detailed source lattice, so the high-resolution terrain sits on top of the coarse fill where they overlap.
-
-### Auto Background Landscape (Purple)
-
-The separate purple `terrainHeight` background can create a coarse source-derived surrounding landscape outside the detailed imported area instead of relying on one flat global elevation. Its detail spacing is user editable (48 m default in the current GUI).
-
-Adaptive terrain is intentionally handled by the separate **Adaptive Terrain Converter** after course generation. This keeps the main LiDAR/DEM import path focused on producing the validated Dense / Original source course.
-
----
-
-## DEM Fast
-
-Beta 3 keeps the deterministic **40th-percentile lower-ground-biased DEM reducer** but accelerates non-integer reduction ratios with a vectorized/chunked implementation.
-
-Heavy DEM work runs off the Tk main thread. Rasterio/GDAL reprojection defaults to up to eight logical CPU threads (`TGC_DEM_THREADS` can override this).
-
-GeoTIFF processing retains:
-
-- multi-tile mosaics;
-- CRS/EPSG detection;
-- horizontal reprojection when required;
-- independent vertical-unit conversion;
-- NoData-safe processing;
-- Map Scale controlled reduction without inventing finer-than-source resolution.
-
----
-
-## LiDAR Fast
-
-Beta 3 accelerates the current LiDAR workflow while preserving its output behavior:
-
-- single-pass crop/classification masks;
-- one-time multi-tile concatenation;
-- vectorized PyProj CRS transforms;
-- vectorized tree-max and preview rasters;
-- vectorized interpolation-array preparation;
-- optional native-C exact-order ground rasterizer;
-- worker-thread preparation/heightmap generation.
-
-If the native helper cannot be compiled or bundled, the program automatically uses the exact Python fallback.
-
----
-
-## Windows build
-
-Use:
+For an existing source checkout with its dependencies installed, run:
 
 ```bat
-BUILD_TGC_2K25_BETA3_1.bat
+BUILD_TGC_2K25_BETA7.bat
 ```
 
-Expected output:
-
-```text
-C:\TGC-Designer-Tools\dist\tgc_gui_2k25_beta3_1.exe
-```
-
-Release package:
-
-```text
-TGC-Designer-Tools-2K25-v0.5.0-2k25-beta3.1-Windows-x64.zip
-```
-
-See **[BUILD_WINDOWS.md](BUILD_WINDOWS.md)** for environment details.
-
-Release notes: **[RELEASE_NOTES_v0.5.0-2k25-beta3.1.md](RELEASE_NOTES_v0.5.0-2k25-beta3.1.md)**
-Full change history: **[CHANGELOG.md](CHANGELOG.md)**
-
----
-
-## Scope and downstream tools
-
-The main TGCTool repository release is intentionally focused on **course creation**. It does not fold in the separate Course Finisher or Adaptive Terrain Converter workflows.
-
-- **Adaptive Terrain Converter** — optional downstream conversion after Dense / Original course creation.
-- **Course Finisher** — separate downstream cart-path/native-water finishing workflow.
-
-Keeping these operations separate makes the core LiDAR/DEM/OSM generation path easier to validate and avoids coupling post-processing experiments to the main importer.
-
----
+The executable is written to `dist\tgc_gui_2k25_beta7.exe`. Beta 6 remains available separately. Environment details are in [BUILD_WINDOWS.md](BUILD_WINDOWS.md).
 
 ## Credits and license
 
-This is a derivative fork of the original **TGC Designer Tools** project and **HiCamino/TGC-Designer-Tools**. Fork-specific 2K25 work is maintained by **malifica**.
+This is a derivative fork of the original **TGC Designer Tools** project and **[HiCamino/TGC-Designer-Tools](https://github.com/HiCamino/TGC-Designer-Tools)**. Fork-specific PGA TOUR 2K25 work is maintained by **malifica**.
 
-The project also relies on OpenStreetMap, GDAL/PROJ, Rasterio, laspy, NumPy, OpenCV, SciPy, and Python ecosystems.
+The project relies on OpenStreetMap, GDAL/PROJ, Rasterio, laspy, NumPy, OpenCV, SciPy, and the Python ecosystem. **Apache License 2.0**; see [LICENSE](LICENSE).
 
-Apache License 2.0. See **[LICENSE](LICENSE)**.
-
-This software is unofficial and is not affiliated with or endorsed by HB Studios, 2K, PGA TOUR, OpenStreetMap Foundation, USGS, or other referenced organizations.
-
-
-## Beta 5 USGS AWS EPT From Local OSM
-
-Beta 5 can stream a course-sized subset of the public USGS 3DEP AWS EPT point
-cloud and feed it into the existing LiDAR pipeline as normal LAZ chunks.
-
-Workflow:
-
-1. Select the course directory.
-2. Select the normal **Local OSM File** on the Import Terrain and Features tab.
-3. On **Process LiDAR / DEM**, click **USGS AWS EPT From Local OSM**.
-4. TGCTool uses the explicit golf-course boundary when present, otherwise the
-   local OSM extent, and adds a 150 m safety buffer.
-5. The National Map API is queried for intersecting LAS/LAZ projects. Beta 5
-   prefers the newest candidate that is completely available in the public
-   `usgs-lidar-public` EPT mirror.
-6. Only overlapping EPT LAZ nodes are downloaded and cropped. The resulting
-   chunks are written to `USGS_AWS_EPT_LAZ` in the selected course directory.
-7. The normal Beta 5 LiDAR preview, classifications, tree detection, masks,
-   native fast rasterizer and terrain processing run unchanged.
-
-The public EPT route does **not** require an AWS account or Requester Pays
-credentials. The manual local LAS/LAZ workflow remains unchanged.
-
-
-### Select the LiDAR acquisition before download
-
-The **USGS AWS EPT From Local OSM** workflow now discovers all overlapping
-Lidar Point Cloud acquisitions first and opens a chooser before anything is
-downloaded. The chooser uses USGS Work Unit Extent Spatial Metadata (WESM)
-when available and shows:
-
-- actual collection start/end dates;
-- 3DEP quality level;
-- the quality-level pulse spacing / pulse density reference;
-- lidar specification version;
-- production method;
-- source DEM ground-sample distance;
-- LPC publication date and status;
-- horizontal / vertical CRS and geoid;
-- work-unit names; and
-- whether that acquisition is available in the free public AWS EPT mirror.
-
-No acquisition is automatically chosen merely because it is newer.
-
-The selected acquisition can then be used in either of two ways:
-
-**Terrain + Trees** runs the existing Beta 5 LiDAR terrain and tree workflow.
-
-**Trees Only (Keep DEM Terrain)** requires an existing DEM-generated
-`heightmap.npy`. Beta 5 runs the selected LiDAR through the normal tree
-detector, reprojects only the resulting tree candidates into the DEM CRS, and
-writes those candidates into the DEM heightmap package. The DEM elevation
-array, DEM mask, image scale and master grid are not replaced. A one-time
-`heightmap_before_lidar_trees.npy` backup is created before the tree layer is
-attached.
-
-
-### Epic tree scale
-
-Beta 5's **Tree Scale** selector now includes **Epic** in addition to the
-existing Heroic and Legacy LiDAR modes.
-
-- **Heroic (Beta 5)** remains unchanged and remains the default.
-- **Epic** preserves the same tree mix and relative size distribution but
-  multiplies the final X/Y/Z tree scale by **1.20**.
-- **Legacy LiDAR** remains unchanged.
-
-For calibrated Regional Themes, Epic scales the profile-calibrated prefab
-distribution rather than replacing it with generic scale values. For built-in
-Designer-theme trees, Epic is the same 20% step above the existing Heroic
-radius/height ranges.
-
-
-### Local LAS/LAZ Trees Only
-
-Beta 5 can use an already-downloaded local LAS/LAZ acquisition only as a tree
-source while preserving terrain from a newer DEM.
-
-After processing the DEM, use **Select Local LAS/LAZ - Trees Only** on the
-Process LiDAR / DEM tab. The workflow:
-
-1. requires an existing DEM-generated `heightmap.npy`;
-2. lets the user select a local LAS/LAZ directory;
-3. honors **Force LiDAR Horizontal EPSG** when supplied, otherwise auto-detects
-   the CRS from the LAS/LAZ header;
-4. runs the normal Beta 5 LiDAR tree detector;
-5. reprojects only the resulting tree candidates into the DEM CRS; and
-6. writes those candidates into the DEM heightmap package without replacing the
-   DEM elevations, DEM resolution, mask or master grid.
-
-A one-time `heightmap_before_lidar_trees.npy` backup is preserved before the
-tree layer is attached. The existing local LiDAR Terrain + Trees workflow is
-unchanged.
-
-
-### LiDAR terrain gap fill
-
-Beta 5 can combine a newer primary LiDAR terrain with an older fallback LiDAR
-acquisition without blending the two indiscriminately.
-
-First generate the normal primary terrain with **Select Lidar and Generate
-Heightmap**. Then use either:
-
-- **Select Local LAS/LAZ - Fill Missing Terrain**, or
-- an AWS EPT acquisition with **Use as Terrain Gap Fill (Keep Primary Terrain)**.
-
-The current `heightmap.npy` master grid remains authoritative. The fallback
-source is reprojected directly onto that grid using only Class 2 / Class 8
-ground points. A fallback cell is written only when the primary terrain cell is
-non-finite/NaN. Valid primary cells are never replaced.
-
-Where enough valid overlap exists, Beta 5 measures a robust median vertical
-offset between acquisitions and applies it to the fallback data when the
-offset is within a 2 m safety limit. Larger apparent offsets are reported but
-not automatically applied, because they can indicate an incompatible vertical
-datum/geoid.
-
-Before the first fill, Beta 5 creates
-`heightmap_before_lidar_gap_fill.npy`. It also writes
-`lidar_gap_fill_mask.png` (white = cells supplied by fallback LiDAR) and
-`lidar_gap_fill_report.json` with fill counts and vertical-alignment details.
-
-
-### OSM-defined terrain master extent
-
-When a Local OSM file is selected, Beta 5 now treats the golf-course OSM
-boundary plus the same 150 m course buffer used by the AWS EPT workflow as the
-authoritative terrain extent. The LiDAR crop no longer limits the master grid.
-The OSM extent is snapped to the primary raster's existing cell lattice, so
-valid primary elevations are copied without resampling; uncovered cells remain
-NaN and can be supplied by one or more Terrain Gap Fill acquisitions.
-
-Terrain Gap Fill requires the Local OSM file so an older acquisition can fill
-both interior holes and missing edge tiles. After each fill, the stored
-heightmap visual is regenerated from the merged terrain, so the CFS Alignment
-Viewer displays the combined primary + fallback terrain instead of the stale
-primary-only visual.
-
-The first reframe saves `heightmap_before_osm_master.npy`, rewrites
-`cfs_master_grid.json`, and regenerates `mask.png` on the new OSM master
-grid. Existing primary finite cells are never replaced by gap-fill terrain.
+This software is unofficial and is not affiliated with or endorsed by HB Studios, 2K, PGA TOUR, the OpenStreetMap Foundation, USGS, or other referenced organizations.

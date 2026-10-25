@@ -6,6 +6,7 @@ from tkinter.scrolledtext import ScrolledText
 
 import copy
 import queue
+import tgc_output_progress
 import threading
 import traceback
 import cv2
@@ -31,8 +32,8 @@ import tgc_image_terrain
 from tgc_visualizer import drawCourseAsImage
 import OSMTGC
 
-TGC_GUI_VERSION = "v0.5.0-2k25-beta6"
-TGC_APP_TITLE = "TGC Designer Tools 2K25 - Beta 6"
+TGC_GUI_VERSION = "v0.5.0-2k25-beta7"
+TGC_APP_TITLE = "TGC Designer Tools 2K25 - Beta 7"
 
 AUTO_RED_MASK_BUFFER_MIN_M = 5.0
 AUTO_RED_MASK_BUFFER_MAX_M = 30.0
@@ -397,10 +398,15 @@ def getCourseDirectory(output):
     global root
     global course_json
     global course_version
+    global last_alignment_heightmap_dir
     
     cdir =  tk.filedialog.askdirectory(initialdir = ".", title = "Select course directory")
     if cdir:
         root.filename = cdir
+        # Do not carry a previous project's CFS heightmap into this project.
+        last_alignment_heightmap_dir = (
+            str(cdir) if (Path(cdir) / "heightmap.npy").is_file() else None
+        )
         output.config(text=root.filename)
 
         drawPlaceholder() # Clear out existing course while picking a new one
@@ -1164,10 +1170,11 @@ def rebuildOSMMaskFromCurrentAlignment(
         alert("Select a Local OSM File before rebuilding the alignment mask.")
         return False
 
-    folder = str(heightmap_dir_path or last_alignment_heightmap_dir or "").strip()
+    folder = str(heightmap_dir_path or "").strip()
     if not folder:
-        folder = tk.filedialog.askdirectory(
-            initialdir=(root.filename if root and hasattr(root, "filename") else "."),
+        from tgc_project_paths import select_heightmap_folder
+        folder = select_heightmap_folder(
+            root, tk.filedialog.askdirectory, printf=(printf_override or printf),
             title="Select heightmap folder for aligned mask rebuild",
         )
     if not folder:
@@ -1448,12 +1455,11 @@ def rebuildOSMMaskAction(options_entries_dict, printf):
         alert("Select a Local OSM File before rebuilding the alignment mask.")
         return
 
-    folder = str(last_alignment_heightmap_dir or "").strip()
-    if not folder:
-        folder = tk.filedialog.askdirectory(
-            initialdir=(root.filename if root and hasattr(root, "filename") else "."),
-            title="Select heightmap folder for aligned mask rebuild",
-        )
+    from tgc_project_paths import select_heightmap_folder
+    folder = select_heightmap_folder(
+        root, tk.filedialog.askdirectory, printf=printf,
+        title="Select heightmap folder for aligned mask rebuild",
+    )
     if not folder:
         return
 
@@ -3279,14 +3285,16 @@ def openCFSAlignmentViewer(options_entries_dict, printf):
         alert("Select a Local OSM File before opening the alignment viewer")
         return
 
-    heightmap_dir_path = tk.filedialog.askdirectory(
-        initialdir=(last_alignment_heightmap_dir or root.filename),
-        title="Select heightmap folder for CFS alignment verification"
+    from tgc_project_paths import select_heightmap_folder
+    heightmap_dir_path = select_heightmap_folder(
+        root, tk.filedialog.askdirectory, printf=printf,
+        title="Select heightmap folder for CFS alignment verification",
     )
     if not heightmap_dir_path:
         return
 
     last_alignment_heightmap_dir = str(heightmap_dir_path)
+    printf("CFS Local OSM file: " + local_osm_file)
     _setOSMMaskStatus(
         "OSM alignment mask: CFS viewer open - apply alignment to rebuild",
         "#805500",
@@ -3624,6 +3632,8 @@ root.update()
 ## Lidar Tab
 lidarConsoleOutput = tk.scrolledtext.ScrolledText(master=lidar, wrap=tk.WORD, width=20, height=10, state=DISABLED)
 lidarPrintf = partial(tkinterPrintFunction, lidar, lidarConsoleOutput)
+lidarOutputProgress = tgc_output_progress.OutputProgressPanel(lidar, lidarPrintf)
+lidarPrintf = lidarOutputProgress.printf
 
 # Load the OSM source first so every LiDAR/DEM processing path sees the same
 # selected layout before it creates previews or a provisional mask.
@@ -3818,6 +3828,7 @@ Label(
 ).pack(side=LEFT, padx=8)
 lidarMaskFrame.pack(pady=(0, 5))
 
+lidarOutputProgress.pack(padx=10, pady=(2, 0), fill=tk.X)
 lidarConsoleOutput.pack(padx=10, pady=5, fill=tk.BOTH, expand=True)
 
 ## Import Terrain and Features Tab
@@ -4074,6 +4085,24 @@ filterLidarTreesCheck = Checkbutton(
 )
 filterLidarTreesCheck.select()
 
+# TGC_BETA7_TREE_CONTROLS_V1 - independent of the existing 50 m filter.
+options_entries_dict["filter_lidar_trees_surfaces"] = tk.BooleanVar(value=False)
+filterLidarSurfacesCheck = Checkbutton(
+    courseSubFrame,
+    text="OSM LiDAR Tree Filter: Fairway / Green / Bunker / Rough",
+    variable=options_entries_dict["filter_lidar_trees_surfaces"],
+    fg=check_fg,
+    bg=check_bg,
+)
+options_entries_dict["exclude_lidar_trees_red_mask"] = tk.BooleanVar(value=True)
+filterLidarRedMaskCheck = Checkbutton(
+    courseSubFrame,
+    text="Exclude LiDAR Trees from Red-Masked Areas",
+    variable=options_entries_dict["exclude_lidar_trees_red_mask"],
+    fg=check_fg,
+    bg=check_bg,
+)
+
 options_entries_dict["lidar_buildings"] = tk.BooleanVar()
 lidarBuildingCheck = Checkbutton(
     courseSubFrame,
@@ -4131,16 +4160,18 @@ treeProfileCombo.grid(row=6, column=1, sticky=W, padx=5, pady=(5,0))
 Label(courseSubFrame, text="Tree Scale", fg=check_fg, bg=check_bg).grid(row=7, column=0, sticky=W, padx=5)
 treeScaleModeCombo.grid(row=7, column=1, sticky=W, padx=5)
 filterLidarTreesCheck.grid(row=8, columnspan=2, sticky=W, padx=5)
-lidarBuildingCheck.grid(row=9, columnspan=2, sticky=W, padx=5)
-filterLidarBuildingsCheck.grid(row=10, columnspan=2, sticky=W, padx=5)
-fillWaterCheck.grid(row=11, columnspan=2, sticky=W, padx=5)
-purgeWaterCheck.grid(row=12, columnspan=2, sticky=W, padx=5)
-Label(courseSubFrame, text="Terrain Brush", fg=check_fg, bg=check_bg).grid(row=14, column=0, pady=(10,3), sticky=W, padx=5)
-brush_type_combo.grid(row=14, column=1, pady=(10,3), sticky=W, padx=5)
-Label(courseSubFrame, text="Brush Size (meters)", fg=check_fg, bg=check_bg).grid(row=15, column=0, pady=3, sticky=W, padx=5)
-brush_scale_combo.grid(row=15, column=1, pady=3, sticky=W, padx=5)
-Label(courseSubFrame, text="Brushes: 72 / 9 / 10 / 15", fg=check_fg, bg=check_bg).grid(row=16, columnspan=2, sticky=W, padx=5)
-Label(courseSubFrame, text="Terrain Generation: Dense / Original only", fg=check_fg, bg=check_bg).grid(row=17, columnspan=2, sticky=W, padx=5)
+filterLidarSurfacesCheck.grid(row=9, columnspan=2, sticky=W, padx=5)
+filterLidarRedMaskCheck.grid(row=10, columnspan=2, sticky=W, padx=5)
+lidarBuildingCheck.grid(row=11, columnspan=2, sticky=W, padx=5)
+filterLidarBuildingsCheck.grid(row=12, columnspan=2, sticky=W, padx=5)
+fillWaterCheck.grid(row=13, columnspan=2, sticky=W, padx=5)
+purgeWaterCheck.grid(row=14, columnspan=2, sticky=W, padx=5)
+Label(courseSubFrame, text="Terrain Brush", fg=check_fg, bg=check_bg).grid(row=16, column=0, pady=(10,3), sticky=W, padx=5)
+brush_type_combo.grid(row=16, column=1, pady=(10,3), sticky=W, padx=5)
+Label(courseSubFrame, text="Brush Size (meters)", fg=check_fg, bg=check_bg).grid(row=17, column=0, pady=3, sticky=W, padx=5)
+brush_scale_combo.grid(row=17, column=1, pady=3, sticky=W, padx=5)
+Label(courseSubFrame, text="Brushes: 72 / 9 / 10 / 15", fg=check_fg, bg=check_bg).grid(row=18, columnspan=2, sticky=W, padx=5)
+Label(courseSubFrame, text="Terrain Generation: Dense / Original only", fg=check_fg, bg=check_bg).grid(row=19, columnspan=2, sticky=W, padx=5)
 
 # Pack the two option frames side by side
 osmControlFrame.pack(side=LEFT, anchor=N, padx=5)

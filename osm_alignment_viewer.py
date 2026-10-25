@@ -270,16 +270,9 @@ def _collect_overlay_features(
             )
         )
     else:
-        target_crs = pyproj.CRS.from_user_input(
-            getattr(projection, "crs", None)
-            or getattr(projection, "srs", None)
-            or projection
-        )
-        transformer = pyproj.Transformer.from_crs(
-            pyproj.CRS.from_epsg(4326),
-            target_crs,
-            always_xy=True,
-        )
+        # Beta 7: exactly the final importer's geographic datum operation.
+        from tgc_cfs_display import importer_transformer
+        transformer = importer_transformer(projection)
 
     features = []
     direct_way_ids = set()
@@ -408,6 +401,8 @@ class AlignmentViewer:
         self.drag_start_canvas = None
         self.drag_start_shift = None
         self.zoom = 1.0
+        from tgc_cfs_display import initialize
+        initialize(self)
         self.photo = None
         self.image_item = None
 
@@ -457,21 +452,27 @@ class AlignmentViewer:
         return widget
 
     def _build_ui(self):
+        from functools import partial
+        import tgc_cfs_display as display
+        instruction = ttk.Frame(self.window)
+        instruction.pack(fill=tk.X, padx=8, pady=(6, 2))
         top = ttk.Frame(self.window)
-        top.pack(fill=tk.X, padx=8, pady=6)
 
         ttk.Label(
-            top,
+            instruction,
+            wraplength=1180,
+            justify=tk.LEFT,
             text=(
                 "Drag the colored OSM overlay over the terrain. "
                 "Arrow keys = 0.10 m; Shift+Arrow = 1.0 m. "
                 "Applying the alignment rebuilds mask.png; make manual mask edits afterward."
                 + (" Custom / Unmatched mode is centered on the terrain; absolute OSM geography is ignored." if self.custom_unmatched_osm else "")
             ),
-        ).pack(side=tk.LEFT, padx=(0, 12))
+        ).pack(fill=tk.X)
+        top.pack(fill=tk.X, padx=8, pady=(2, 5))
 
         ttk.Label(top, text="View:").pack(side=tk.LEFT)
-        self.view_var = tk.StringVar(value="Blend")
+        self.view_var = tk.StringVar(master=self.window, value="Hillshade")
         self.view_combo = self._register(ttk.Combobox(
             top,
             width=10,
@@ -494,6 +495,17 @@ class AlignmentViewer:
             top, text="Fit", command=self._fit_zoom
         ))
         self.fit_button.pack(side=tk.LEFT, padx=2)
+        self.zoom_var = tk.StringVar(master=self.window, value="1.00x")
+        ttk.Label(top, text="Zoom:").pack(side=tk.LEFT, padx=(12, 3))
+        self.zoom_combo = self._register(ttk.Combobox(
+            top, width=8, state="readonly", textvariable=self.zoom_var,
+            values=("0.25x", "0.50x", "1x", "2x", "4x", "8x", "15x", "20x", "30x")))
+        self.zoom_combo.pack(side=tk.LEFT, padx=3)
+        self.zoom_combo.bind("<<ComboboxSelected>>", partial(display.zoom_selected, self))
+        ttk.Label(top, text="Maximum 30x; pan with scrollbars").pack(side=tk.LEFT, padx=8)
+        tones = ttk.Frame(self.window)
+        tones.pack(fill=tk.X, padx=8, pady=(0, 6))
+        display.add_display_controls(self, tones)
 
         readout = ttk.Frame(self.window)
         readout.pack(fill=tk.X, padx=8, pady=(0, 6))
@@ -576,8 +588,8 @@ class AlignmentViewer:
             canvas_frame, orient=tk.VERTICAL, command=self.canvas.yview
         )
         self.canvas.configure(
-            xscrollcommand=hbar.set,
-            yscrollcommand=vbar.set,
+            xscrollcommand=partial(display.scroll_changed, self, hbar),
+            yscrollcommand=partial(display.scroll_changed, self, vbar),
         )
         self.canvas.grid(row=0, column=0, sticky="nsew")
         vbar.grid(row=0, column=1, sticky="ns")
@@ -589,6 +601,9 @@ class AlignmentViewer:
         self.canvas.bind("<B1-Motion>", self._drag_move)
         self.canvas.bind("<ButtonRelease-1>", self._drag_end)
         self.canvas.bind("<MouseWheel>", self._mousewheel_zoom)
+        self.canvas.bind("<Button-4>", self._mousewheel_zoom)
+        self.canvas.bind("<Button-5>", self._mousewheel_zoom)
+        self.canvas.bind("<Configure>", partial(display.queue_redraw, self))
 
         legend = ttk.Frame(self.window)
         legend.pack(fill=tk.X, padx=8, pady=(2, 8))
@@ -647,7 +662,7 @@ class AlignmentViewer:
         state = "normal" if enabled else "disabled"
         for widget in self._interactive_widgets:
             try:
-                if widget is self.view_combo:
+                if widget is self.view_combo or widget is self.zoom_combo:
                     widget.configure(state="readonly" if enabled else "disabled")
                 else:
                     widget.configure(state=state)
@@ -817,31 +832,35 @@ class AlignmentViewer:
         )
         self.zoom = max(self.zoom, 0.15)
 
+
     def _fit_zoom(self):
         if not self._can_interact():
             return
+        from tgc_cfs_display import set_zoom
         width = max(float(self.canvas.winfo_width()) - 20.0, 200.0)
         height = max(float(self.canvas.winfo_height()) - 20.0, 200.0)
-        self.zoom = min(
-            width / max(float(self.cols), 1.0),
-            height / max(float(self.rows), 1.0),
-        )
-        self.zoom = max(0.10, min(self.zoom, 4.0))
-        self._redraw_everything()
+        set_zoom(self, min(width / max(float(self.cols), 1.0),
+                           height / max(float(self.rows), 1.0)))
+        self.canvas.xview_moveto(0)
+        self.canvas.yview_moveto(0)
+        self._redraw_background()
+
 
     def _change_zoom(self, factor):
-        if not self._can_interact():
-            return
-        self.zoom = max(0.10, min(6.0, self.zoom * float(factor)))
-        self._redraw_everything()
+        from tgc_cfs_display import set_zoom
+        set_zoom(self, self.zoom * float(factor))
+
 
     def _mousewheel_zoom(self, event):
         if not self._can_interact():
             return "break"
-        if event.delta > 0:
-            self._change_zoom(1.25)
-        elif event.delta < 0:
-            self._change_zoom(1.0 / 1.25)
+        from tgc_cfs_display import set_zoom
+        delta = getattr(event, "delta", 0)
+        number = getattr(event, "num", None)
+        if delta > 0 or number == 4:
+            set_zoom(self, self.zoom * 1.25, (event.x, event.y))
+        elif delta < 0 or number == 5:
+            set_zoom(self, self.zoom / 1.25, (event.x, event.y))
         return "break"
 
     def _view_changed(self, event=None):
@@ -850,7 +869,13 @@ class AlignmentViewer:
             self.canvas.focus_set()
         return "break"
 
+
     def _key_nudge(self, event, dew, dns):
+        # Editing a display control or entry must not move the OSM overlay.
+        if getattr(event, "widget", None) in (
+            self.brightness_slider, self.contrast_slider, self.zoom_combo,
+            self.ew_box, self.ns_box):
+            return None
         if self._can_interact():
             self._nudge(dew, dns)
             self.canvas.focus_set()
@@ -859,34 +884,52 @@ class AlignmentViewer:
     def _current_background(self):
         return self.backgrounds.get(self.view_var.get(), self.blend_rgb)
 
+
     def _redraw_background(self):
-        if not self.ready:
+        if not self.ready or self.closed:
             return
+        from tgc_cfs_display import viewport_tile
         arr = self._current_background()
-        pil = Image.fromarray(arr, "RGB")
-        size = (
-            max(1, int(round(self.cols * self.zoom))),
-            max(1, int(round(self.rows * self.zoom))),
-        )
-        if size != pil.size:
-            pil = pil.resize(size, Image.Resampling.LANCZOS)
-        self.photo = ImageTk.PhotoImage(pil)
+        view = self.view_var.get()
+        cached = self._cfs_background_cache.get(view)
+        if cached is None or cached[0] is not arr:
+            cached = (arr, Image.fromarray(arr, "RGB"))
+            self._cfs_background_cache[view] = cached
+        size = (self.cols * self.zoom, self.rows * self.zoom)
+        region = (0, 0, size[0], size[1])
+        if self._cfs_scrollregion != region:
+            self._cfs_scrollregion = region
+            self.canvas.configure(scrollregion=region)
+        x = self.canvas.canvasx(0)
+        y = self.canvas.canvasy(0)
+        w = max(1, self.canvas.winfo_width())
+        h = max(1, self.canvas.winfo_height())
+        brightness = self.brightness_var.get()
+        contrast = self.contrast_var.get()
+        key = (view, id(arr), self.zoom, x, y, w, h, brightness, contrast)
+        if self._cfs_last_tile_key == key:
+            return
+        tile, origin = viewport_tile(cached[1], self.zoom, x, y, w, h, brightness, contrast)
+        if tile is None:
+            if self.image_item is not None:
+                self.canvas.itemconfigure(self.image_item, state="hidden")
+            return
+        self._cfs_tile_size = tile.size
+        self.photo = ImageTk.PhotoImage(tile, master=self.canvas)
         if self.image_item is None:
             self.image_item = self.canvas.create_image(
-                0, 0, image=self.photo, anchor=tk.NW,
-                tags=("terrain_background",),
-            )
+                *origin, image=self.photo, anchor=tk.NW, tags=("terrain_background",))
         else:
-            self.canvas.itemconfigure(self.image_item, image=self.photo)
+            self.canvas.coords(self.image_item, *origin)
+            self.canvas.itemconfigure(self.image_item, image=self.photo, state="normal")
         self.canvas.tag_lower("terrain_background")
-        self.canvas.configure(scrollregion=(0, 0, size[0], size[1]))
+        self._cfs_last_tile_key = key
+
 
     def _display_xy(self, col, row_south):
-        shifted_col = float(col) + self.shift_ew / self.resolution
-        shifted_row_south = float(row_south) + self.shift_ns / self.resolution
-        x = shifted_col * self.zoom
-        y = (self.rows - 1.0 - shifted_row_south) * self.zoom
-        return x, y
+        from tgc_cfs_display import screen_point
+        return screen_point(col, row_south, self.rows, self.resolution,
+                            self.zoom, self.shift_ew, self.shift_ns)
 
     def _redraw_overlay(self):
         if not self.ready:
@@ -919,11 +962,12 @@ class AlignmentViewer:
         self._redraw_overlay()
 
     def _update_readout(self):
+        self.zoom_var.set(f"{self.zoom:.2f}x")
         self.ew_var.set(f"{self.shift_ew:.2f}")
         self.ns_var.set(f"{self.shift_ns:.2f}")
         if self.ready:
             self.info_var.set(
-                "Grid: " + str(self.cols) + " x " + str(self.rows) + " @ "
+                f"Zoom: {self.zoom:.2f}x   |   Grid: " + str(self.cols) + " x " + str(self.rows) + " @ "
                 + f"{self.resolution:.3f}" + " m/pixel   |   Shift: "
                 + f"{self.shift_ew:.2f} m E/W, {self.shift_ns:.2f} m N/S"
                 + "   |   Pixel shift: "

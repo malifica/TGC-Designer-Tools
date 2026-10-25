@@ -173,12 +173,14 @@ class GeoPointCloud:
         return (twod[0], twod[1], z)
 
     def latlonToProj(self, lat, lon):
-        transformer = pyproj.Transformer.from_proj(self._platlon, self.proj, True)
+        from tgc_projection_cache import from_proj
+        transformer = from_proj(self._platlon, self.proj)
         return transformer.transform(lon, lat) # Lon, lat order
 
     def projToLatLon(self, easting, northing):
         # pyroj returns easting coordinate, northing coordinate
-        transformer = pyproj.Transformer.from_proj(self._proj, self._platlon, True)
+        from tgc_projection_cache import from_proj
+        transformer = from_proj(self._proj, self._platlon)
         lonlat = transformer.transform(easting, northing)
         return (lonlat[1], lonlat[0])
 
