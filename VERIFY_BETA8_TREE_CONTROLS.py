@@ -181,7 +181,7 @@ class Tests(unittest.TestCase):
     def test_beta7_identity(self):
         tree=ast.parse((ROOT/'tgc_gui.py').read_text(encoding='utf-8-sig'))
         vals={t.id:ast.literal_eval(n.value) for n in tree.body if isinstance(n,ast.Assign) and isinstance(n.value,ast.Constant) for t in n.targets if isinstance(t,ast.Name)}
-        self.assertEqual(vals['TGC_GUI_VERSION'],'v0.5.0-2k25-beta8');self.assertEqual(vals['TGC_APP_TITLE'],'TGC Designer Tools 2K25 - Beta 8')
+        self.assertEqual(vals['TGC_GUI_VERSION'],'v0.5.0-2k25-beta8.1');self.assertEqual(vals['TGC_APP_TITLE'],'TGC Designer Tools 2K25 - Beta 8.1')
     def test_native_overpy_notice(self):
         import overpy
         if not getattr(overpy,'__file__',None):self.skipTest('Native overpy unavailable; lab uses explicitly labelled XML adapter')
@@ -208,7 +208,7 @@ def gui_check():
         g.filterLidarRedMaskCheck.invoke();assert not o['exclude_lidar_trees_red_mask'].get()
         assert o['filter_lidar_trees_surfaces'].get() and o['filter_lidar_trees_50m'].get()
         g.filterLidarSurfacesCheck.invoke();g.filterLidarRedMaskCheck.invoke()
-        assert g.root.title()=='TGC Designer Tools 2K25 - Beta 8'
+        assert g.root.title()=='TGC Designer Tools 2K25 - Beta 8.1'
         assert g.filterLidarSurfacesCheck.grid_info()['row']!=g.filterLidarRedMaskCheck.grid_info()['row']
         print('Actual Tk tree controls: default states, independent toggles, 50 m retention and Beta 7 title OK.')
     finally:g.root.destroy()

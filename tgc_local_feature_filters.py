@@ -11,7 +11,7 @@ from tgc_cfs_widgets import action_button
 
 FILTERS = (("tee", "Tees"), ("bunker", "Bunkers"), ("green", "Greens"),
            ("fairway", "Fairways"), ("rough", "Rough"), ("water", "Water"),
-           ("mulch", "Mulch"), ("paths", "Paths / roads"), ("other", "Other"))
+           ("mulch", "Woods / mulch"), ("paths", "Paths / roads"), ("other", "Other"))
 COLORS = {"tee": "#40c8ff", "bunker": "#f2d675", "green": "#53f0a0",
           "fairway": "#9be45d", "rough": "#c49cff", "water": "#63aaff",
           "mulch": "#eda788", "paths": "#e3e3e3", "other": "#abb8cc"}
@@ -19,6 +19,8 @@ COLORS = {"tee": "#40c8ff", "bunker": "#f2d675", "green": "#53f0a0",
 
 def filter_kind(feature):
     kind = str(feature.get("kind", "")).lower()
+    if kind == "wood":
+        return "mulch"
     if kind in ("rough", "heavyrough", "heavy_rough"):
         return "rough"
     if kind in ("water", "water_hazard", "lateral_water_hazard", "waterway"):

@@ -8,7 +8,7 @@ import OSMTGC
 # TGC_BETA6_OSM_CARTPATH_ROAD_SPLIT_V4
 
 _AREA_GOLF_TYPES = {
-    "green", "tee", "fairway", "bunker", "rough", "driving_range", "mulch",  # TGC_HBCC_DRY_MULCH_V1
+    "green", "tee", "fairway", "bunker", "rough", "driving_range",
     "water_hazard", "lateral_water_hazard", "clubhouse",
 }
 
@@ -46,6 +46,8 @@ def _feature_mode_and_width_m(
     highway_type = tags.get("highway")
     area_tag = str(tags.get("area", "") or "").lower()
 
+    if OSMTGC.classifyDryAreaForTGC(tags):
+        return "area", 0.0
     if golf_type == "hole":
         return None, 0.0
     if golf_type in _AREA_GOLF_TYPES:
@@ -81,6 +83,8 @@ def _feature_signature(obj):
         tags.get("highway"),
         tags.get("golf_cart"),
         tags.get("amenity"),
+        tags.get("landuse"),
+        tags.get("surface"),
     )
 
 

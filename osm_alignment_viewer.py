@@ -189,6 +189,10 @@ def _parse_osm(path):
 
 
 def _feature_style(tags):
+    if OSMTGC.classifyDryAreaForTGC(tags):
+        return "mulch", FEATURE_COLORS["mulch"]
+    if tags.get("golf") == "mulch":
+        return None, None
     golf = str(tags.get("golf", "") or "").lower()
 
     if golf == "cartpath":

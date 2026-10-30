@@ -1935,6 +1935,129 @@ def newWalkingPath(points, area=False, course_version=-1, optimize_points=True):
         wp["isFilled"] = False
     return wp
 
+# TGC_BETA8_STANDARD_OSM_WOODS_V1
+# These are OSM feature meanings; "mulch" is only an internal game surface.
+def classifyDryAreaForTGC(tags):
+    """Standard OSM woodland/woodchip areas, never tree points or water.
+
+    natural=wood / landuse=forest describe tree-covered land, NOT bare mulch.
+    A genuinely woodchip-covered area can instead use surface=woodchips.
+    Linear roads/paths keep their own established importer, even with woodchips.
+    """
+    tags = tags or {}
+    natural = str(tags.get("natural", "") or "").strip().lower()
+    golf = str(tags.get("golf", "") or "").strip().lower()
+    if (natural in ("water", "tree") or tags.get("waterway") or
+            golf in ("water_hazard", "lateral_water_hazard") or
+            str(tags.get("area", "")).lower() == "no"):
+        return None
+    if golf or tags.get("highway") or tags.get("building"):
+        return None
+    if natural == "wood" or str(tags.get("landuse", "")).lower() == "forest":
+        return "wood"
+    if str(tags.get("surface", "")).lower() == "woodchips":
+        return "mulch"
+    return None
+
+
+def _dry_area_enabled(kind, options):
+    # No fallback to the old combined tree option: checking tree points must
+    # never implicitly enable woodland geometry, nor vice versa.
+    return bool(options.get("wood", False)) if kind else False
+
+
+def _dry_polygon_splines(outers, inners, course_version, ul_tgc, lr_tgc):
+    """Validate full rings, preserve holes, and emit DRY native splines only."""
+    from shapely.geometry import Polygon, LineString
+    from shapely.ops import split, unary_union
+    def polygon(ring):
+        p = Polygon([(float(v[0]), float(v[2])) for v in ring])
+        if p.is_empty or not p.is_valid or p.area <= 1e-6:
+            raise ValueError("invalid/degenerate boundary ring")
+        return p
+    outer_polys = [polygon(r) for r in outers]
+    inner_polys = [polygon(r) for r in inners]
+    if not outer_polys:
+        raise ValueError("no complete outer boundary")
+    assigned = [[] for _ in outer_polys]
+    for ip in inner_polys:
+        owners = [i for i, op in enumerate(outer_polys) if op.contains(ip)]
+        if len(owners) != 1:
+            raise ValueError("inner boundary lacks one containing outer")
+        assigned[owners[0]].append(ip)
+    for i, op in enumerate(outer_polys):
+        for other in outer_polys[i+1:]:
+            if op.intersection(other).area > 1e-6:
+                raise ValueError("overlapping outer boundaries")
+    result = []
+    for i, op in enumerate(outer_polys):
+        p = Polygon(op.exterior.coords, [ip.exterior.coords for ip in assigned[i]])
+        if not p.is_valid:
+            raise ValueError("invalid inner/outer topology")
+        if not _ring_inside_tgc_bounds(outers[i], ul_tgc, lr_tgc):
+            continue
+        pending, pieces, attempts = [p], [], 0
+        while pending:
+            part = pending.pop()
+            if not part.interiors:
+                pieces.append(part)
+                continue
+            attempts += 1
+            if attempts > 5000:
+                raise ValueError("woodland inner-ring partition limit")
+            x0,z0,x1,z1 = part.interiors[0].bounds
+            bx = part.bounds
+            cuts = [LineString([(bx[0]-10,(z0+z1)/2),(bx[2]+10,(z0+z1)/2)]),
+                    LineString([((x0+x1)/2,bx[1]-10),((x0+x1)/2,bx[3]+10)])]
+            for cut in cuts:
+                parts = [q for q in split(part,cut).geoms if q.area > 1e-8]
+                if len(parts)>1 and sum(len(q.interiors) for q in parts)<len(part.interiors):
+                    pending.extend(parts)
+                    break
+            else:
+                raise ValueError("cannot partition woodland without filling inner ring")
+        if unary_union(pieces).symmetric_difference(p).area > 1e-4:
+            raise ValueError("woodland partition changed area")
+        for part in pieces:
+            pts = [(x,0.0,z) for x,z in part.exterior.coords]
+            spline = newMulch(pts,course_version=course_version)
+            if assigned[i]:
+                # Partition seams must stay straight; no curved handles may
+                # balloon across the deliberately excluded inner island.
+                spline["waypoints"] = [getwaypoint(x,0.0,z,course_version)
+                    for x,z in list(part.exterior.coords)[:-1]]
+                for wp in spline["waypoints"]:
+                    wp["pointOne"] = dict(wp["waypoint"])
+                    wp["pointTwo"] = dict(wp["waypoint"])
+                spline["width"] = 0.01
+            result.append(spline)
+    return result
+
+
+def _dry_relation_splines(rel, lookup, pc, ew, ns, resolve, version, ul, lr, printf):
+    import copy
+    normalized = copy.copy(rel)
+    normalized.members = []
+    for member in rel.members:
+        role = str(getattr(member,"role","") or "").strip().lower()
+        if role not in ("", "outer", "inner"):
+            continue
+        if not isinstance(member, overpy.RelationWay):
+            raise ValueError("non-way member used as an outer/inner boundary")
+        m = copy.copy(member)
+        m.role = role or "outer"
+        normalized.members.append(m)
+    def log(message):
+        printf(str(message).replace("water multipolygon", "woodland/woodchip multipolygon"))
+    outer = _stitch_relation_role_node_rings(normalized,"outer",lookup,resolve,printf=log)
+    inner = _stitch_relation_role_node_rings(normalized,"inner",lookup,resolve,printf=log)
+    if not outer or inner is None:
+        raise ValueError("missing or incomplete relation boundaries")
+    return _dry_polygon_splines(
+        [_node_ring_to_tgc_points(r,pc,ew,ns) for r in outer],
+        [_node_ring_to_tgc_points(r,pc,ew,ns) for r in inner],version,ul,lr)
+
+
 def newMulch(points, course_version=-1):
     """TGC_HBCC_DRY_MULCH_V1: dry filled mulch; never register as water."""
     config = _spline_section("mulch") or _spline_section("placeholder")
@@ -2029,6 +2152,8 @@ def newBuilding(points, course_version):
     return b
 
 def newForest(points, course_version):
+    if course_version == 25:
+        return newMulch(points, course_version=course_version)
     global spline_configuration
     spline_json = None
     if spline_configuration is not None:
@@ -2363,8 +2488,41 @@ def addOSMToTGC(course_json, geopointcloud, osm_result, x_offset=0.0, y_offset=0
                 " bunker multipolygon relation(s) with rough inner islands."
             )
 
+    # Woodland/woodchip relations use standard tags and never emit tree points.
+    dry_relation_ids = set()
+    dry_consumed_ids = set()
+    for rel in osm_result.relations:
+        kind = classifyDryAreaForTGC(rel.tags)
+        if rel.tags.get("type") != "multipolygon" or not kind:
+            continue
+        dry_relation_ids.add(rel.id)
+        for member in rel.members:
+            if not isinstance(member, overpy.RelationWay):
+                continue
+            if str(member.role or "").lower() not in ("", "outer", "inner"):
+                continue
+            way = way_dict.get(member.ref)
+            if way is None:
+                continue
+            own_kind = classifyDryAreaForTGC(way.tags)
+            # Suppress inherited fragments, but retain separately tagged inner
+            # greens, water, etc. with their existing import controls.
+            if own_kind == kind or not any(way.tags.get(k) for k in
+                    ("golf", "natural", "landuse", "surface", "highway", "building")):
+                dry_consumed_ids.add(member.ref)
+        if not _dry_area_enabled(kind, options_dict):
+            continue
+        try:
+            made = _dry_relation_splines(rel, way_dict, geopointcloud,
+                x_offset,y_offset,resolve_missing_nodes,course_version,ul_tgc,lr_tgc,printf)
+            course_json[spline_tag].extend(made)
+            dry_mulch_splines.extend(made)
+        except Exception as exc:
+            printf("Warning: woodland/woodchip relation %s skipped: %s" % (rel.id,exc))
+
     for n, way in enumerate(osm_result.ways):
         if (
+            way.id in dry_consumed_ids or
             way.id in bunker_hole_consumed_way_ids or
             way.id in water_multipolygon_consumed_way_ids
         ):
@@ -2373,6 +2531,24 @@ def addOSMToTGC(course_json, geopointcloud, osm_result, x_offset=0.0, y_offset=0
             last_print_time = time.time()
             printf(str(round(100.0*float(n) / num_ways, 2)) + "% through OpenStreetMap Ways")
 
+        dry_kind = classifyDryAreaForTGC(way.tags)
+        if dry_kind:
+            if not _dry_area_enabled(dry_kind, options_dict):
+                continue
+            try:
+                source_nodes = list(way.get_nodes(resolve_missing=resolve_missing_nodes))
+                if len(source_nodes)<4 or source_nodes[0].id!=source_nodes[-1].id:
+                    raise ValueError("area is not a closed OSM way")
+                ring = _node_ring_to_tgc_points(source_nodes,geopointcloud,x_offset,y_offset)
+                made = _dry_polygon_splines([ring],[],course_version,ul_tgc,lr_tgc)
+                course_json[spline_tag].extend(made)
+                dry_mulch_splines.extend(made)
+            except Exception as exc:
+                printf("Warning: woodland/woodchip way %s skipped: %s" % (way.id,exc))
+            continue
+        if way.tags.get("golf") == "mulch":
+            printf("Warning: obsolete private golf=mulch way %s skipped. Use natural=wood for woodland or surface=woodchips for an actual woodchip area." % way.id)
+            continue
         golf_type = way.tags.get("golf", None)
         waterway_type = way.tags.get("waterway", None)
         building_type = way.tags.get("building", None)
@@ -2421,13 +2597,6 @@ def addOSMToTGC(course_json, geopointcloud, osm_result, x_offset=0.0, y_offset=0
                 course_json[spline_tag].append(newFairway(nds, course_version))
             elif golf_type == "rough" and options_dict.get('rough', True):
                 course_json[spline_tag].append(newRough(nds, course_version))
-            elif golf_type == "mulch" and options_dict.get('mulch', True):
-                if len(nds) >= 4 and _point_distance_xz(nds[0], nds[-1]) < 0.001:
-                    dry_spline = newMulch(nds, course_version=course_version)
-                    course_json[spline_tag].append(dry_spline)
-                    dry_mulch_splines.append(dry_spline)
-                else:
-                    printf("Warning: skipping open golf=mulch way " + str(way.id))
             elif (golf_type == "water_hazard" or golf_type == "lateral_water_hazard") and options_dict.get('water', True):
                 course_json[spline_tag].append(newWaterHazard(nds, area=True, course_version=course_version))
             elif golf_type == "cartpath" and options_dict.get('cartpath', True):
@@ -2504,8 +2673,6 @@ def addOSMToTGC(course_json, geopointcloud, osm_result, x_offset=0.0, y_offset=0
                         str(way.id) +
                         " instead of fill-closing it."
                     )
-            elif natural_type == "wood" and options_dict.get('tree', True):
-                course_json[spline_tag].append(newForest(nds, course_version))
         elif highway_type is not None:
             highway_class = classifyHighwayForTGC(way.tags)
 
@@ -2538,6 +2705,8 @@ def addOSMToTGC(course_json, geopointcloud, osm_result, x_offset=0.0, y_offset=0
             last_print_time = time.time()
             printf(str(round(100.0*float(n) / num_rels, 2)) + "% through OpenStreetMap Relations")
 
+        if rel.id in dry_relation_ids:
+            continue
         golf_type = rel.tags.get("golf", None)
 
         if rel.id in water_multipolygon_relation_ids:
@@ -2851,6 +3020,9 @@ def addOSMToImage(ways, im, pc, image_scale, x_offset=0.0, y_offset=0.0, printf=
     water_feature_count = 0
     waterway_feature_count = 0
 
+    # Ground-cover areas are a base layer, below playing surfaces. Preserve
+    # the input order of all other ways and never mutate the OSM result.
+    ways = sorted(ways, key=lambda w: 0 if classifyDryAreaForTGC(w.tags) else 1)
     for way in ways:
         golf_type = way.tags.get("golf", None)
         natural_type = way.tags.get("natural", None)
@@ -2872,14 +3044,16 @@ def addOSMToImage(ways, im, pc, image_scale, x_offset=0.0, y_offset=0.0, printf=
                 color = (0, 0, 1.0)
                 render_mode = "fill"
                 water_feature_count += 1
-            elif golf_type == "mulch":
-                # Dry display color: NOT blue-water or red-exclusion pixels.
-                color = (0.75, 0.45, 0.30)
             elif golf_type == "fairway":
                 color = color
             else:
                 color = None
 
+        if classifyDryAreaForTGC(way.tags):
+            nodes = list(way.get_nodes(resolve_missing=False))
+            if len(nodes)<4 or nodes[0].id!=nodes[-1].id:
+                continue
+            color = (0.75, 0.45, 0.30)
         # Also paint standard OSM water features into the same bright-blue mask.
         if color is None:
             if natural_type == "water":

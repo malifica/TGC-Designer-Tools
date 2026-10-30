@@ -137,10 +137,12 @@ def surface_kind(tags):
     aliases = {"water_hazard": "water", "lateral_water_hazard": "water",
                "driving_range": "range", "heavy_rough": "heavyrough"}
     kind = aliases.get(golf, golf)
-    if kind in SURFACE_NAMES:
+    if kind in SURFACE_NAMES and kind != "mulch":
         return kind
-    if tags.get("surface") == "mulch":
-        return "mulch"
+    from OSMTGC import classifyDryAreaForTGC
+    dry_kind = classifyDryAreaForTGC(tags)
+    if dry_kind:
+        return dry_kind
     if tags.get("natural") == "water" or tags.get("waterway"):
         return "water"
     if tags.get("natural") == "wood" or tags.get("landuse") == "forest":

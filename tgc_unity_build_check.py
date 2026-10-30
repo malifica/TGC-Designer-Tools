@@ -44,7 +44,7 @@ def verify():
                 raise RuntimeError('RAW height scale/resampling mismatch')
         root=ET.parse(report['outputs']['osm']).getroot()
         tags=[{t.get('k'):t.get('v') for t in w.findall('tag')} for w in root.findall('way')]
-        dry=[t for t in tags if t.get('golf')=='mulch']
+        dry=[t for t in tags if t.get('surface')=='woodchips']
         wet=[t for t in tags if t.get('natural')=='water']
         if len(dry)!=1 or len(wet)!=1 or 'natural' in dry[0]:
             raise RuntimeError('Dry mulch/water tags were not kept separate')

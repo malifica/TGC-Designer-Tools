@@ -2,9 +2,22 @@
 
 Build PGA TOUR 2K25 courses from **LiDAR, GeoTIFF DEMs, OpenStreetMap, and Unity RAW/SVG data**. Import real-world terrain and course features, align the layout visually, choose regional vegetation, and export a `.course` file for Designer.
 
-**Current release: v0.5.0-2k25-beta8** · **Windows x64** · Maintained by **malifica**
+**Latest published release: v0.5.0-2k25-beta8** · **Windows x64** · Maintained by **malifica**
 
 [Download Beta 8](https://github.com/malifica/TGC-Designer-Tools/releases/tag/v0.5.0-2k25-beta8) · [Release notes](RELEASE_NOTES_v0.5.0-2k25-beta8.md) · [Change history](CHANGELOG.md)
+
+## Beta 8.1 source update — Windows publication pending
+
+**Current source:** `v0.5.0-2k25-beta8.1`. **Latest published download remains Beta 8** until the matching Windows EXE is supplied and published.
+
+- Separate **Import Woods / Woodchip Areas (Mulch)** and **Import Individual OSM Tree Points** controls. Both default OFF; woodland surfaces no longer enable tree-point planting.
+- Standard `natural=wood`, `landuse=forest`, and closed `surface=woodchips` areas generate dry native mulch, separate from water.
+- Complete woodland multipolygons preserve inner cutouts; incomplete or invalid geometry is reported rather than filled across missing members.
+- Unity/SVG export writes standard woodland or woodchip classifications and omits private `tgc:*` feature annotations.
+- Obsolete `golf=mulch` areas warn and are skipped instead of being silently reclassified.
+- Existing LiDAR-tree detection, weighted planting, regional themes, terrain, background registration, and local feature editing are retained.
+
+[Beta 8.1 release notes](RELEASE_NOTES_v0.5.0-2k25-beta8.1.md) · [Build and collect](BUILD_WINDOWS.md) · [Publication handoff](BETA8_1_PUBLICATION_HANDOFF.md)
 
 ## Beta 8 highlights
 

@@ -104,7 +104,7 @@ class IntegrationTests(unittest.TestCase):
             report,_,_=c.create_pair(r,s,p/'out',settings,printf=lambda *_:None)
             with rasterio.open(report['outputs']['dem']) as src:self.assertEqual(src.shape,(4,4))
             tags={t.get('k'):t.get('v') for t in ET.parse(report['outputs']['osm']).getroot().find('way').findall('tag')}
-            self.assertEqual(tags['golf'],'mulch');self.assertNotIn('natural',tags)
+            self.assertEqual(tags['surface'],'woodchips');self.assertNotIn('golf',tags);self.assertNotIn('natural',tags)
     def test_unity_dependencies_checked(self):
         tree=ast.parse(text('BUILD_TGC_2K25_BETA7.py')); found=set()
         for n in ast.walk(tree):

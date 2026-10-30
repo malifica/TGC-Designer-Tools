@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.5.0-2k25-beta8.1 — source prepared; binary publication pending
+
+- Separate **Import Woods / Woodchip Areas (Mulch)** and **Import Individual OSM Tree Points** controls. Both default OFF; woodland surfaces no longer enable tree-point planting.
+- Standard `natural=wood`, `landuse=forest`, and closed `surface=woodchips` areas generate dry native mulch, separate from water.
+- Complete woodland multipolygons preserve inner cutouts; incomplete or invalid geometry is reported rather than filled across missing members.
+- Unity/SVG export writes standard woodland or woodchip classifications and omits private `tgc:*` feature annotations.
+- Obsolete `golf=mulch` areas warn and are skipped instead of being silently reclassified.
+- Existing LiDAR-tree detection, weighted planting, regional themes, terrain, background registration, and local feature editing are retained.
+
 ## v0.5.0-2k25-beta8
 
 - **Unity RAW + Course SVG import.** Terrain size/height, byte-order and orientation controls, SVG feature mapping, preview, and paired DEM/local-OSM output integrated into the existing import workflow.

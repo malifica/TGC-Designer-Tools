@@ -32,8 +32,8 @@ import tgc_image_terrain
 from tgc_visualizer import drawCourseAsImage
 import OSMTGC
 
-TGC_GUI_VERSION = "v0.5.0-2k25-beta8"
-TGC_APP_TITLE = "TGC Designer Tools 2K25 - Beta 8"
+TGC_GUI_VERSION = "v0.5.0-2k25-beta8.1"
+TGC_APP_TITLE = "TGC Designer Tools 2K25 - Beta 8.1"
 
 AUTO_RED_MASK_BUFFER_MIN_M = 5.0
 AUTO_RED_MASK_BUFFER_MAX_M = 30.0
@@ -4071,8 +4071,11 @@ options_entries_dict["hole_name_filter"] = osm_hole_filter
 options_entries_dict["building"] = tk.BooleanVar()
 buildingCheck = Checkbutton(osmSubFrame, text="Import Buildings", variable=options_entries_dict["building"], fg=check_fg, bg=check_bg)
 buildingCheck.select()
-options_entries_dict["tree"] = tk.BooleanVar()
-treeCheck = Checkbutton(osmSubFrame, text="Import Mapped Woods/Trees", variable=options_entries_dict["tree"], fg=check_fg, bg=check_bg)
+# TGC_BETA8_STANDARD_OSM_WOODS_V1: independent standard area and point imports.
+options_entries_dict["wood"] = tk.BooleanVar(value=False)
+woodCheck = Checkbutton(osmSubFrame, text="Import Woods / Woodchip Areas (Mulch)", variable=options_entries_dict["wood"], fg=check_fg, bg=check_bg)
+options_entries_dict["tree"] = tk.BooleanVar(value=False)
+treeCheck = Checkbutton(osmSubFrame, text="Import Individual OSM Tree Points", variable=options_entries_dict["tree"], fg=check_fg, bg=check_bg)
 treeCheck.deselect()
 
 options_entries_dict["optimize_osm_spline_points"] = tk.BooleanVar()
@@ -4103,8 +4106,9 @@ holeCheck.grid(row=13, columnspan=2, sticky=W, padx=5)
 Label(osmSubFrame, text="Match Hole Names", fg=check_fg, bg=check_bg).grid(row=14, sticky=W, padx=5)
 osm_hole_filter.grid(row=14, column=1, padx=5)
 buildingCheck.grid(row=15, columnspan=2, sticky=W, padx=5)
-treeCheck.grid(row=16, columnspan=2, sticky=W, padx=5)
-optimizeOSMSplineCheck.grid(row=17, columnspan=3, sticky=W, padx=5, pady=(5,0))
+woodCheck.grid(row=16, columnspan=2, sticky=W, padx=5)
+treeCheck.grid(row=17, columnspan=2, sticky=W, padx=5)
+optimizeOSMSplineCheck.grid(row=18, columnspan=3, sticky=W, padx=5, pady=(5,0))
 osmbutton.grid(row=19, columnspan=3)
 
 useOSMCheck.pack(padx=10, pady=10)

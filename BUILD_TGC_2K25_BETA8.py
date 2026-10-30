@@ -11,9 +11,9 @@ import shutil
 import subprocess
 import sys
 
-APP_TITLE='TGC Designer Tools 2K25 - Beta 8'
-VERSION='v0.5.0-2k25-beta8'
-EXE_NAME='tgc_gui_2k25_beta8'
+APP_TITLE='TGC Designer Tools 2K25 - Beta 8.1'
+VERSION='v0.5.0-2k25-beta8.1'
+EXE_NAME='tgc_gui_2k25_beta8_1'
 CORE_VERIFIERS=(
     'VERIFY_BETA6_TREE_TOPOLOGY.py',
     'VERIFY_BETA6_MULTIPOLYGON_MULCH_V1.py',
@@ -104,7 +104,7 @@ def main():
         raise RuntimeError('Local alignment requires Shapely 2. Run this environment\'s python -m pip install "shapely>=2.0,<3".') from exc
     for name in ('tgc_gui.py','laszip/laszip-cli.exe','PyInstaller/rthook_rasterio.py','tree_profiles','tgc_beta8_entry.py'):
         if not (root/name).exists():raise RuntimeError('Required existing source/build asset is missing: '+str(root/name))
-    print('=== Build TGC Designer Tools 2K25 - Beta 8 ===',flush=True)
+    print('=== Build TGC Designer Tools 2K25 - Beta 8.1 ===',flush=True)
     print('EXE: '+EXE_NAME+'.exe | Window: '+APP_TITLE)
     for name in CORE_VERIFIERS:
         if not (root/name).is_file():raise RuntimeError('Missing previous-hotfix verifier: '+name)
@@ -132,7 +132,7 @@ def main():
     for name in ('VERIFY_BETA7_FRANCE_CAPABILITIES_FIX.py','VERIFY_BETA7_FRANCE_CRS.py','VERIFY_BETA7_FRANCE_POLAND_SERVICE.py'):
         if (root/name).is_file():run(py,root/name)
     stamp=datetime.datetime.now().strftime('%Y%m%d_%H%M%S_%f')
-    stage=root/'build'/('beta8_release_build_'+stamp)
+    stage=root/'build'/('beta8_1_release_build_'+stamp)
     for sub in ('work','dist','spec'):(stage/sub).mkdir(parents=True,exist_ok=True)
     if (root/'tgc_lidar_fast_native.dll').is_file():print('Bundling existing native LiDAR DLL unchanged.')
     else:print('NOTICE: no existing native LiDAR DLL; retained Python fallback remains in use.')
@@ -140,6 +140,7 @@ def main():
     before={p.name:digest(p) for p in tracked}
     # TGC_UNITY_V3_SOURCE_CHECKS: existing release checks remain in order.
     run(py, root/'VERIFY_TGC_UNITY_RAW_SVG_V1.py')
+    run(py, root/'VERIFY_BETA8_OSM_WOODS_V1.py')
     run(py, root/'VERIFY_TGC_HBCC_MULCH_V1.py')
     run(py, root/'VERIFY_BETA7_UNITY_INTEGRATION_V2.py')
     run(py, root/'VERIFY_BETA7_UNITY_DISPATCH_V4.py')
@@ -205,7 +206,7 @@ def main():
     checksum=digest(built)
     out=root/'dist';out.mkdir(exist_ok=True);target=out/built.name
     checksum_path=target.with_name(target.name+'.sha256.txt')
-    backup=root/'backups'/('beta8_exe_'+stamp);backup.mkdir(parents=True)
+    backup=root/'backups'/('beta8_1_exe_'+stamp);backup.mkdir(parents=True)
     for path in (target,checksum_path):
         if path.exists():shutil.copy2(path,backup/path.name)
     temp_checksum=stage/'dist'/(built.name+'.sha256.txt')

@@ -1,6 +1,33 @@
 # Windows Build Guide
 
-## Current source: Beta 8
+## Current source: Beta 8.1
+
+The repository is prepared for `v0.5.0-2k25-beta8.1`. The published Beta 8 download remains unchanged until a tested Beta 8.1 Windows build and matching source are supplied and published.
+
+Use the existing Windows checkout and virtual environment; do not reset local changes:
+
+```bat
+cd /d C:\TGC-Designer-Tools
+.venv_local_osm\Scripts\python.exe BUILD_TGC_2K25_BETA8_1.py
+```
+
+Expected output: `dist\tgc_gui_2k25_beta8_1.exe`  
+Expected window title: `TGC Designer Tools 2K25 - Beta 8.1`
+
+`BUILD_TGC_2K25_BETA8_1.py` delegates to the retained Beta 8 builder, now carrying the Beta 8.1 identity. Existing dependencies, checks, packaging, and staged-executable safeguards are retained, with the standard-OSM woods verifier added. The historical builder filename remains a compatible entry point.
+
+After a successful tested build, collect the existing executable and source without rebuilding:
+
+```bat
+.venv_local_osm\Scripts\python.exe COLLECT_BETA8_1_FOR_PUBLICATION.py --root C:\TGC-Designer-Tools
+```
+
+The collector creates a timestamped ZIP under `_release_upload` with `UPLOAD_MANIFEST.json`. It does not publish, rename, rebuild, or modify the EXE. Collection records byte hashes; the publisher must additionally verify that source and frozen modules match.
+
+Use the existing-build publication procedure described in `BETA8_1_PUBLICATION_HANDOFF.md`. Once a verified Beta 8.1 EXE exists, publish those exact bytes; do not silently rebuild, substitute the Beta 8 EXE, or relabel it. Historical instructions below are retained for reference, not as current build commands.
+
+
+## Historical Beta 8 publication
 
 The Beta 8 release contains the existing Windows executable supplied with its matching source. The source includes `BUILD_TGC_2K25_BETA8.bat` and `BUILD_TGC_2K25_BETA8.py` for development. The older commands below describe previous release environments.
 

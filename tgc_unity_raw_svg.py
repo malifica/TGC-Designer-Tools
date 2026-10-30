@@ -259,9 +259,9 @@ def write_osm(path,features,width_m,length_m,epsg=32631,center_e=500000.,center_
         for x,y in coords:ET.SubElement(e,'nd',{'ref':str(node(float(x),float(y)))})
         for k,v in tags.items():ET.SubElement(e,'tag',{'k':k,'v':str(v)})
         way_elements.append(e);return id
-    tagmap={'fairway':{'golf':'fairway'},'green':{'golf':'green'},'tee':{'golf':'tee'},'bunker':{'golf':'bunker'},'rough':{'golf':'rough'},'water':{'natural':'water','golf':'water_hazard'},'cartpath':{'golf':'cartpath','highway':'path','golf_cart':'yes','area':'yes'},'mulch':{'golf':'mulch','surface':'mulch','area':'yes'},'wood':{'natural':'wood'},'unclassified':{'tgc:svg_unclassified':'yes'}}
+    tagmap={'fairway':{'golf':'fairway'},'green':{'golf':'green'},'tee':{'golf':'tee'},'bunker':{'golf':'bunker'},'rough':{'golf':'rough'},'water':{'natural':'water','golf':'water_hazard'},'cartpath':{'golf':'cartpath','highway':'path','golf_cart':'yes','area':'yes'},'mulch':{'surface':'woodchips','area':'yes'},'wood':{'natural':'wood'},'unclassified':{'note':'Unclassified SVG outline; assign a real feature before mapping'}}
     for feature in features:
-        k=feature['kind'];g=feature['geometry'];tags={'source':'local Unity/SVG conversion; NOT surveyed/geographic','tgc:synthetic_georeference':'yes','tgc:svg_id':feature['id'],'tgc:svg_layer':feature['group'],'tgc:svg_fill':feature['fill']}
+        k=feature['kind'];g=feature['geometry'];tags={'source':'local Unity/SVG conversion; NOT surveyed/geographic'}
         if k=='hole':
             tags.update({'golf':'hole','ref':str(feature['hole']),'par':str(feature['par'])});way(g.coords,tags);counts[k]+=1;continue
         tags.update(tagmap[k])
@@ -321,7 +321,7 @@ def create_pair(raw_path,svg_path,out_dir,settings,printf=print):
     if any(f['kind']=='wood' for f in features):
         report['limitations'].append('Trees are SVG woodland areas, not measured tree points or LiDAR vegetation.')
     if any(f['kind']=='mulch' for f in features):
-        report['limitations'].append('Mulch uses dry golf=mulch geometry; the integrated Beta 7 importer handles it separately from water.')
+        report['limitations'].append('Woodchip areas use surface=woodchips; woodland uses natural=wood. Enable Import Woods / Woodchip Areas (Mulch). Neither creates OSM tree points.')
     if osm_info['ignored_sub_cm2_parts']:report['limitations'].append('Ignored '+str(len(osm_info['ignored_sub_cm2_parts']))+' topology slivers smaller than one square centimetre in OSM; original filled geometry is retained in the metric reference JSON.')
     (out/(prefix+'_ImportSettings.json')).write_text(json.dumps(s,indent=2),encoding='utf-8')
     (out/(prefix+'_ConversionReport.json')).write_text(json.dumps(report,indent=2),encoding='utf-8')

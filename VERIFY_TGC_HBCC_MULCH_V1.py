@@ -30,7 +30,7 @@ class PC:
 def source():return {'surfaceSplines2':[],'holes3':[],'surfaces2':[{'name':'Other0'},{'name':'Other1'},{'name':'Old','blend':.7,'maskWater':True}], 'height':[{'keep':'unchanged'}], 'placedObjects4':{'keep':3}}
 def run_import(way,options=None):
     course=source();r=types.SimpleNamespace(ways=[way],relations=[],nodes=way.nodes)
-    o.addOSMToTGC(course,PC(),r,options_dict=options or {'tree':False,'water':False,'optimize_osm_spline_points':False},course_version=25,resolve_missing_nodes=False,printf=lambda *_:None)
+    o.addOSMToTGC(course,PC(),r,options_dict=options or {'tree':False,'wood':True,'water':False,'optimize_osm_spline_points':False},course_version=25,resolve_missing_nodes=False,printf=lambda *_:None)
     return course
 class NativeTests(unittest.TestCase):
     def setUp(self):o.spline_configuration=None;o.last_imported_water_splines=[]
@@ -41,27 +41,27 @@ class NativeTests(unittest.TestCase):
     def test_no_water_registration(self):o.newMulch(self.pts(),25);self.assertEqual(o.last_imported_water_splines,[])
     def test_water_unchanged(self):
         s=o.newWaterHazard(self.pts(),True,25);self.assertEqual(s['surface'],10);self.assertEqual(o.last_imported_water_splines,[s])
-    def test_forest_unchanged(self):self.assertEqual(o.newForest(self.pts(),25)['surface'],7)
+    def test_forest_native_mulch(self):self.assertEqual(o.newForest(self.pts(),25)['surface'],10)
     def test_dry_import_independent_of_water_trees(self):
-        c=run_import(Way({'golf':'mulch','surface':'mulch','area':'yes'}))
+        c=run_import(Way({'surface':'woodchips','area':'yes'}))
         self.assertEqual(len(c['surfaceSplines2']),1);self.assertEqual(c['surfaceSplines2'][0]['surface'],10)
         self.assertEqual(c[lock.DRY_LOCK_KEY]['importedCount'],1);self.assertNotIn(lock.LOCK_KEY,c)
         self.assertEqual(c['surfaces2'][2]['name'],'Mulch05');self.assertEqual(c['height'],source()['height'])
         self.assertEqual(c['placedObjects4'],source()['placedObjects4'])
-    def test_open_rejected(self):self.assertEqual(run_import(Way({'golf':'mulch'},[(10,10),(30,10),(30,30)]))['surfaceSplines2'],[])
+    def test_open_rejected(self):self.assertEqual(run_import(Way({'surface':'woodchips'},[(10,10),(30,10),(30,30)]))['surfaceSplines2'],[])
     def test_optional_disabled(self):
-        self.assertEqual(run_import(Way({'golf':'mulch'}),{'mulch':False,'tree':False})['surfaceSplines2'],[])
-    def test_area_recognition(self):self.assertEqual(masks._feature_mode_and_width_m(Way({'golf':'mulch'})),('area',0.))
-    def test_not_water(self):self.assertFalse(masks._is_water_feature(Way({'golf':'mulch','surface':'mulch'})))
+        self.assertEqual(run_import(Way({'surface':'woodchips'}),{'wood':False,'tree':False})['surfaceSplines2'],[])
+    def test_area_recognition(self):self.assertEqual(masks._feature_mode_and_width_m(Way({'surface':'woodchips'})),('area',0.))
+    def test_not_water(self):self.assertFalse(masks._is_water_feature(Way({'surface':'woodchips'})))
     def test_preview_not_blue(self):
-        im=o.addOSMToImage([Way({'golf':'mulch'})],np.zeros((100,100,3),dtype=np.float32),PC(),1,printf=lambda *_:None)
+        im=o.addOSMToImage([Way({'surface':'woodchips'})],np.zeros((100,100,3),dtype=np.float32),PC(),1,printf=lambda *_:None)
         self.assertTrue(np.allclose(im[20,20],[.75,.45,.30]));self.assertFalse(np.allclose(im[20,20],[0,0,1]))
     def test_mask_keeps_mulch(self):
         im=np.ones((100,100,3),dtype=np.float32)*.5
-        out=masks.apply_auto_red_mask([Way({'golf':'mulch'})],im,PC(),1,buffer_m=0,printf=lambda *_:None)
+        out=masks.apply_auto_red_mask([Way({'surface':'woodchips'})],im,PC(),1,buffer_m=0,printf=lambda *_:None)
         self.assertFalse(np.allclose(out[20,20],[1,0,0]));self.assertTrue(np.allclose(out[90,90],[1,0,0]))
     def test_dry_material_serialized_gate(self):
-        c=run_import(Way({'golf':'mulch'}));c['surfaces2'][2]['name']='ChangedByTheme'
+        c=run_import(Way({'surface':'woodchips'}));c['surfaces2'][2]['name']='ChangedByTheme'
         meta={'surfaces2':copy.deepcopy(source()['surfaces2'])}
         a,b=lock.finalize_serialized(json.dumps(c),json.dumps(meta),25);aa,bb=json.loads(a),json.loads(b)
         self.assertEqual(aa['surfaces2'][2]['name'],'Mulch05');self.assertEqual(bb['surfaces2'][2]['name'],'Mulch05')
@@ -86,7 +86,7 @@ class SVGTests(unittest.TestCase):
         fs,_=self.c.read_svg(self.svg(),100,100,{'Trees|#faa0be':'mulch'})
         p=self.p/'a.osm';self.c.write_osm(p,fs,100,100,32631,500000,5000000)
         r=ET.parse(p).getroot();t={x.get('k'):x.get('v') for x in r.find('way').findall('tag')}
-        self.assertEqual(t['golf'],'mulch');self.assertEqual(t['surface'],'mulch');self.assertEqual(t['area'],'yes');self.assertNotIn('natural',t)
+        self.assertNotIn('golf',t);self.assertEqual(t['surface'],'woodchips');self.assertEqual(t['area'],'yes');self.assertNotIn('natural',t)
     def test_inner_cutout_partition(self):
         fs,_=self.c.read_svg(self.svg(path='M10 10h40v40h-40z M20 20h20v20h-20z'),100,100,{'Trees|#faa0be':'mulch'})
         p=self.p/'a.osm';report=self.c.write_osm(p,fs,100,100,32631,500000,5000000)

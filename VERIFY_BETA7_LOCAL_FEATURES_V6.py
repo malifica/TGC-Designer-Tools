@@ -57,11 +57,12 @@ def fixture(kind='fairway', inner_kind='green', fragmented=False):
     # Unselected shared-node direct surface must remain at its original coordinates.
     way(200,[(50,50),(45,50),(45,45),(50,50)],{'golf':'rough'})
     way(201,[(210,30),(225,45),(230,70)],{'golf':'cartpath'})
-    way(202,rect(210,100,12,12),{'golf':'mulch','surface':'mulch'})
+    way(202,rect(210,100,12,12),{'surface':'woodchips'})
     rel=ET.SubElement(root,'relation',id='303',version='9')
     for wid,role in [(100,'outer')]+([(103,'outer')] if fragmented else [])+[(101,'inner'),(102,'inner')]:
         ET.SubElement(rel,'member',type='way',ref=str(wid),role=role)
-    for k,v in {'type':'multipolygon','golf':kind}.items():ET.SubElement(rel,'tag',k=k,v=v)
+    relation_tags = {'type':'multipolygon', **({'surface':'woodchips'} if kind=='mulch' else {'golf':kind})}
+    for k,v in relation_tags.items():ET.SubElement(rel,'tag',k=k,v=v)
     raw=ET.tostring(root,encoding='utf-8',xml_declaration=True)
     return raw,grid,p,data
 
@@ -79,7 +80,8 @@ class GeometryTests(unittest.TestCase):
         raw,g,p,_=fixture();root=ET.fromstring(raw);way=root.find("way[@id='202']")
         for kind in topology.SURFACE_NAMES:
             for t in list(way.findall('tag')):way.remove(t)
-            ET.SubElement(way,'tag',k='golf',v=kind)
+            tags = {'surface':'woodchips'} if kind=='mulch' else {'golf':kind}
+            for k,v in tags.items():ET.SubElement(way,'tag',k=k,v=v)
             rr=ET.tostring(root)
             feature=next(f for f in self.targets(rr,g,p) if f.get('owned_way_ids')==[202])
             self.assertTrue(topology.manual_eligibility(feature)[0],kind)
@@ -156,7 +158,7 @@ class GeometryTests(unittest.TestCase):
         self.assertTrue({'101','rough-ring:303:outer:0','rough-ring:303:inner:0','rough-way:200'}<=ids)
     def test_aliases(self):
         for tags,expected in [({'natural':'water'},'water'),({'golf':'water_hazard'},'water'),
-                              ({'surface':'mulch'},'mulch'),({'natural':'wood'},'wood'),
+                              ({'surface':'woodchips'},'mulch'),({'natural':'wood'},'wood'),
                               ({'highway':'footway'},'path'),({'building':'yes'},'building')]:
             self.assertEqual(topology.surface_kind(tags),expected)
     def test_original_tags_and_relation_roles_survive(self):

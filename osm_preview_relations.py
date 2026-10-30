@@ -16,10 +16,12 @@ def _tags(obj):
 def _style(obj):
     t = _tags(obj)
     golf = t.get('golf')
+    from OSMTGC import classifyDryAreaForTGC
+    if classifyDryAreaForTGC(t):
+        return 'mulch', (.75, .45, .30)
     if golf in ('water_hazard', 'lateral_water_hazard') or t.get('natural') == 'water' or t.get('waterway') is not None:
         return 'water', (0., 0., 1.)
     return {
-        'mulch': ('mulch', (.75, .45, .30)),  # TGC_HBCC_DRY_MULCH_V1
         'rough': ('rough', (0., .55, .15)),
         'heavyrough': ('rough', (0., .55, .15)),
         'fairway': ('fairway', (0., .75, .20)),
