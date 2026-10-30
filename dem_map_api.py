@@ -547,6 +547,11 @@ def _load_dem(dem_files, target_sample_scale=None, printf=print):
             datasets.append(ds)
 
         src_crs = datasets[0].crs
+        # TGC_UNITY_RAW_SVG_V1: only our tagged authored rasters bypass ground filtering.
+        unity_markers = [ds.tags().get("TGC_UNITY_RAW_SVG") == "TGC_UNITY_RAW_SVG_V1" for ds in datasets]
+        if any(unity_markers) and not all(unity_markers):
+            raise RuntimeError("Do not mosaic a synthetic Unity terrain with unrelated geographic DEMs.")
+        authored_unity_surface = all(unity_markers)
 
         source_epsg, horizontal_epsg = _get_dem_epsg_info(src_crs)
         if source_epsg is not None:
@@ -803,12 +808,16 @@ def _load_dem(dem_files, target_sample_scale=None, printf=print):
                     transform, dem.shape[1], dem.shape[0]
                 )
 
-                dem = _reduce_dem_lidar_style(
-                    dem,
-                    native_scale=native_scale,
-                    target_scale=requested_scale,
-                    printf=printf,
-                )
+                if authored_unity_surface:
+                    from tgc_unity_raw_svg import resample_authored_dem
+                    dem = resample_authored_dem(dem, native_scale, requested_scale, printf=printf)
+                else:
+                    dem = _reduce_dem_lidar_style(
+                        dem,
+                        native_scale=native_scale,
+                        target_scale=requested_scale,
+                        printf=printf,
+                    )
 
                 transform = rasterio.transform.from_origin(
                     left,
@@ -822,7 +831,7 @@ def _load_dem(dem_files, target_sample_scale=None, printf=print):
                 image_scale = requested_scale
 
                 printf(
-                    "DEM terrain grid after LiDAR-style reduction: " +
+                    ("DEM terrain grid after Unity surface resampling: " if authored_unity_surface else "DEM terrain grid after LiDAR-style reduction: ") +
                     str(dem.shape[1]) + " x " + str(dem.shape[0]) +
                     " at " + str(requested_scale) + " m"
                 )

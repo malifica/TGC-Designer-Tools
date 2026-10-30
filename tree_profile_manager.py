@@ -1,7 +1,7 @@
 """Beta 6 real-life tree profile support.
 
 Custom profiles are JSON files stored in ./tree_profiles. They describe a
-real-world regional style: tree prefab mix/scale plus the profile's surface
+real-world course style: tree prefab mix/scale plus the donor course's surface
 and terrain material selections.
 """
 
@@ -223,7 +223,7 @@ def profile_load_errors():
 
 
 def apply_visual_material_preset(target_json, choice, printf=print, metadata=False):
-    """Apply a selected regional profile's Designer theme and materials."""
+    """Apply a selected regional profile's donor Designer theme and materials."""
     profile = get_profile(choice)
     if profile is None:
         return target_json
@@ -277,7 +277,7 @@ def apply_visual_material_preset(target_json, choice, printf=print, metadata=Fal
             names.insert(0, "Designer theme=" + str(preset["theme"]))
         source = preset.get("source_course", profile.get("_source", "profile"))
         printf(
-            "Regional theme preset applied: "
+            "Regional theme preset applied from "
             + str(source)
             + (": " + ", ".join(names) if names else "")
         )
@@ -351,7 +351,7 @@ def scale_for_asset(
         defaults["z"],
     )
 
-    # Heroic is the profile-calibrated regional baseline.
+    # Heroic is the donor-calibrated regional-profile baseline.
     # Epic = Heroic x1.20; Mythic = Heroic x1.80.
     if tree_scale_mode == MYTHIC_SCALE_MODE:
         sx *= MYTHIC_SCALE_MULTIPLIER

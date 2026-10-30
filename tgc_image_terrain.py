@@ -90,6 +90,89 @@ def _sample_bilinear_2d(arr, row, col):
     )
 
 
+# TGC_BETA7_BACKGROUND_GEOREF_V1
+# These helpers alter background coordinates only. The detailed point cloud,
+# OSM transform, infill sampling, masks and terrain brush settings are unchanged.
+def _align_coarse_background_origin(background_pc, image_scale, background_scale):
+    """Register infill's coarse samples to their actual fine-raster centers.
+
+    infill_image_scipy samples fine indices 0, ratio, 2*ratio, ... .
+    addFromImage instead adds half a COARSE pixel to the shared cell edge.
+    Correct that difference in projected metres after addFromImage has retained
+    the offsets of any missing leading rows/columns. Do not move the detail pc.
+    """
+    fine = float(image_scale)
+    coarse = float(background_scale)
+    if not (math.isfinite(fine) and fine > 0.0 and
+            math.isfinite(coarse) and coarse > 0.0):
+        raise ValueError("Background alignment requires positive finite sample spacings")
+    east, north = map(float, background_pc.origin)
+    if not (math.isfinite(east) and math.isfinite(north)):
+        raise ValueError("Background point cloud has no finite projected origin")
+    correction = 0.5 * (fine - coarse)
+    background_pc.origin = (east + correction, north + correction)
+    return correction
+
+
+def _outside_landscape_raster_frame(arr, pc, image_scale, master_grid=None):
+    """Return source SW cell edge/resolution for an already-rebased detail pc.
+
+    Production supplies the authoritative CFS master grid. Legacy direct callers
+    without that grid can recover the same edge from the first finite source
+    row/column and the detailed cloud's projected origin. Invalid/stale frames
+    are rejected rather than silently guessing an offset.
+    """
+    scale = float(image_scale)
+    if not math.isfinite(scale) or scale <= 0.0:
+        raise ValueError("Outer landscape requires a positive finite image_scale")
+    rows, cols = arr.shape
+    valid = np.isfinite(arr)
+    rr = np.flatnonzero(np.any(valid, axis=1))
+    cc = np.flatnonzero(np.any(valid, axis=0))
+    if not len(rr) or not len(cc):
+        raise ValueError("Outer landscape has no finite source samples")
+    east, north = map(float, pc.origin)
+    if not (math.isfinite(east) and math.isfinite(north)):
+        raise ValueError("Outer landscape has no finite detailed-cloud origin")
+    first_x = (float(cc[0]) + 0.5) * scale
+    first_y = (float(rr[0]) + 0.5) * scale
+    if master_grid is None:
+        min_x, min_y = east - first_x, north - first_y
+    else:
+        if not isinstance(master_grid, dict):
+            raise ValueError("Outer landscape master_grid must be a dictionary")
+        for key in ("min_x", "min_y", "resolution", "rows", "cols"):
+            if key not in master_grid:
+                raise ValueError("Outer landscape master grid is missing " + key)
+        if (float(master_grid["rows"]) != rows or
+                float(master_grid["cols"]) != cols):
+            raise ValueError("Outer landscape master-grid dimensions do not match heightmap")
+        grid_scale = float(master_grid["resolution"])
+        if not math.isfinite(grid_scale) or not math.isclose(
+                grid_scale, scale, rel_tol=1e-9, abs_tol=1e-9):
+            raise ValueError("Outer landscape master-grid spacing does not match image_scale")
+        if master_grid.get("row_order", "south_up_internal") != "south_up_internal":
+            raise ValueError("Outer landscape requires the internal south-up raster")
+        if master_grid.get("origin_semantics", "southwest_cell_edge") != "southwest_cell_edge":
+            raise ValueError("Outer landscape requires a southwest cell-edge origin")
+        if master_grid.get("xy_units", "meters") != "meters":
+            raise ValueError("Outer landscape master-grid XY coordinates must be metres")
+        min_x = float(master_grid["min_x"])
+        min_y = float(master_grid["min_y"])
+        if not (math.isfinite(min_x) and math.isfinite(min_y)):
+            raise ValueError("Outer landscape master-grid origin must be finite")
+        # Projection -> lat/lon -> projection can differ by tiny round-off.
+        tolerance = max(0.001, scale * 1e-6)
+        if abs((east - min_x) - first_x) > tolerance or abs((north - min_y) - first_y) > tolerance:
+            raise ValueError("Outer landscape detailed-cloud origin does not match the source raster")
+    expected_w = float(cc[-1] - cc[0]) * scale
+    expected_h = float(rr[-1] - rr[0]) * scale
+    if not (math.isclose(float(pc.width), expected_w, abs_tol=0.001, rel_tol=1e-9) and
+            math.isclose(float(pc.height), expected_h, abs_tol=0.001, rel_tol=1e-9)):
+        raise ValueError("Outer landscape detailed-cloud extent does not match source valid cells")
+    return min_x, min_y, scale
+
+
 def generate_coarse_outside_landscape(
     heightmap,
     pc,
@@ -97,6 +180,7 @@ def generate_coarse_outside_landscape(
     resolution_m=48.0,
     world_half_extent_m=1000.0,
     printf=print,
+    master_grid=None,
 ):
     """
     Build a low-resolution purple terrainHeight layer ONLY outside the
@@ -143,6 +227,10 @@ def generate_coarse_outside_landscape(
     half_w = 0.5 * float(pc.width)
     half_h = 0.5 * float(pc.height)
 
+    source_min_x, source_min_y, source_scale = _outside_landscape_raster_frame(
+        arr, pc, image_scale, master_grid=master_grid,
+    )
+
     # Leave centers that are inside the detailed rectangle out of terrainHeight.
     # The soft outside stamps can overlap the edge slightly, and the detailed
     # sculpt layer is written separately above it.
@@ -168,11 +256,14 @@ def generate_coarse_outside_landscape(
             edge_x = min(max(float(x), -half_w), half_w)
             edge_z = min(max(float(z), -half_h), half_h)
 
-            enu_x = edge_x + half_w
-            enu_y = edge_z + half_h
-
-            col = enu_x / float(image_scale) - 0.5
-            row = enu_y / float(image_scale) - 0.5
+            # The detail cloud starts at the first FINITE pixel center, not
+            # the master raster edge. Recover projected coordinates first,
+            # then invert the source cell-edge affine to fractional indices.
+            sample_east, sample_north = pc.enuToProj(
+                edge_x + half_w, edge_z + half_h,
+            )
+            col = (sample_east - source_min_x) / source_scale - 0.5
+            row = (sample_north - source_min_y) / source_scale - 0.5
 
             value = _sample_bilinear_2d(smoothed, row, col)
 
@@ -595,13 +686,83 @@ def _tree_scales_from_lidar(trees, tree_scale_mode=None):
     ]
 
 
-def _get_profile_trees(
+# TGC_BETA8_THEME_WEIGHTED_PLANTING_V1
+def _population_percentile(values, value):
+    if not values or len(values) <= 1:
+        return 0.5
+    ordered = np.sort(np.asarray(values, dtype=np.float64))
+    rank = int(np.searchsorted(ordered, float(value), side='left'))
+    return max(0.0, min(1.0, float(rank) / float(len(ordered) - 1)))
+
+def _get_profile_trees_theme_weighted(
     profile,
     trees,
     course_version=-1,
     tree_source="lidar",
     tree_scale_mode=None,
 ):
+    if course_version < 23 or not trees:
+        return []
+
+    radii = [float(t[2]) for t in trees]
+    heights = [float(t[3]) for t in trees]
+    groups = {}
+    has_skinny = any(a.get("shape") == "skinny" for a in profile.get("assets", []))
+
+    for tree in trees:
+        easting, northing, r, h = tree
+        shape = "normal"
+        if tree_source != "osm" and has_skinny and r > 0.001 and h / r >= 2.5:
+            shape = "skinny"
+
+        asset = tree_profile_manager.choose_asset(profile, shape=shape, source_kind=tree_source)
+        if asset is None:
+            continue
+
+        path = asset["path"]
+        if path not in groups:
+            group = get_placed_object(course_version)
+            group['Key']['path'] = path
+            groups[path] = group
+
+        if tree_source == "osm":
+            radius_percentile = 0.5
+            height_percentile = 0.5
+        else:
+            radius_percentile = _population_percentile(radii, r)
+            height_percentile = _population_percentile(heights, h)
+
+        sx, sy, sz = tree_profile_manager.scale_for_asset(
+            profile,
+            asset,
+            radius_percentile=radius_percentile,
+            height_percentile=height_percentile,
+            tree_scale_mode=tree_scale_mode,
+        )
+
+        item = get_object_item(easting, northing, random.randrange(0, 359))
+        item['scale']['x'] = sx
+        item['scale']['y'] = sy
+        item['scale']['z'] = sz
+        groups[path]['Value']['items'].append(item)
+
+    return [g for g in groups.values() if len(g['Value']['items']) > 0]
+
+
+def _get_profile_trees(
+    profile,
+    trees,
+    course_version=-1,
+    tree_source="lidar",
+    tree_scale_mode=None,
+    custom_theme_weighted_planting=False,
+):
+    if custom_theme_weighted_planting:
+        return _get_profile_trees_theme_weighted(
+            profile, trees, course_version=course_version,
+            tree_source=tree_source, tree_scale_mode=tree_scale_mode,
+        )
+
     if course_version < 23 or not trees:
         return []
 
@@ -637,7 +798,7 @@ def _get_profile_trees(
 
 
 def get_trees(theme, tree_variety, trees, course_version=-1,
-              tree_profile=None, tree_scale_mode=None, tree_source="lidar"):
+              tree_profile=None, tree_scale_mode=None, tree_source="lidar", custom_theme_weighted_planting=False):
     if not trees:
         return []
 
@@ -650,6 +811,7 @@ def get_trees(theme, tree_variety, trees, course_version=-1,
                 course_version=course_version,
                 tree_source=tree_source,
                 tree_scale_mode=tree_scale_mode,
+                custom_theme_weighted_planting=custom_theme_weighted_planting,
             )
 
     if course_version >= 23:
@@ -713,7 +875,7 @@ def get_trees(theme, tree_variety, trees, course_version=-1,
     return output
 
 
-def get_lidar_trees(theme, tree_variety, lidar_trees, pc, mask, mask_pc, image_scale, course_version=-1, tree_profile=None, tree_scale_mode=None, exclude_red_mask=True, printf=print):
+def get_lidar_trees(theme, tree_variety, lidar_trees, pc, mask, mask_pc, image_scale, course_version=-1, tree_profile=None, tree_scale_mode=None, exclude_red_mask=True, printf=print, custom_theme_weighted_planting=False):
     # TGC_BETA7_TREE_CONTROLS_V1. Only red-pixel exclusion is optional.
     # Keep the authoritative source-grid bounds and all projection math unchanged.
     trees = []
@@ -754,6 +916,7 @@ def get_lidar_trees(theme, tree_variety, lidar_trees, pc, mask, mask_pc, image_s
         tree_profile=tree_profile,
         tree_scale_mode=tree_scale_mode,
         tree_source="lidar",
+        custom_theme_weighted_planting=custom_theme_weighted_planting,
     )
 
 # Set various constants that we need
@@ -903,6 +1066,15 @@ def generate_course(course_json, heightmap_dir_path, options_dict={}, printf=pri
     if background is not None:
         background_pc = GeoPointCloud()
         background_pc.addFromImage(background, background_scale, master_grid_origin, read_dictionary['projection'])
+        # TGC_BETA7_BACKGROUND_GEOREF_V1: retain infill's fine-center origin.
+        background_origin_correction = _align_coarse_background_origin(
+            background_pc, image_scale, background_scale,
+        )
+        printf(
+            "Coarse background alignment: source pixel centers retained; "
+            "origin correction=" + str(round(background_origin_correction, 6))
+            + " m E/N (detail terrain and OSM unchanged)."
+        )
         num_points = len(background_pc.points())
         last_print_time = time.time()
 
@@ -1048,6 +1220,7 @@ def generate_course(course_json, heightmap_dir_path, options_dict={}, printf=pri
             resolution_m=outside_background_resolution,
             world_half_extent_m=1000.0,
             printf=printf,
+            master_grid=master_grid,
         )
 
     # Adaptive terrain is designed around 2K25 high-resolution bunker behavior.
@@ -1189,6 +1362,7 @@ def generate_course(course_json, heightmap_dir_path, options_dict={}, printf=pri
                 course_version,
                 tree_profile=options_dict.get('tree_profile'),
                 tree_scale_mode=options_dict.get('tree_scale_mode'),
+                custom_theme_weighted_planting=bool(options_dict.get('custom_theme_weighted_planting', False)),
                 tree_source="osm",
             ):
                 course_json[obj_tag].append(o)
@@ -1297,6 +1471,7 @@ def generate_course(course_json, heightmap_dir_path, options_dict={}, printf=pri
                 course_version,
                 tree_profile=options_dict.get('tree_profile'),
                 tree_scale_mode=options_dict.get('tree_scale_mode'),
+                custom_theme_weighted_planting=bool(options_dict.get('custom_theme_weighted_planting', False)),
                 exclude_red_mask=bool(options_dict.get('exclude_lidar_trees_red_mask', True)),
                 printf=printf,
             )
@@ -1379,6 +1554,7 @@ def generate_flat_course(course_json, xml_data, options_dict={}, printf=print, c
                 course_version,
                 tree_profile=options_dict.get('tree_profile'),
                 tree_scale_mode=options_dict.get('tree_scale_mode'),
+                custom_theme_weighted_planting=bool(options_dict.get('custom_theme_weighted_planting', False)),
                 tree_source="osm",
             ):
             course_json[obj_tag].append(o)

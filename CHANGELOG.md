@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.5.0-2k25-beta8
+
+- **Unity RAW + Course SVG import.** Terrain size/height, byte-order and orientation controls, SVG feature mapping, preview, and paired DEM/local-OSM output integrated into the existing import workflow.
+- **Bunker and tee alignment audit.** Review terrain-based local offset suggestions and confidence indicators before approving corrections.
+- **Course-wide micro-alignment.** Select from the map or list; drag, nudge, or enter precise offsets; move selected groups and undo changes. Manual editing includes greens, fairways, rough, water, mulch, paths and other supported features.
+- **Linked or independent boundaries.** Move a feature with its matching inner cutout, or adjust them separately. Shared-boundary handling preserves unselected neighbors and validates the resulting geometry.
+- **Refreshed interface.** Consistent controls, synchronized map/list feature filters, and a resizable/maximizable alignment workspace.
+- **Desert Southwest theme.** A desert tree/cactus palette with regional playing-surface and terrain-material selections.
+- **Custom Theme Weighted Planting.** ON restores the earlier custom-theme height/width behavior; OFF retains current LiDAR-derived sizing. Heroic, Epic and Mythic remain separate size choices. The option defaults OFF; it does not add a new tree-count rule or change detection/filtering.
+- **Background-terrain registration improvements.** Corrected source-grid sampling keeps background terrain registered to the detailed terrain.
+- **Dry-mulch support.** Import mapped mulch separately from water, with corresponding preview and mask handling.
+
 ## v0.5.0-2k25-beta7
 
 - **Much faster LiDAR and DEM preview/mask processing.** Reworked coordinate-transform handling prepares and reuses the appropriate transformation instead of constructing it for every OSM node. Affected OSM-heavy stages that previously took many minutes can now complete in seconds; gains depend on the project and hardware.

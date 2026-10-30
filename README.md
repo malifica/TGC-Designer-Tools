@@ -1,21 +1,22 @@
 # TGC Designer Tools — PGA TOUR 2K25
 
-Build PGA TOUR 2K25 courses from **LiDAR, GeoTIFF DEMs, and OpenStreetMap**. Import real-world terrain and course features, align the layout visually, choose regional vegetation, and export a `.course` file for Designer.
+Build PGA TOUR 2K25 courses from **LiDAR, GeoTIFF DEMs, OpenStreetMap, and Unity RAW/SVG data**. Import real-world terrain and course features, align the layout visually, choose regional vegetation, and export a `.course` file for Designer.
 
-**Current release: v0.5.0-2k25-beta7** · **Windows x64** · Maintained by **malifica**
+**Current release: v0.5.0-2k25-beta8** · **Windows x64** · Maintained by **malifica**
 
-[Download Beta 7](https://github.com/malifica/TGC-Designer-Tools/releases/tag/v0.5.0-2k25-beta7) · [Release notes](RELEASE_NOTES_v0.5.0-2k25-beta7.md) · [Change history](CHANGELOG.md)
+[Download Beta 8](https://github.com/malifica/TGC-Designer-Tools/releases/tag/v0.5.0-2k25-beta8) · [Release notes](RELEASE_NOTES_v0.5.0-2k25-beta8.md) · [Change history](CHANGELOG.md)
 
-## Beta 7 highlights
+## Beta 8 highlights
 
-- **Much faster LiDAR and DEM preview/mask processing** through reworked coordinate-transform handling. Transformations are prepared once and reused instead of being rebuilt for every OSM node.
-- **Visible output progress**, named processing phases, elapsed time, and file-write activity instead of a long, unexplained “Writing files to disk” pause.
-- **Improved CFS alignment consistency** between the displayed OSM overlay, rebuilt mask, and imported course features.
-- **Hillshade opens by default**, with brightness and contrast sliders, reset controls, and zoom up to **30×**.
-- **Current-project folder selection** for CFS and mask rebuilding, preventing a previous project's heightmap folder from becoming the default.
-- **Independent LiDAR tree controls** for OSM playing surfaces, red-mask exclusions, and the existing 50 m course-proximity filter.
-- **Malformed OSM relations produce notices and are skipped**; an unresolved relation no longer disables all LiDAR trees.
-- Retains the established terrain generation, regional profiles, tree sizing, water/mulch handling, multipolygon support, and Custom/Unmatched OSM workflow.
+- **Unity RAW + Course SVG import.** Terrain size/height, byte-order and orientation controls, SVG feature mapping, preview, and paired DEM/local-OSM output integrated into the existing import workflow.
+- **Bunker and tee alignment audit.** Review terrain-based local offset suggestions and confidence indicators before approving corrections.
+- **Course-wide micro-alignment.** Select from the map or list; drag, nudge, or enter precise offsets; move selected groups and undo changes. Manual editing includes greens, fairways, rough, water, mulch, paths and other supported features.
+- **Linked or independent boundaries.** Move a feature with its matching inner cutout, or adjust them separately. Shared-boundary handling preserves unselected neighbors and validates the resulting geometry.
+- **Refreshed interface.** Consistent controls, synchronized map/list feature filters, and a resizable/maximizable alignment workspace.
+- **Desert Southwest theme.** A desert tree/cactus palette with regional playing-surface and terrain-material selections.
+- **Custom Theme Weighted Planting.** ON restores the earlier custom-theme height/width behavior; OFF retains current LiDAR-derived sizing. Heroic, Epic and Mythic remain separate size choices. The option defaults OFF; it does not add a new tree-count rule or change detection/filtering.
+- **Background-terrain registration improvements.** Corrected source-grid sampling keeps background terrain registered to the detailed terrain.
+- **Dry-mulch support.** Import mapped mulch separately from water, with corresponding preview and mask handling.
 
 ## Faster LiDAR and DEM processing
 
@@ -106,19 +107,17 @@ Regional profiles provide weighted tree palettes and coordinated playing-surface
 6. Choose terrain brushes, regional/theme options, and tree-filter settings.
 7. Import terrain and features, export the course, and inspect it in Designer.
 
-The main application creates the course. **Course Finisher, Course Architect, and Adaptive Terrain Converter remain separate tools** and are not updated by this release.
-
 ## Windows downloads and source build
 
-The Windows release contains `tgc_gui_2k25_beta7.exe`. Its title is **TGC Designer Tools 2K25 - Beta 7**. Download the Windows ZIP for the executable, editable profiles, spline configuration, and documentation. SHA-256 files accompany both the standalone EXE and ZIP.
+The Windows release contains `tgc_gui_2k25_beta8.exe`. Its title is **TGC Designer Tools 2K25 - Beta 8**. Download the Windows ZIP for the executable, editable profiles, spline configuration, and documentation. SHA-256 files accompany both the standalone EXE and ZIP.
 
 For an existing source checkout with its dependencies installed, run:
 
 ```bat
-BUILD_TGC_2K25_BETA7.bat
+BUILD_TGC_2K25_BETA8.bat
 ```
 
-The executable is written to `dist\tgc_gui_2k25_beta7.exe`. Beta 6 remains available separately. Environment details are in [BUILD_WINDOWS.md](BUILD_WINDOWS.md).
+The executable is written to `dist\tgc_gui_2k25_beta8.exe`. Beta 7 remains available separately. Environment details are in [BUILD_WINDOWS.md](BUILD_WINDOWS.md).
 
 ## Credits and license
 

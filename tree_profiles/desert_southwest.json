@@ -1,0 +1,462 @@
+{
+  "id": "desert_southwest",
+  "display_name": "Desert Southwest",
+  "enabled": true,
+  "description": "Desert Southwest: source-weighted Afghan trees, saguaro cactus and mesquite, with smaller mixed-tree accents. Native desert environment and source-selected surfaces.",
+  "reference_courses": [
+    "reference_01"
+  ],
+  "reference_course_stats": [
+    {
+      "file": "reference_01",
+      "all_speedtree_tree_count": 697,
+      "natural_reference_tree_count": 674,
+      "excluded_vertical_massing_count": 23,
+      "natural_fraction": 0.967001,
+      "calibration_eligible": true,
+      "warnings": []
+    }
+  ],
+  "eligible_reference_courses": [
+    "reference_01"
+  ],
+  "all_speedtree_tree_count": 697,
+  "natural_reference_tree_count": 674,
+  "eligible_natural_tree_count": 674,
+  "excluded_vertical_massing_count": 23,
+  "terrain_alignment_tolerance_m": 0.75,
+  "minimum_natural_trees_per_reference": 25,
+  "calibration_status": "reviewed",
+  "review_asset_count": 0,
+  "weighting_method": "single_eligible_course_frequency",
+  "scale_defaults": {
+    "x": {
+      "p10": 1.0,
+      "p50": 1.023209,
+      "p90": 1.511879
+    },
+    "y": {
+      "p10": 1.0,
+      "p50": 1.023209,
+      "p90": 1.511879
+    },
+    "z": {
+      "p10": 1.0,
+      "p50": 1.023209,
+      "p90": 1.511879
+    }
+  },
+  "visual_material_preset": {
+    "source_course": "Desert Southwest regional profile",
+    "theme": 2,
+    "surfaces2": [
+      {
+        "name": "Sand30_TPC_Louisiana",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "Concrete02",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "Green38_PaynesValley",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "Fringe38_PaynesValley",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "Fairway38_PaynesValley",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "LightRough38_PaynesValley",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "HeavyRough17",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      }
+    ],
+    "secondarySurfaces": [
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      }
+    ],
+    "cartPathTexture": 0,
+    "teeTexture": 0
+  },
+  "assets": [
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Saguaro_Cactus/Prefabs/Saguaro_Cactus_Desktop_103",
+      "shape": "skinny",
+      "weight": 0.25370919881305637,
+      "count": 171,
+      "course_counts": [
+        171
+      ],
+      "uniform_scale": {
+        "p10": 1.0,
+        "p50": 1.0,
+        "p90": 1.177755
+      },
+      "shape_basis": "columnar cactus pool"
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Afghan/Prefabs/AfghanTree1A",
+      "shape": "normal",
+      "weight": 0.20474777448071216,
+      "count": 138,
+      "course_counts": [
+        138
+      ],
+      "uniform_scale": {
+        "p10": 1.0,
+        "p50": 1.0,
+        "p90": 1.0
+      },
+      "shape_basis": "broad-tree pool; source family/native profile classification"
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Afghan/Prefabs/AfghanTree2",
+      "shape": "normal",
+      "weight": 0.1795252225519288,
+      "count": 121,
+      "course_counts": [
+        121
+      ],
+      "uniform_scale": {
+        "p10": 1.31217,
+        "p50": 1.31217,
+        "p90": 1.63471
+      },
+      "shape_basis": "broad-tree pool; source family/native profile classification"
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Afghan/Prefabs/AfghanTree8A",
+      "shape": "normal",
+      "weight": 0.09495548961424333,
+      "count": 64,
+      "course_counts": [
+        64
+      ],
+      "uniform_scale": {
+        "p10": 1.023209,
+        "p50": 1.023209,
+        "p90": 1.023209
+      },
+      "shape_basis": "broad-tree pool; source family/native profile classification"
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Saguaro_Cactus/Prefabs/Saguaro_Cactus_Desktop_104",
+      "shape": "skinny",
+      "weight": 0.09495548961424333,
+      "count": 64,
+      "course_counts": [
+        64
+      ],
+      "uniform_scale": {
+        "p10": 1.345923,
+        "p50": 1.511879,
+        "p90": 1.511879
+      },
+      "shape_basis": "columnar cactus pool"
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Saguaro_Cactus/Prefabs/Saguaro_Cactus_Desktop_104A",
+      "shape": "skinny",
+      "weight": 0.050445103857566766,
+      "count": 34,
+      "course_counts": [
+        34
+      ],
+      "uniform_scale": {
+        "p10": 1.22796,
+        "p50": 1.22796,
+        "p90": 1.22796
+      },
+      "shape_basis": "columnar cactus pool"
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Saguaro_Cactus/Prefabs/Saguaro_Cactus_Desktop_102",
+      "shape": "skinny",
+      "weight": 0.03412462908011869,
+      "count": 23,
+      "course_counts": [
+        23
+      ],
+      "uniform_scale": {
+        "p10": 1.57122,
+        "p50": 1.843289,
+        "p90": 1.843289
+      },
+      "shape_basis": "columnar cactus pool"
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Afghan/Prefabs/AfghanTree6A",
+      "shape": "normal",
+      "weight": 0.026706231454005934,
+      "count": 18,
+      "course_counts": [
+        18
+      ],
+      "uniform_scale": {
+        "p10": 1.0,
+        "p50": 1.0,
+        "p90": 1.0
+      },
+      "shape_basis": "broad-tree pool; source family/native profile classification"
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Afghan/Prefabs/AfghanTree8B",
+      "shape": "normal",
+      "weight": 0.02373887240356083,
+      "count": 16,
+      "course_counts": [
+        16
+      ],
+      "uniform_scale": {
+        "p10": 0.869275,
+        "p50": 0.883033,
+        "p90": 0.883033
+      },
+      "shape_basis": "broad-tree pool; source family/native profile classification"
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/TropicalTrees/Prefabs/JungleTree5A",
+      "shape": "normal",
+      "weight": 0.016320474777448073,
+      "count": 11,
+      "course_counts": [
+        11
+      ],
+      "uniform_scale": {
+        "p10": 0.563972,
+        "p50": 0.563972,
+        "p90": 0.563972
+      },
+      "shape_basis": "broad-tree pool; source family/native profile classification"
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Honey_Mesquite/Prefabs/Honey_Mesquite_Desktop_03",
+      "shape": "normal",
+      "weight": 0.00741839762611276,
+      "count": 5,
+      "course_counts": [
+        5
+      ],
+      "uniform_scale": {
+        "p10": 1.179169,
+        "p50": 1.179169,
+        "p90": 1.179169
+      },
+      "shape_basis": "broad-tree pool; source family/native profile classification"
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Saguaro_Cactus/Prefabs/Saguaro_Cactus_Desktop_101",
+      "shape": "skinny",
+      "weight": 0.004451038575667656,
+      "count": 3,
+      "course_counts": [
+        3
+      ],
+      "uniform_scale": {
+        "p10": 1.29684,
+        "p50": 1.445013,
+        "p90": 1.445013
+      },
+      "shape_basis": "columnar cactus pool"
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Southern_Live_Oak/Prefabs/SouthernLiveOak_Desktop_Moss11",
+      "shape": "normal",
+      "weight": 0.004451038575667656,
+      "count": 3,
+      "course_counts": [
+        3
+      ],
+      "uniform_scale": {
+        "p10": 0.529122,
+        "p50": 0.529122,
+        "p90": 0.713615
+      },
+      "shape_basis": "broad-tree pool; source family/native profile classification"
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree8/Trees/Linden_European/Prefabs/Linden_European_002",
+      "shape": "normal",
+      "weight": 0.002967359050445104,
+      "count": 2,
+      "course_counts": [
+        2
+      ],
+      "uniform_scale": {
+        "p10": 0.540881,
+        "p50": 0.704406,
+        "p90": 0.867931
+      },
+      "shape_basis": "broad-tree pool; source family/native profile classification"
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Saguaro_Cactus/Prefabs/Saguaro_Cactus_Desktop_101A",
+      "shape": "skinny",
+      "weight": 0.001483679525222552,
+      "count": 1,
+      "course_counts": [
+        1
+      ],
+      "uniform_scale": {
+        "p10": 1.146411,
+        "p50": 1.146411,
+        "p90": 1.146411
+      },
+      "shape_basis": "columnar cactus pool"
+    }
+  ],
+  "excluded_vertical_massing_assets": [
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/TropicalTrees/Prefabs/JungleTree5A",
+      "count": 5
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Southern_Live_Oak/Prefabs/SouthernLiveOak_Desktop_Moss11",
+      "count": 4
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Afghan/Prefabs/AfghanTree1A",
+      "count": 3
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Afghan/Prefabs/AfghanTree6A",
+      "count": 3
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Afghan/Prefabs/AfghanTree8A",
+      "count": 3
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Afghan/Prefabs/AfghanTree2",
+      "count": 2
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Afghan/Prefabs/AfghanTree8B",
+      "count": 1
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/White_Oak/Prefabs/White_Oak_Desktop_Sawgrass_01",
+      "count": 1
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Saguaro_Cactus/Prefabs/Saguaro_Cactus_Desktop_102",
+      "count": 1
+    }
+  ],
+  "tree_generation": "profile",
+  "source_sha256": "2167a31d466ed8941d31984ef5f6a4a545549ebd76f15199e9926ae46e87087f",
+  "calibration_notes": [
+    "674 retained placed-tree/cactus samples from 697 eligible tree-path instances; 23 finite-Y positions excluded by the existing 0.75 m terrain-alignment replay filter.",
+    "Finite-Y classification uses approximate brush replay, not an in-game terrain measurement. Terrain-snapped positions are retained.",
+    "Only Assets/Foliage/SpeedTree*/Trees/ prefabs are included. Bushes, small plants, rocks, buildings and object clusters are not converted to canopy trees.",
+    "Six observed saguaro variants use the skinny pool; the nine other observed tree variants use the normal pool. Paths not in the global built-in palette are valid direct paths observed in the source course.",
+    "Per-asset weights are retained-sample frequencies. Pool proportions depend on detected LiDAR shape; OSM-only selection uses the whole weighted palette.",
+    "Stored scale statistics are reference data. Existing LiDAR-driven Standard/Heroic/Epic/Mythic sizing is NOT changed by this profile.",
+    "The profile supplies the existing regional material/theme subset only. Backdrop, terrain, native density controls and placed course objects are not copied."
+  ]
+}

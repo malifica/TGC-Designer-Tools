@@ -19,6 +19,7 @@ def _style(obj):
     if golf in ('water_hazard', 'lateral_water_hazard') or t.get('natural') == 'water' or t.get('waterway') is not None:
         return 'water', (0., 0., 1.)
     return {
+        'mulch': ('mulch', (.75, .45, .30)),  # TGC_HBCC_DRY_MULCH_V1
         'rough': ('rough', (0., .55, .15)),
         'heavyrough': ('rough', (0., .55, .15)),
         'fairway': ('fairway', (0., .75, .20)),
@@ -133,7 +134,7 @@ def render(osm_result, im, pc, image_scale, x_offset=0., y_offset=0.,
                 mask = _rasterize_multipolygon(outers, inners, image.shape[:2])
                 image[mask != 0, :3] = color
 
-    paint(('rough', 'fairway'))
+    paint(('rough', 'mulch', 'fairway'))
     image = way_renderer(independent, image, pc, scale, x_offset=x_offset,
                          y_offset=y_offset, printf=printf)
     paint(('tee', 'green', 'bunker'))

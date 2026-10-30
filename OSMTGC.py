@@ -1935,6 +1935,23 @@ def newWalkingPath(points, area=False, course_version=-1, optimize_points=True):
         wp["isFilled"] = False
     return wp
 
+def newMulch(points, course_version=-1):
+    """TGC_HBCC_DRY_MULCH_V1: dry filled mulch; never register as water."""
+    config = _spline_section("mulch") or _spline_section("placeholder")
+    spline = newSpline(
+        points, pathWidth=0.01, handleLength=0.2, tightSplines=True,
+        secondarySurface="", secondaryWidth=0.0, spline_json=config,
+        course_version=course_version,
+    )
+    spline["surface"] = 10 if course_version == 25 else _configured_primary_surface(
+        config, "mulch", course_version
+    )
+    spline["state"] = 3
+    spline["isClosed"] = True
+    spline["isFilled"] = True
+    return spline
+
+
 def newWaterHazard(points, area=True, course_version=-1):
     global spline_configuration
 
@@ -2198,6 +2215,9 @@ def addOSMToTGC(course_json, geopointcloud, osm_result, x_offset=0.0, y_offset=0
     global last_imported_water_splines
     last_imported_water_splines = []
     course_json.pop('_tgcOsmWaterMulchV1', None)
+    # TGC_HBCC_DRY_MULCH_V1: keep dry areas separate from water bookkeeping.
+    course_json.pop('_tgcOsmDryMulchV1', None)
+    dry_mulch_splines = []
 
     if course_version not in tgc_definitions.version_tags:
         print("invalid version")
@@ -2401,6 +2421,13 @@ def addOSMToTGC(course_json, geopointcloud, osm_result, x_offset=0.0, y_offset=0
                 course_json[spline_tag].append(newFairway(nds, course_version))
             elif golf_type == "rough" and options_dict.get('rough', True):
                 course_json[spline_tag].append(newRough(nds, course_version))
+            elif golf_type == "mulch" and options_dict.get('mulch', True):
+                if len(nds) >= 4 and _point_distance_xz(nds[0], nds[-1]) < 0.001:
+                    dry_spline = newMulch(nds, course_version=course_version)
+                    course_json[spline_tag].append(dry_spline)
+                    dry_mulch_splines.append(dry_spline)
+                else:
+                    printf("Warning: skipping open golf=mulch way " + str(way.id))
             elif (golf_type == "water_hazard" or golf_type == "lateral_water_hazard") and options_dict.get('water', True):
                 course_json[spline_tag].append(newWaterHazard(nds, area=True, course_version=course_version))
             elif golf_type == "cartpath" and options_dict.get('cartpath', True):
@@ -2744,6 +2771,8 @@ def addOSMToTGC(course_json, geopointcloud, osm_result, x_offset=0.0, y_offset=0
     # Lock ONLY actual imported water, not every custom-surface spline.
     from osm_water_mulch_lock import mark_import
     mark_import(course_json, last_imported_water_splines, course_version, printf)
+    from osm_water_mulch_lock import mark_dry_import
+    mark_dry_import(course_json, dry_mulch_splines, course_version, printf)
 
     # Return the tree list for later use
     return trees
@@ -2843,6 +2872,9 @@ def addOSMToImage(ways, im, pc, image_scale, x_offset=0.0, y_offset=0.0, printf=
                 color = (0, 0, 1.0)
                 render_mode = "fill"
                 water_feature_count += 1
+            elif golf_type == "mulch":
+                # Dry display color: NOT blue-water or red-exclusion pixels.
+                color = (0.75, 0.45, 0.30)
             elif golf_type == "fairway":
                 color = color
             else:

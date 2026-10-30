@@ -1,8 +1,8 @@
 # Windows Build Guide
 
-## Current release: Beta 7
+## Current source: Beta 8
 
-Use `BUILD_TGC_2K25_BETA7.bat` in the source checkout after setting up the existing `.venv_local_osm` environment. Output: `dist\tgc_gui_2k25_beta7.exe`. The builder stages the executable and replaces an earlier Beta 7 only after a successful build. Beta 6 is not overwritten. The older commands below describe previous release environments.
+The Beta 8 release contains the existing Windows executable supplied with its matching source. The source includes `BUILD_TGC_2K25_BETA8.bat` and `BUILD_TGC_2K25_BETA8.py` for development. The older commands below describe previous release environments.
 
 ## Approved Beta 6 LiDAR hotfix
 

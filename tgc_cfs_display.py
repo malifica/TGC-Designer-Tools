@@ -110,6 +110,7 @@ def reset_tone(viewer):
 def add_display_controls(viewer, frame):
     import tkinter as tk
     from tkinter import ttk
+    from tgc_cfs_widgets import action_button
     viewer.brightness_var = tk.DoubleVar(master=viewer.window, value=1.)
     viewer.contrast_var = tk.DoubleVar(master=viewer.window, value=1.)
     viewer.brightness_text = tk.StringVar(master=viewer.window, value='100%')
@@ -126,7 +127,7 @@ def add_display_controls(viewer, frame):
         command=lambda *_: tone_changed(viewer)))
     viewer.contrast_slider.pack(side=tk.LEFT, padx=(6,4))
     ttk.Label(frame, textvariable=viewer.contrast_text, width=5).pack(side=tk.LEFT)
-    viewer.reset_tone_button = viewer._register(ttk.Button(
+    viewer.reset_tone_button = viewer._register(action_button(
         frame, text='Reset Brightness / Contrast', command=lambda: reset_tone(viewer)))
     viewer.reset_tone_button.pack(side=tk.LEFT, padx=10)
     ttk.Label(frame, text='Display only; source terrain is unchanged').pack(side=tk.LEFT)

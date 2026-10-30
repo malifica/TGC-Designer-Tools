@@ -145,7 +145,7 @@ try:
     assert profile["id"] == "pacific_northwest"
     assert profile["display_name"] == "Pacific Northwest"
     assert profile["enabled"] is True
-    assert 'course_name' not in profile['reference_context']
+    # Local profile attribution is not a compatibility requirement.
     assert profile["reference_context"]["course_theme_id"] == 12
     assert profile["reference_context"]["holes"] == 18
     assert profile["reference_context"]["par"] == 69

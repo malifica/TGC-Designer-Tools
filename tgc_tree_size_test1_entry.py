@@ -55,7 +55,24 @@ def verify_frozen_tree_sizes():
         assert terrain.get_trees(12,True,[],25,tree_scale_mode=mode)==[]
     print('LIDAR TREE SIZE TEST 1 PASSED: %d shipped profile/mode combinations; extreme scales, actual-value spacing, preset ratios and single-tree defaults verified' % checked)
 
-if '--verify-lidar-trees' in sys.argv:
+# TGC_UNITY_V4_ENTRY: preserve the complete Local Alignment/tree/GUI dispatch.
+
+# TGC_BETA7_SHARED_CFS_UI_V1_DISPATCH
+if '--verify-ui-style' in sys.argv:
+    from tgc_ui_style import verify as verify_shared_ui
+    verify_shared_ui()
+    sys.exit(0)
+
+if '--verify-unity-import' in sys.argv:
+    from tgc_unity_build_check import verify
+    verify()
+    sys.exit(0)
+
+if '--verify-local-alignment' in sys.argv:
+    from tgc_local_alignment import self_check
+    result = self_check()
+    print('LOCAL TEE/BUNKER ALIGNMENT CHECK PASSED: ' + str(result))
+elif '--verify-lidar-trees' in sys.argv:
     verify_frozen_tree_sizes()
 else:
     import tgc_gui

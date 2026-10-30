@@ -8,6 +8,7 @@ import copy
 import json
 
 LOCK_KEY = '_tgcOsmWaterMulchV1'
+DRY_LOCK_KEY = '_tgcOsmDryMulchV1'  # TGC_HBCC_DRY_MULCH_V1
 MULCH_SURFACE = 10
 MULCH_MATERIAL_SLOT = 2
 MULCH_MATERIAL = 'Mulch05'
@@ -44,9 +45,29 @@ def mark_import(course, imported_splines, course_version, printf=print):
     printf('OSM water material LOCK: %d spline(s), native category 10, surfaces2[2]=Mulch05; applied again at final export.' % count)
 
 
+def mark_dry_import(course, imported_splines, course_version, printf=print):
+    """Lock only the material for explicitly imported DRY mulch.
+
+    No water planes, masks, depths, or water bookkeeping are changed.
+    The native material table is shared with water placeholder category 10.
+    """
+    if course_version != 25:
+        return
+    identities = {id(s) for s in imported_splines}
+    count = sum(id(s) in identities for s in course.get('surfaceSplines2', ()))
+    if not count:
+        course.pop(DRY_LOCK_KEY, None)
+        return
+    course[DRY_LOCK_KEY] = {'surface': MULCH_SURFACE,
+                           'materialSlot': MULCH_MATERIAL_SLOT,
+                           'material': MULCH_MATERIAL, 'importedCount': count}
+    enforce(course)
+    printf('Dry OSM mulch: %d spline(s), category 10, surfaces2[2]=Mulch05; no water masks.' % count)
+
+
 def enforce(course, metadata=None):
-    lock = course.get(LOCK_KEY)
-    if not isinstance(lock, dict) or lock.get('material') != MULCH_MATERIAL:
+    locks = (course.get(LOCK_KEY), course.get(DRY_LOCK_KEY))
+    if not any(isinstance(lock, dict) and lock.get('material') == MULCH_MATERIAL for lock in locks):
         return False
     if not any(s.get('surface') == MULCH_SURFACE for s in course.get('surfaceSplines2', ())):
         return False
@@ -67,7 +88,7 @@ def finalize_serialized(desc_text, metadata_text, course_version):
     to water imported by this fix; arbitrary existing category-10 shapes are
     not reclassified as water.
     """
-    if course_version != 25 or ('"' + LOCK_KEY + '"') not in desc_text:
+    if course_version != 25 or not any(('"' + key + '"') in desc_text for key in (LOCK_KEY, DRY_LOCK_KEY)):
         return desc_text, metadata_text
     course = json.loads(desc_text)
     meta = json.loads(metadata_text)

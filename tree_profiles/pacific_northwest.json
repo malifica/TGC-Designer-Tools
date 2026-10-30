@@ -2,8 +2,17 @@
   "id": "pacific_northwest",
   "display_name": "Pacific Northwest",
   "enabled": true,
-  "description": "Conifer-dominant Pacific Northwest tree-selection palette with a regional playing-surface and terrain-material preset. Tree transform scales come from source LiDAR measurements, not this palette.",
-  "reference_context": {"course_theme_id": 12, "par": 69, "holes": 18, "regional_character": "Pacific Northwest conifer landscape"},
+  "description": "Calibrated from the finished Mount Rainier 1931 (L) donor course. A conifer-dominant Pacific Northwest visual palette using Alaska cedar, generic conifer, and Scots pine assets as Designer analogs, with the donor's Swiss-rooted playing-surface and terrain-material mix.",
+  "reference_courses": [
+    "Rainier 18 holes - Finished.course"
+  ],
+  "reference_context": {
+    "course_name": "Mount Rainier 1931 (L)",
+    "course_theme_id": 12,
+    "par": 69,
+    "holes": 18,
+    "regional_character": "Mount Rainier / Pacific Northwest conifer landscape"
+  },
   "all_speedtree_tree_count": 66,
   "natural_reference_tree_count": 45,
   "excluded_vertical_massing_count": 21,
@@ -15,46 +24,243 @@
   "calibration_status": "eligible",
   "weighting_method": "single_reference_observed_counts",
   "scale_defaults": {
-    "x": {"p10": 0.7396, "p50": 1.392, "p90": 1.9072},
-    "y": {"p10": 0.7396, "p50": 1.392, "p90": 1.9072},
-    "z": {"p10": 0.7396, "p50": 1.392, "p90": 1.9072}
+    "x": {
+      "p10": 0.7396,
+      "p50": 1.392,
+      "p90": 1.9072
+    },
+    "y": {
+      "p10": 0.7396,
+      "p50": 1.392,
+      "p90": 1.9072
+    },
+    "z": {
+      "p10": 0.7396,
+      "p50": 1.392,
+      "p90": 1.9072
+    }
   },
+  "calibration_notes": [
+    "Forty-five terrain-snapped or terrain-aligned tree placements were retained from sixty-six SpeedTree tree objects.",
+    "Twenty-one vertically offset scenery/massing placements were excluded at the established 0.75 m terrain-alignment tolerance.",
+    "The excluded population includes all thirteen Oak_White_901 placements, so deciduous scenery massing does not define the LiDAR/OSM tree palette.",
+    "The retained donor population is entirely conifer-oriented; asset names are treated as Designer visual analogs rather than literal botanical claims.",
+    "Uniform X/Y/Z scale distributions from the donor are retained for each prefab."
+  ],
   "assets": [
-    {"path": "Assets/Foliage/SpeedTree/Trees/Generic_Conifer/Prefabs/Generic_Conifer_Desktop06", "shape": "skinny", "weight": 14, "count": 14, "uniform_scale": {"p10": 1.0744, "p50": 1.7265, "p90": 2.1367}},
-    {"path": "Assets/Foliage/SpeedTree/Trees/Scots_Pine/Prefabs/ScotsPine_Desktop06", "shape": "normal", "weight": 9, "count": 9, "uniform_scale": {"p10": 1.2178, "p50": 1.432, "p90": 1.7268}},
-    {"path": "Assets/Foliage/SpeedTree/Trees/Alaska_Cedar/Prefabs/AlaskaCedar_Desktop_Bare01", "shape": "skinny", "weight": 9, "count": 9, "uniform_scale": {"p10": 0.5176, "p50": 0.821, "p90": 1.3442}},
-    {"path": "Assets/Foliage/SpeedTree/Trees/Scots_Pine/Prefabs/ScotsPine_Desktop24", "shape": "normal", "weight": 5, "count": 5, "uniform_scale": {"p10": 0.874, "p50": 1.15, "p90": 1.4572}},
-    {"path": "Assets/Foliage/SpeedTree/Trees/Generic_Conifer/Prefabs/Generic_Conifer_Desktop05", "shape": "skinny", "weight": 4, "count": 4, "uniform_scale": {"p10": 1.4118, "p50": 1.4675, "p90": 1.9901}},
-    {"path": "Assets/Foliage/SpeedTree/Trees/Scots_Pine/Prefabs/ScotsPine_Desktop21", "shape": "normal", "weight": 3, "count": 3, "uniform_scale": {"p10": 0.548, "p50": 0.728, "p90": 0.9456}},
-    {"path": "Assets/Foliage/SpeedTree/Trees/Alaska_Cedar/Prefabs/AlaskaCedar_Desktop_Bare02", "shape": "skinny", "weight": 1, "count": 1, "uniform_scale": {"p10": 1.0, "p50": 1.0, "p90": 1.0}}
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Generic_Conifer/Prefabs/Generic_Conifer_Desktop06",
+      "shape": "skinny",
+      "weight": 14,
+      "count": 14,
+      "uniform_scale": {
+        "p10": 1.0744,
+        "p50": 1.7265,
+        "p90": 2.1367
+      }
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Scots_Pine/Prefabs/ScotsPine_Desktop06",
+      "shape": "normal",
+      "weight": 9,
+      "count": 9,
+      "uniform_scale": {
+        "p10": 1.2178,
+        "p50": 1.432,
+        "p90": 1.7268
+      }
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Alaska_Cedar/Prefabs/AlaskaCedar_Desktop_Bare01",
+      "shape": "skinny",
+      "weight": 9,
+      "count": 9,
+      "uniform_scale": {
+        "p10": 0.5176,
+        "p50": 0.821,
+        "p90": 1.3442
+      }
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Scots_Pine/Prefabs/ScotsPine_Desktop24",
+      "shape": "normal",
+      "weight": 5,
+      "count": 5,
+      "uniform_scale": {
+        "p10": 0.874,
+        "p50": 1.15,
+        "p90": 1.4572
+      }
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Generic_Conifer/Prefabs/Generic_Conifer_Desktop05",
+      "shape": "skinny",
+      "weight": 4,
+      "count": 4,
+      "uniform_scale": {
+        "p10": 1.4118,
+        "p50": 1.4675,
+        "p90": 1.9901
+      }
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Scots_Pine/Prefabs/ScotsPine_Desktop21",
+      "shape": "normal",
+      "weight": 3,
+      "count": 3,
+      "uniform_scale": {
+        "p10": 0.548,
+        "p50": 0.728,
+        "p90": 0.9456
+      }
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Alaska_Cedar/Prefabs/AlaskaCedar_Desktop_Bare02",
+      "shape": "skinny",
+      "weight": 1,
+      "count": 1,
+      "uniform_scale": {
+        "p10": 1.0,
+        "p50": 1.0,
+        "p90": 1.0
+      }
+    }
   ],
   "visual_material_preset": {
+    "source_course": "Rainier 18 holes - Finished.course",
     "surfaces2": [
-      {"blend": 0.2, "maskWater": true},
-      {"blend": 1.0, "maskWater": true},
-      {"blend": 0.2, "maskWater": true},
-      {"name": "PineStraw03", "blend": 0.2, "maskWater": true},
-      {"blend": 0.2, "maskWater": true},
-      {"blend": 0.2, "maskWater": true},
-      {"name": "Green19_TPC_Boston", "blend": 0.2, "maskWater": true},
-      {"name": "Fringe19_TPC_Boston", "blend": 0.2, "maskWater": true},
-      {"name": "Fairway58_Nordic", "blend": 0.2, "maskWater": true},
-      {"name": "LightRough58_Nordic", "blend": 0.2, "maskWater": true},
-      {"name": "HeavyRough61_ShinnecockHills", "blend": 0.2, "maskWater": true},
-      {"name": "Splat0_Rustic", "blend": 0.2, "maskWater": true},
-      {"name": "Splat1_Swiss", "blend": 0.2, "maskWater": true},
-      {"name": "Splat2_TPC_Boston", "blend": 0.2, "maskWater": true},
-      {"name": "Splat3_Harvest", "blend": 0.2, "maskWater": true}
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 1.0,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "PineStraw03",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "Green19_TPC_Boston",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "Fringe19_TPC_Boston",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "Fairway58_Nordic",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "LightRough58_Nordic",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "HeavyRough61_ShinnecockHills",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "Splat0_Rustic",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "Splat1_Swiss",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "Splat2_TPC_Boston",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "Splat3_Harvest",
+        "blend": 0.2,
+        "maskWater": true
+      }
     ],
     "secondarySurfaces": [
-      {"blend": 0.2, "maskWater": true}, {"blend": 0.2, "maskWater": true},
-      {"blend": 0.2, "maskWater": true}, {"blend": 0.2, "maskWater": true},
-      {"blend": 0.2, "maskWater": true}, {"blend": 0.2, "maskWater": true},
-      {"blend": 0.2, "maskWater": true}, {"blend": 0.2, "maskWater": true},
-      {"blend": 0.2, "maskWater": true}, {"blend": 0.2, "maskWater": true},
-      {"blend": 0.2, "maskWater": true}, {"blend": 0.2, "maskWater": true},
-      {"blend": 0.2, "maskWater": true}, {"blend": 0.2, "maskWater": true},
-      {"blend": 0.2, "maskWater": true}
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      }
     ],
     "cartPathTexture": 0,
     "teeTexture": 0,

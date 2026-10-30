@@ -8,7 +8,7 @@ import OSMTGC
 # TGC_BETA6_OSM_CARTPATH_ROAD_SPLIT_V4
 
 _AREA_GOLF_TYPES = {
-    "green", "tee", "fairway", "bunker", "rough", "driving_range",
+    "green", "tee", "fairway", "bunker", "rough", "driving_range", "mulch",  # TGC_HBCC_DRY_MULCH_V1
     "water_hazard", "lateral_water_hazard", "clubhouse",
 }
 

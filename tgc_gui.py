@@ -32,8 +32,8 @@ import tgc_image_terrain
 from tgc_visualizer import drawCourseAsImage
 import OSMTGC
 
-TGC_GUI_VERSION = "v0.5.0-2k25-beta7"
-TGC_APP_TITLE = "TGC Designer Tools 2K25 - Beta 7"
+TGC_GUI_VERSION = "v0.5.0-2k25-beta8"
+TGC_APP_TITLE = "TGC Designer Tools 2K25 - Beta 8"
 
 AUTO_RED_MASK_BUFFER_MIN_M = 5.0
 AUTO_RED_MASK_BUFFER_MAX_M = 30.0
@@ -263,6 +263,7 @@ def drawScorecard(course_json):
     if inner_frame is not None:
         inner_frame.destroy()
     inner_frame = Frame(scorecard, bg="darkgrey")
+    inner_frame._tgc_keep_child_colors = True  # Tee colors convey meaning.
     inner_frame.pack(padx=10, pady=5, fill=tk.BOTH, expand=True)
 
     # Par and yardages values from holes
@@ -314,7 +315,7 @@ def drawScorecard(course_json):
     h.configure(state="readonly")
     h.grid(row=1, column=0)
 
-    h = Entry(inner_frame, justify='center', fg="black", readonlybackground=pin_color, width=10)
+    h = Entry(inner_frame, justify='center', fg="white", readonlybackground=pin_color, width=10)
     h.insert(0, "NUM PINS")
     h.configure(state="readonly")
     h.grid(row=2, column=0)
@@ -339,7 +340,7 @@ def drawScorecard(course_json):
         p.grid(row=1, column=i+1)
 
         # Append number of pins - useful for working around simulator bug
-        p = Entry(inner_frame, justify='center', fg="black", readonlybackground=pin_color, width=5)
+        p = Entry(inner_frame, justify='center', fg="white", readonlybackground=pin_color, width=5)
         p.insert(0, str(pins[i]))
         p.configure(state="readonly")
         p.grid(row=2, column=i+1)
@@ -2942,7 +2943,134 @@ def runAwsEptLidar(
     root.after(100, pump_worker_messages)
 
 
-def runDEM(scale_entry, printf, auto_red_mask_var=None, auto_red_mask_buffer_var=None):
+def runUkLidarDem(scale_entry, epsg_entry, printf, auto_red_mask_var=None, auto_red_mask_buffer_var=None):
+    """TGC_BETA7_UK_BUTTON_V1: independent ex-US acquisition; reuse normal processors."""
+    global lidar_processing_active, dem_processing_active
+    from uk_lidar_ui import UKDownloadDialog, Value
+    if lidar_processing_active or dem_processing_active:
+        alert('Finish the current LiDAR/DEM job before starting a ex-US download.');return
+    if not root or not getattr(root, 'filename', None):
+        alert('Select a course directory before downloading ex-US terrain.');return
+    project = Path(root.filename).resolve()
+    entry = options_entries_dict.get('local_osm_file')
+    osm_file = str(entry.get() or '').strip() if entry is not None else ''
+    if not osm_file or not Path(osm_file).is_file():
+        alert('Select a valid Local OSM file before using ex-US LiDAR / DEM.');return
+    osm_file = str(Path(osm_file).resolve())
+    if bool(_mask_option_value(options_entries_dict, 'custom_unmatched_osm', False)):
+        alert('ex-US discovery uses the OSM real-world location. Turn Custom / Unmatched off for discovery, or use local data for the target terrain.');return
+    try:
+        sample_scale = float(scale_entry.get())
+        if not math.isfinite(sample_scale) or sample_scale <= 0:raise ValueError()
+    except Exception:
+        alert('Map Scale must be a finite number greater than zero.');return
+    from exus_resolution_policy import processing_scale
+    sample_scale = processing_scale(sample_scale, printf)
+    settings = getAutoRedMaskSettings(auto_red_mask_var, auto_red_mask_buffer_var)
+    if settings is None:return
+    auto_enabled, auto_buffer = settings
+    scale_value, enabled_value, buffer_value = Value(sample_scale), Value(auto_enabled), Value(auto_buffer)
+    def release():
+        global lidar_processing_active, dem_processing_active
+        lidar_processing_active = False;dem_processing_active = False
+    def same_project():
+        current = options_entries_dict.get('local_osm_file')
+        current_osm = str(current.get() or '').strip() if current is not None else ''
+        return (Path(root.filename).resolve() == project and current_osm and
+                Path(current_osm).resolve() == Path(osm_file) and
+                not bool(_mask_option_value(options_entries_dict,'custom_unmatched_osm',False)))
+    def ready(result, mode, dataset):
+        global lidar_processing_active, dem_processing_active
+        if not same_project():
+            printf('NOTICE: project/OSM selection changed during ex-US download. Data remains in '+result.data_dir+'; processing was not started in another folder.')
+            alert('ex-US data was downloaded, but the project or OSM selection changed. No heightmap was overwritten. Select the intended project and use the local-data buttons.');return
+        printf('ex-US acquisition ready; using native file CRS/units. Manual Force EPSG is not applied.')
+        if mode == 'dem':
+            runDEM(scale_value, printf, enabled_value, buffer_value, dem_files_override=result.files)
+        elif mode == 'lidar':
+            runLidar(scale_value, epsg_entry, printf, enabled_value, buffer_value,
+                     lidar_dir_path_override=result.data_dir, ignore_force_epsg=True)
+        elif mode == 'trees':
+            # Snapshot project paths and settings before starting the worker.
+            result_queue=queue.Queue();lidar_processing_active=True;dem_processing_active=True
+            def log(message):result_queue.put(('log',str(message)))
+            def work():
+                try:
+                    count=lidar_map_api.attach_lidar_trees_to_existing_dem(
+                        result.data_dir,project/'heightmap.npy',sample_scale=sample_scale,
+                        local_osm_file=osm_file,source_metadata={'project':dataset.title,'provider':dataset.region,'source':dataset.source_page},printf=log)
+                    result_queue.put(('done',count))
+                except Exception:result_queue.put(('error',traceback.format_exc()))
+            def pump():
+                finished=False
+                while True:
+                    try:kind,payload=result_queue.get_nowait()
+                    except queue.Empty:break
+                    if kind=='log':printf(payload)
+                    elif kind=='done':
+                        release();printf('ex-US Trees Only complete: '+str(payload)+' candidate(s); existing terrain retained.');finished=True;break
+                    else:
+                        release();printf('ex-US Trees Only failed:\n'+payload);alert('ex-US Trees Only failed; see Tool status output.');finished=True;break
+                if not finished:root.after(100,pump)
+            threading.Thread(target=work,name='TGC-UK-Trees-Only',daemon=True).start();root.after(100,pump)
+    lidar_processing_active=True;dem_processing_active=True
+    try:
+        UKDownloadDialog(root, project, osm_file, printf=printf, on_ready=ready, on_close=release)
+    except Exception:
+        release();raise
+
+
+def runUnityRawSVG(scale_entry, printf, auto_red_mask_var=None, auto_red_mask_buffer_var=None):
+    """TGC_UNITY_RAW_SVG_V1: paired local coordinates; reuse the existing DEM pipeline."""
+    global lidar_processing_active, dem_processing_active
+    from tgc_unity_import_ui import UnityImportDialog, Value
+    if lidar_processing_active or dem_processing_active:
+        alert("Finish the current LiDAR/DEM job before importing Unity terrain."); return
+    if not root or not getattr(root, "filename", None):
+        alert("Select a course directory before importing Unity terrain."); return
+    project = Path(root.filename).resolve()
+    try:
+        scale = float(scale_entry.get())
+        if not math.isfinite(scale) or scale <= 0: raise ValueError()
+    except Exception:
+        alert("Map Scale must be a finite positive number."); return
+    def release():
+        global lidar_processing_active, dem_processing_active
+        lidar_processing_active = False
+        dem_processing_active = False
+    def set_value(key, value):
+        entry = options_entries_dict.get(key)
+        if entry is None: raise RuntimeError("Missing existing option: " + key)
+        if hasattr(entry, "set"):
+            entry.set(value)
+        else:
+            entry.delete(0, END); entry.insert(0, str(value))
+    def ready(report):
+        if Path(root.filename).resolve() != project:
+            printf("Unity pair was saved, but the selected project changed. No heightmap changed: " + report["outputs"]["dem"])
+            return
+        try:
+            set_value("local_osm_file", report["outputs"]["osm"])
+            set_value("custom_unmatched_osm", False)
+            set_value("use_osm", True)
+            set_value("adjust_ew", 0.0)
+            set_value("adjust_ns", 0.0)
+        except Exception as exc:
+            printf("Pair saved, automatic selection stopped: " + str(exc)); alert(str(exc)); return
+        output_step = float(report["settings"]["output_spacing_m"])
+        scale_entry.delete(0, END); scale_entry.insert(0, str(output_step))
+        printf("Unity matched pair selected. Custom / Unmatched OFF; CFS global offsets reset to 0/0. Use only this local OSM, never online acquisition for its synthetic coordinates.")
+        runDEM(Value(output_step), printf, auto_red_mask_var, auto_red_mask_buffer_var,
+               dem_files_override=[report["outputs"]["dem"]])
+    lidar_processing_active = True
+    dem_processing_active = True
+    try:
+        UnityImportDialog(root, project, map_scale=scale, printf=printf, on_ready=ready, on_close=release)
+    except Exception:
+        release(); raise
+
+
+def runDEM(scale_entry, printf, auto_red_mask_var=None, auto_red_mask_buffer_var=None, dem_files_override=None):
     """Run DEM preparation/finalization on worker threads so Tk stays responsive."""
     global root
     global dem_processing_active
@@ -2981,15 +3109,21 @@ def runDEM(scale_entry, printf, auto_red_mask_var=None, auto_red_mask_buffer_var
             str(round(auto_red_buffer_m, 2)) + " m"
         )
 
-    dem_files = tk.filedialog.askopenfilenames(
-        initialdir=root.filename,
-        title="Select one or more georeferenced DEM GeoTIFF files",
-        filetypes=[
-            ("GeoTIFF DEM Files", "*.tif *.tiff"),
-            ("TIFF Files", "*.tif *.tiff"),
-            ("All files", "*"),
-        ]
-    )
+    if dem_files_override is not None:
+        dem_files = [str(Path(p)) for p in dem_files_override]
+        if not dem_files or any(not Path(p).is_file() for p in dem_files):
+            alert("Downloaded DEM files are missing; no heightmap changed.");return
+        printf("Using downloaded UK DEM tile(s): " + str(len(dem_files)))
+    else:
+        dem_files = tk.filedialog.askopenfilenames(
+            initialdir=root.filename,
+            title="Select one or more georeferenced DEM GeoTIFF files",
+            filetypes=[
+                ("GeoTIFF DEM Files", "*.tif *.tiff"),
+                ("TIFF Files", "*.tif *.tiff"),
+                ("All files", "*"),
+            ]
+        )
     if not dem_files:
         return
 
@@ -3294,6 +3428,7 @@ def openCFSAlignmentViewer(options_entries_dict, printf):
         return
 
     last_alignment_heightmap_dir = str(heightmap_dir_path)
+    cfs_project_folder = str(root.filename)
     printf("CFS Local OSM file: " + local_osm_file)
     _setOSMMaskStatus(
         "OSM alignment mask: CFS viewer open - apply alignment to rebuild",
@@ -3306,6 +3441,40 @@ def openCFSAlignmentViewer(options_entries_dict, printf):
     auto_red_buffer = float(mask_values["auto_red_mask_buffer_m"])
     include_vehicle_roads = bool(mask_values.get("include_vehicle_roads", False))
     custom_unmatched_osm = bool(mask_values.get("custom_unmatched_osm", False))
+
+    def local_osm_selection_changed(previous_file, new_file=None, expected_state=None):
+        # Called only on Tk's thread. A review captures its context before its
+        # worker runs and validates it again before replacing the selection.
+        nonlocal local_osm_file, auto_red_enabled, auto_red_buffer, include_vehicle_roads
+        current = _currentOSMMaskInputs(options_entries_dict)
+        state = {"project_folder": str(root.filename),
+                 "heightmap_folder": str(last_alignment_heightmap_dir or heightmap_dir_path),
+                 "settings": dict(current)}
+        if str(root.filename) != cfs_project_folder:
+            raise ValueError("The active project changed. Reopen CFS for the current project.")
+        if str(last_alignment_heightmap_dir or heightmap_dir_path) != str(heightmap_dir_path):
+            raise ValueError("The active heightmap folder changed. Reopen CFS for the current terrain.")
+        if str(current["local_osm_file"]) != str(previous_file) or str(local_osm_file) != str(previous_file):
+            raise ValueError("The Local OSM selection changed while this viewer was open. Reopen CFS for the selected file.")
+        if bool(current.get("custom_unmatched_osm", False)) != custom_unmatched_osm:
+            raise ValueError("The Custom / Unmatched OSM setting changed. Reopen CFS before local alignment.")
+        if expected_state is not None and state != expected_state:
+            raise ValueError("Main-window project or OSM settings changed during review. The current selection was preserved.")
+        if new_file is None:
+            return state
+        if not Path(new_file).is_file():
+            raise ValueError("The selected corrected OSM file no longer exists: " + str(new_file))
+        local_osm_file = str(new_file)
+        options_entries_dict["local_osm_file"].set(local_osm_file)
+        auto_red_enabled = bool(current["auto_red_mask_enabled"])
+        auto_red_buffer = float(current["auto_red_mask_buffer_m"])
+        include_vehicle_roads = bool(current.get("include_vehicle_roads", False))
+        _setOSMMaskStatus("OSM alignment mask: STALE - Local OSM changed; Apply + Rebuild Mask", "#a00000")
+        printf("Local OSM correction selected: " + local_osm_file + ". Apply + Rebuild Mask before generating the course.")
+        current["local_osm_file"] = local_osm_file
+        return {"project_folder": str(root.filename),
+                "heightmap_folder": str(last_alignment_heightmap_dir or heightmap_dir_path),
+                "settings": current}
 
     def apply_alignment_and_rebuild_mask(
         viewer_heightmap_dir,
@@ -3402,6 +3571,7 @@ def openCFSAlignmentViewer(options_entries_dict, printf):
         apply_callback=apply_alignment_and_rebuild_mask,
         apply_finished_callback=alignment_rebuild_finished,
         custom_unmatched_osm=custom_unmatched_osm,
+        osm_file_changed_callback=local_osm_selection_changed,
     )
 
 
@@ -3455,30 +3625,9 @@ def importOSMFile(options_entries_dict, printf):
             printf("Done Rendering Course Preview")
 
 def setStartupWindowSize(window):
-    # Use a large default while respecting the actual desktop resolution.
-    # Leave a margin for the taskbar/window chrome and center the window.
-    try:
-        screen_w = int(window.winfo_screenwidth())
-        screen_h = int(window.winfo_screenheight())
-
-        target_w = min(1700, max(1300, screen_w - 80))
-        target_h = min(900, max(750, screen_h - 140))
-
-        # Never request a window larger than the usable screen estimate.
-        target_w = min(target_w, max(1000, screen_w - 30))
-        target_h = min(target_h, max(650, screen_h - 80))
-
-        x = max(0, int((screen_w - target_w) / 2))
-        y = max(0, int((screen_h - target_h) / 2))
-
-        window.geometry(
-            str(target_w) + "x" + str(target_h) +
-            "+" + str(x) + "+" + str(y)
-        )
-        window.minsize(min(1150, target_w), min(700, target_h))
-    except Exception:
-        # Safe fallback for unusual display configurations.
-        window.geometry("1500x800")
+    # TGC_BETA7_LARGE_WINDOWS_V1 -- no 1700x900 application cap.
+    from tgc_window_layout import open_large_window
+    open_large_window(window, minimum=(1150, 700))
 
 
 root = tk.Tk()
@@ -3491,12 +3640,17 @@ style.theme_create( "TabStyle", parent="alt", settings={
 
 style.theme_use("TabStyle")
 
+# TGC_BETA7_SHARED_CFS_UI_V1: keep the installed CFS button palette.
+from tgc_ui_style import install as install_shared_ui
+_shared_ui = install_shared_ui(root)
+
 root.title(TGC_APP_TITLE)
 # TGC_LIDAR_TREE_SIZE_TEST_TITLE_V1
 root.title(TGC_APP_TITLE)
 
 header_frame = Frame(root)
-output = Label(header_frame, background="lightgrey", width=75, height=1)
+output = Label(header_frame, background="white", width=75, height=1, relief="sunken", borderwidth=1, anchor="w", padx=6, pady=4)
+output._tgc_field_display = True  # TGC_BETA7_ALL_FEATURES_V6 directory field
 output.pack(side=LEFT)
 B = Button(header_frame, text = "Select Course Directory", command = partial(getCourseDirectory, output))
 B.pack(side=LEFT)
@@ -3719,6 +3873,13 @@ dembutton.pack(side=LEFT, padx=5, pady=5)
 
 lidarControlFrame.pack(pady=5)
 
+# TGC_BETA7_UNITY_ROW_DESERT_SW_V1: share the DEM row; preserve the original callback/style.
+unityImportButton = Button(lidarControlFrame, text="Import Unity RAW + Course SVG", command=partial(
+    runUnityRawSVG, scale_entry, lidarPrintf, auto_red_mask_var, auto_red_mask_buffer_var
+))
+unityImportButton.pack(side=LEFT, after=dembutton, padx=5, pady=5)
+
+
 localTreesOnlyFrame = Frame(lidar, bg=tool_bg)
 localTreesOnlyButton = Button(
     localTreesOnlyFrame,
@@ -3791,6 +3952,20 @@ Label(
     bg=tool_bg,
 ).pack(side=LEFT, padx=8)
 awsEptFrame.pack(pady=(0, 5))
+
+# TGC_BETA7_UK_BUTTON_V1
+ukDataFrame = Frame(lidar, bg=tool_bg)
+ukDataButton = Button(
+    ukDataFrame,
+    text="ex-US LiDAR / DEM From Local OSM",
+    command=partial(runUkLidarDem, scale_entry, epsg_entry, lidarPrintf,
+                    auto_red_mask_var, auto_red_mask_buffer_var),
+)
+ukDataButton.pack(side=LEFT, padx=5, pady=5)
+Label(ukDataFrame, text='Official ex-US terrain / point clouds; 150 m course download buffer.',
+      fg=text_fg, bg=tool_bg).pack(side=LEFT, padx=8)
+ukDataFrame.pack(pady=(0, 5))
+
 
 lidarMaskFrame = Frame(lidar, bg=tool_bg)
 auto_red_mask_buffer_entry = tk.Entry(
@@ -4075,6 +4250,16 @@ treeScaleModeCombo = ttk.Combobox(
     )
 )
 
+# TGC_BETA8_THEME_WEIGHTED_PLANTING_V1
+options_entries_dict["custom_theme_weighted_planting"] = tk.BooleanVar(value=False)
+customThemeWeightedPlantingCheck = Checkbutton(
+    courseSubFrame,
+    text="Custom Theme Weighted Planting",
+    variable=options_entries_dict["custom_theme_weighted_planting"],
+    fg=check_fg,
+    bg=check_bg,
+)
+
 options_entries_dict["filter_lidar_trees_50m"] = tk.BooleanVar()
 filterLidarTreesCheck = Checkbutton(
     courseSubFrame,
@@ -4159,19 +4344,20 @@ Label(courseSubFrame, text="Regional Theme (Designer + Trees + Materials)", fg=c
 treeProfileCombo.grid(row=6, column=1, sticky=W, padx=5, pady=(5,0))
 Label(courseSubFrame, text="Tree Scale", fg=check_fg, bg=check_bg).grid(row=7, column=0, sticky=W, padx=5)
 treeScaleModeCombo.grid(row=7, column=1, sticky=W, padx=5)
-filterLidarTreesCheck.grid(row=8, columnspan=2, sticky=W, padx=5)
-filterLidarSurfacesCheck.grid(row=9, columnspan=2, sticky=W, padx=5)
-filterLidarRedMaskCheck.grid(row=10, columnspan=2, sticky=W, padx=5)
-lidarBuildingCheck.grid(row=11, columnspan=2, sticky=W, padx=5)
-filterLidarBuildingsCheck.grid(row=12, columnspan=2, sticky=W, padx=5)
-fillWaterCheck.grid(row=13, columnspan=2, sticky=W, padx=5)
-purgeWaterCheck.grid(row=14, columnspan=2, sticky=W, padx=5)
-Label(courseSubFrame, text="Terrain Brush", fg=check_fg, bg=check_bg).grid(row=16, column=0, pady=(10,3), sticky=W, padx=5)
-brush_type_combo.grid(row=16, column=1, pady=(10,3), sticky=W, padx=5)
-Label(courseSubFrame, text="Brush Size (meters)", fg=check_fg, bg=check_bg).grid(row=17, column=0, pady=3, sticky=W, padx=5)
-brush_scale_combo.grid(row=17, column=1, pady=3, sticky=W, padx=5)
-Label(courseSubFrame, text="Brushes: 72 / 9 / 10 / 15", fg=check_fg, bg=check_bg).grid(row=18, columnspan=2, sticky=W, padx=5)
-Label(courseSubFrame, text="Terrain Generation: Dense / Original only", fg=check_fg, bg=check_bg).grid(row=19, columnspan=2, sticky=W, padx=5)
+customThemeWeightedPlantingCheck.grid(row=8, column=0, columnspan=2, sticky=W, padx=5)
+filterLidarTreesCheck.grid(row=9, columnspan=2, sticky=W, padx=5)
+filterLidarSurfacesCheck.grid(row=10, columnspan=2, sticky=W, padx=5)
+filterLidarRedMaskCheck.grid(row=11, columnspan=2, sticky=W, padx=5)
+lidarBuildingCheck.grid(row=12, columnspan=2, sticky=W, padx=5)
+filterLidarBuildingsCheck.grid(row=13, columnspan=2, sticky=W, padx=5)
+fillWaterCheck.grid(row=14, columnspan=2, sticky=W, padx=5)
+purgeWaterCheck.grid(row=15, columnspan=2, sticky=W, padx=5)
+Label(courseSubFrame, text="Terrain Brush", fg=check_fg, bg=check_bg).grid(row=17, column=0, pady=(10,3), sticky=W, padx=5)
+brush_type_combo.grid(row=17, column=1, pady=(10,3), sticky=W, padx=5)
+Label(courseSubFrame, text="Brush Size (meters)", fg=check_fg, bg=check_bg).grid(row=18, column=0, pady=3, sticky=W, padx=5)
+brush_scale_combo.grid(row=18, column=1, pady=3, sticky=W, padx=5)
+Label(courseSubFrame, text="Brushes: 72 / 9 / 10 / 15", fg=check_fg, bg=check_bg).grid(row=19, columnspan=2, sticky=W, padx=5)
+Label(courseSubFrame, text="Terrain Generation: Dense / Original only", fg=check_fg, bg=check_bg).grid(row=20, columnspan=2, sticky=W, padx=5)
 
 # Pack the two option frames side by side
 osmControlFrame.pack(side=LEFT, anchor=N, padx=5)

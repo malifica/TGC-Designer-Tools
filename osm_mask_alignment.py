@@ -416,6 +416,19 @@ def get_alignment_status(
 
     recorded = _load_sidecar(folder)
     if recorded is None:
+        # A local correction can change geometry even with a zero global nudge.
+        # Do not offer the legacy-mask adoption shortcut for a corrected copy.
+        local_record = Path(str(osm_file) + ".local_alignment.json")
+        if local_record.exists() or local_record.is_symlink():
+            return {
+                "state": "stale",
+                "ok_for_import": False,
+                "message": (
+                    "Local tee/bunker corrections require a mask rebuilt from "
+                    "the corrected OSM before import. Use Apply + Rebuild Mask."
+                ),
+                "expected": expected,
+            }
         if bool(custom_unmatched_osm):
             return {
                 "state": "stale",
@@ -763,6 +776,12 @@ def adopt_existing_zero_shift_mask(
     printf=print,
 ) -> Dict[str, Any]:
     """Record a legacy zero-shift mask without changing any painted pixels."""
+    local_record = Path(str(osm_file) + ".local_alignment.json")
+    if local_record.exists() or local_record.is_symlink():
+        raise RuntimeError(
+            "Local tee/bunker corrections cannot adopt a legacy mask; "
+            "rebuild the mask from the corrected OSM."
+        )
     if bool(custom_unmatched_osm):
         raise RuntimeError(
             "Custom / Unmatched OSM masks cannot adopt legacy geographic pixels; rebuild the mask."

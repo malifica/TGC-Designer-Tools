@@ -24,6 +24,7 @@ FEATURE_COLORS = {
     "tee": "#00ffff",
     "fairway": "#66ff33",
     "rough": "#ff9900",
+    "mulch": "#faa0be",  # TGC_HBCC_DRY_MULCH_V1
     "driving_range": "#99ff33",
     "water_hazard": "#3399ff",
     "lateral_water_hazard": "#3399ff",
@@ -378,6 +379,7 @@ class AlignmentViewer:
         apply_callback=None,
         apply_finished_callback=None,
         custom_unmatched_osm=False,
+        osm_file_changed_callback=None,
     ):
         # TGC_BETA6_CFS_MASK_ALIGNMENT_WORKFLOW_V1
         # V3 retains the V1 aligned-mask callback contract; only its execution
@@ -392,6 +394,10 @@ class AlignmentViewer:
         self.apply_callback = apply_callback
         self.apply_finished_callback = apply_finished_callback
         self.custom_unmatched_osm = bool(custom_unmatched_osm)
+        self.osm_file_changed_callback = osm_file_changed_callback
+        self.local_review = None
+        self._local_original_osm_file = self.osm_file
+        self._local_original_osm_sha256 = None
 
         self.shift_ew = _to_float(ew_entry, 0.0)
         self.shift_ns = _to_float(ns_entry, 0.0)
@@ -453,6 +459,7 @@ class AlignmentViewer:
 
     def _build_ui(self):
         from functools import partial
+        from tgc_cfs_widgets import action_button
         import tgc_cfs_display as display
         instruction = ttk.Frame(self.window)
         instruction.pack(fill=tk.X, padx=8, pady=(6, 2))
@@ -483,15 +490,15 @@ class AlignmentViewer:
         self.view_combo.pack(side=tk.LEFT, padx=4)
         self.view_combo.bind("<<ComboboxSelected>>", self._view_changed)
 
-        self.zoom_out_button = self._register(ttk.Button(
+        self.zoom_out_button = self._register(action_button(
             top, text="Zoom -", command=lambda: self._change_zoom(1.0 / 1.25)
         ))
         self.zoom_out_button.pack(side=tk.LEFT, padx=(12, 2))
-        self.zoom_in_button = self._register(ttk.Button(
+        self.zoom_in_button = self._register(action_button(
             top, text="Zoom +", command=lambda: self._change_zoom(1.25)
         ))
         self.zoom_in_button.pack(side=tk.LEFT, padx=2)
-        self.fit_button = self._register(ttk.Button(
+        self.fit_button = self._register(action_button(
             top, text="Fit", command=self._fit_zoom
         ))
         self.fit_button.pack(side=tk.LEFT, padx=2)
@@ -524,31 +531,41 @@ class AlignmentViewer:
         ))
         self.ns_box.pack(side=tk.LEFT, padx=(3, 12))
 
-        self.update_button = self._register(ttk.Button(
+        self.update_button = self._register(action_button(
             readout, text="Update Overlay", command=self._update_from_entries
         ))
         self.update_button.pack(side=tk.LEFT, padx=3)
-        self.zero_button = self._register(ttk.Button(
+        self.zero_button = self._register(action_button(
             readout, text="Zero", command=self._zero_shift
         ))
         self.zero_button.pack(side=tk.LEFT, padx=3)
-        self.revert_button = self._register(ttk.Button(
+        self.revert_button = self._register(action_button(
             readout, text="Revert", command=self._revert_shift
         ))
         self.revert_button.pack(side=tk.LEFT, padx=3)
 
-        self.apply_button = self._register(ttk.Button(
-            readout,
+        local_row = ttk.Frame(self.window)
+        local_row.pack(fill=tk.X, padx=8, pady=(0, 6))
+        self.apply_button = self._register(action_button(
+            local_row,
             text="Apply + Rebuild Mask",
             command=lambda: self._start_apply(False),
+            primary=True,
         ))
-        self.apply_button.pack(side=tk.LEFT, padx=(18, 3))
-        self.apply_close_button = self._register(ttk.Button(
-            readout,
+        self.apply_button.pack(side=tk.LEFT, padx=(0, 6))
+        self.apply_close_button = self._register(action_button(
+            local_row,
             text="Apply + Rebuild + Close",
             command=lambda: self._start_apply(True),
         ))
         self.apply_close_button.pack(side=tk.LEFT, padx=3)
+
+        self.local_alignment_button = self._register(action_button(
+            local_row, text="Local Tee/Bunker Alignment", command=self._open_local_alignment,
+            primary=True,
+        ))
+        self.local_alignment_button.pack(side=tk.LEFT, padx=(16, 0))
+        ttk.Label(local_row, text="Automatic / manual object moves").pack(side=tk.LEFT, padx=10)
 
         self.info_var = tk.StringVar(value="Preparing CFS viewer...")
         ttk.Label(self.window, textvariable=self.info_var).pack(
@@ -613,6 +630,7 @@ class AlignmentViewer:
             ("Tee", FEATURE_COLORS["tee"]),
             ("Fairway", FEATURE_COLORS["fairway"]),
             ("Rough", FEATURE_COLORS["rough"]),
+            ("Mulch", FEATURE_COLORS["mulch"]),
             ("Water", FEATURE_COLORS["water_hazard"]),
             ("Cart Path", FEATURE_COLORS["cartpath"]),
             ("Road", FEATURE_COLORS["road"]),
@@ -808,6 +826,10 @@ class AlignmentViewer:
             self.window.after(60, self._pump_load_queue)
 
     def _request_close(self):
+        review = getattr(self, "local_review", None)
+        if review is not None and not review.closed:
+            review.request_close()
+            return
         if self.busy:
             messagebox.showwarning(
                 "Mask Rebuild In Progress",
@@ -820,7 +842,35 @@ class AlignmentViewer:
         self.window.destroy()
 
     def _can_interact(self):
-        return bool(self.ready and not self.busy and not self.closed)
+        return bool(self.ready and not self.busy and not self.closed and getattr(self, "local_review", None) is None)
+
+    def _open_local_alignment(self):
+        if not self._can_interact():
+            return
+        if self.custom_unmatched_osm:
+            messagebox.showinfo(
+                "Local Tee/Bunker Alignment",
+                "Local terrain matching requires georeferenced OSM. Turn off Custom / Unmatched OSM and reopen CFS for this feature.",
+                parent=self.window,
+            )
+            return
+        try:
+            ew, ns = float(self.ew_var.get()), float(self.ns_var.get())
+            if not math.isfinite(ew) or not math.isfinite(ns):
+                raise ValueError("Enter finite E/W and N/S values before reviewing local alignment.")
+            # Use the same centimetre precision as the CFS readout and Apply.
+            # Otherwise newly typed finer values could be analyzed, then rounded
+            # only after review when the mask/import alignment is copied back.
+            ew, ns = float(f"{ew:.2f}"), float(f"{ns:.2f}")
+            self.shift_ew, self.shift_ns = ew, ns
+            self._redraw_overlay()
+            from tgc_local_alignment_ui import open_local_alignment
+            # TGC_BETA7_SHARED_CFS_UI_V1: preserve installed local alignment code.
+            from tgc_ui_style import wrap_local_alignment
+            open_local_alignment = wrap_local_alignment(open_local_alignment)
+            open_local_alignment(self)
+        except Exception as exc:
+            messagebox.showerror("Local Tee/Bunker Alignment", str(exc), parent=self.window)
 
     def _choose_initial_zoom(self):
         max_w = 1120.0
@@ -1200,6 +1250,7 @@ def open_alignment_viewer(
     apply_callback=None,
     apply_finished_callback=None,
     custom_unmatched_osm=False,
+    osm_file_changed_callback=None,
 ):
     heightmap_path = Path(heightmap_dir) / "heightmap.npy"
 
@@ -1238,6 +1289,7 @@ def open_alignment_viewer(
             apply_callback=apply_callback,
             apply_finished_callback=apply_finished_callback,
             custom_unmatched_osm=custom_unmatched_osm,
+            osm_file_changed_callback=osm_file_changed_callback,
         )
 
     except Exception as exc:
