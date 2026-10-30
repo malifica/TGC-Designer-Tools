@@ -1,0 +1,38 @@
+name: Complete Beta 8 transfer references
+on:
+  push:
+    branches: ['release/beta8-publication']
+    paths: ['.github/workflows/beta8-final-transfer-references.yml']
+permissions:
+  contents: read
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+  PYTHONUTF8: '1'
+jobs:
+  reference:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    steps:
+      - name: Retrieve exact published dependency and previously staged data
+        shell: python
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          import base64,hashlib,json,os,pathlib,subprocess,sys,zipfile
+          out=pathlib.Path('references');out.mkdir()
+          subprocess.run([sys.executable,'-m','pip','download','--disable-pip-version-check','--only-binary=:all:','--no-deps','--platform','win_amd64','--python-version','311','--implementation','cp','--dest',str(out),'PySide6_Pdf==6.12.0.140'],check=True)
+          shas=['3c7b77daffe866e9c6bc6e50a9dac6e1913834b6','0cc694d0314b0b572839d05c4421cfb146b8be18','3ca23a8cf63ed024dce826abb2f67fe5bf4e5966','cf248367e2acac409ca27affc16a8b6763c02c6c','25050a383e870e8028d0d164d1349849f60cec7d','1163259193e0880e27794032a5187a121e742af9','6d8bfb2e661d325f9ef2c300b7794e7e652d2d01','393c39aa1509a7dbddc1f9c86c33ba4a30dbcf0b','9b136185e4f1ac49b0a619cb4f0519ca5016c65a','2a568475206bc8f57646b6ef68a7cd8b951d9ec4']
+          for i,sha in enumerate(shas):
+              result=json.loads(subprocess.check_output(['gh','api','repos/'+os.environ['GITHUB_REPOSITORY']+'/git/blobs/'+sha],text=True))
+              raw=base64.b64decode(result['content']);actual=hashlib.sha1(b'blob '+str(len(raw)).encode()+b'\0'+raw).hexdigest();assert actual==sha
+              (out/('chunk-%02d.bin'%i)).write_bytes(raw)
+          manifest={p.name:{'bytes':p.stat().st_size,'sha256':hashlib.sha256(p.read_bytes()).hexdigest()} for p in out.iterdir()}
+          (out/'manifest.json').write_text(json.dumps(manifest,indent=2))
+          print(json.dumps(manifest,indent=2))
+      - uses: actions/upload-artifact@v6
+        with:
+          name: Beta8-Remaining-Exact-References
+          path: references/
+          retention-days: 2
+          compression-level: 0
+          if-no-files-found: error
