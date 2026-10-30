@@ -1,0 +1,57 @@
+name: Prepare Beta 8 byte references
+on:
+  push:
+    branches: ['release/beta8-publication']
+    paths: ['.github/workflows/beta8-byte-reference.yml']
+permissions:
+  contents: read
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+  PYTHONUTF8: '1'
+jobs:
+  reference:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11.6'
+          architecture: x64
+      - name: Prepare immutable reference files
+        shell: python
+        run: |
+          import pathlib,sys,subprocess,zipfile,json,hashlib,tarfile
+          out=pathlib.Path('byte-reference'); out.mkdir()
+          wheels=pathlib.Path('wheels');wheels.mkdir()
+          packages=['PySide6_Addons==6.12.0','charset_normalizer==3.5.1','certifi==2026.7.22','python-dateutil==2.9.0.post0','tifffile==2026.3.3','imageio','pyparsing==3.3.2','lazy-loader==0.5','packaging==26.3','idna==3.19','click==8.5.0','attrs==26.1.0','numpy==1.26.0','matplotlib==3.10.0','pyproj==3.7.0','Pillow==11.0.0','shapely==2.1.2','PyInstaller']
+          results={}
+          for p in packages:
+              r=subprocess.run([sys.executable,'-m','pip','download','--disable-pip-version-check','--only-binary=:all:','--no-deps','--platform','win_amd64','--python-version','311','--implementation','cp','--dest',str(wheels),p],capture_output=True,text=True)
+              results[p]={'returncode':r.returncode,'output':r.stdout+r.stderr}
+              print(p,r.returncode)
+          keep=('Qt6Pdf.dll','Qt6VirtualKeyboard.dll','dateutil-zoneinfo.tar.gz','cacert.pem')
+          with zipfile.ZipFile(out/'dependency-files.zip','w',zipfile.ZIP_DEFLATED) as dest:
+              for wheel in sorted(wheels.glob('*.whl')):
+                  with zipfile.ZipFile(wheel) as z:
+                      for name in z.namelist():
+                          if name.endswith('.py') or name.endswith(keep) or (name.startswith('charset_normalizer/') and name.endswith('.pyd')) or name.endswith('METADATA'):
+                              dest.writestr(wheel.name+'/'+name,z.read(name))
+          (out/'retrieval.json').write_text(json.dumps(results,indent=2),encoding='utf8')
+          prefix=pathlib.Path(sys.prefix)
+          with tarfile.open(out/'python311-reference.tar.gz','w:gz') as tar:
+              for name in ['bin/python3.11','lib/libpython3.11.so.1.0','lib/python3.11']:
+                  p=prefix/name
+                  if not p.exists():continue
+                  def keep_runtime(info):
+                      return None if '/site-packages' in info.name or '/__pycache__' in info.name or '/test/' in info.name else info
+                  tar.add(p,arcname=name,filter=keep_runtime)
+          hashes={p.name:{'bytes':p.stat().st_size,'sha256':hashlib.sha256(p.read_bytes()).hexdigest()} for p in out.iterdir() if p.is_file()}
+          (out/'sha256.json').write_text(json.dumps(hashes,indent=2),encoding='utf8')
+          print(json.dumps(hashes,indent=2))
+      - uses: actions/upload-artifact@v6
+        with:
+          name: Beta8-Dependency-Byte-References
+          path: byte-reference/
+          retention-days: 2
+          compression-level: 0
+          if-no-files-found: error
