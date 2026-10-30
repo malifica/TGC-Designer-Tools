@@ -1,0 +1,57 @@
+name: Publish existing TGC Designer Tools Beta 8
+
+on:
+  push:
+    branches: ['release/beta8-publication']
+    paths:
+      - '.github/workflows/publish-existing-beta8.yml'
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: tgc-beta8-publication
+  cancel-in-progress: false
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+  PYTHONUTF8: '1'
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Check out the existing publication branch
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Verify supplied bytes and prepare the release package
+        run: python3 .github/publication/publish_beta8.py prepare
+
+      - name: Retain exact assets and source for publication recovery
+        uses: actions/upload-artifact@v6
+        with:
+          name: TGC-Beta8-Existing-Build-${{ github.run_id }}-${{ github.run_attempt }}
+          path: publication/
+          compression-level: 0
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: Publish matching source and the supplied Windows build
+        run: python3 .github/publication/publish_beta8.py publish
+
+      - name: Download all four published assets and verify their actual bytes
+        run: python3 .github/publication/publish_beta8.py verify-downloads
+
+      - name: Retain the verified release receipt
+        uses: actions/upload-artifact@v6
+        with:
+          name: TGC-Beta8-Verified-Release-${{ github.run_id }}-${{ github.run_attempt }}
+          path: publication/verified-release.json
+          retention-days: 30
+          if-no-files-found: error

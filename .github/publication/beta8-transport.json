@@ -1,0 +1,80 @@
+{
+  "version": 1,
+  "repository": "malifica/TGC-Designer-Tools",
+  "branch": "release/beta8-publication",
+  "expected_main_sha": "df4c2cf0346273774555a34458f2416a3f32fb5e",
+  "publication_base_sha": "6491bdffa1cc6bc1b5f0d2647c99b29093a44685",
+  "tag": "v0.5.0-2k25-beta8",
+  "exe": {
+    "name": "tgc_gui_2k25_beta8.exe",
+    "bytes": 194206055,
+    "sha256": "c09217ae1b167e7c9fd232cde24c11b5206944f795de964ad9107510861b3d81",
+    "method": "copy-recipe",
+    "recipe": {
+      "name": "beta8-artifact-recipe.json",
+      "bytes": 99620,
+      "sha256": "d1fd1096e0b5373ea74c4cafaaa0f2f45b3f7b583669a8eb7596387d2bcdb54f",
+      "chunks": [
+        {
+          "git_blob_sha": "78d8fe37e152211db7791a6571e8f1ac358d5a1a",
+          "bytes": 99620,
+          "sha256": "d1fd1096e0b5373ea74c4cafaaa0f2f45b3f7b583669a8eb7596387d2bcdb54f"
+        }
+      ]
+    },
+    "literal": {
+      "name": "beta8-artifact-literals.bin",
+      "bytes": 3750202,
+      "sha256": "8a3dd045b13d726d82f670e5b1152896d9d53e58821576670d5d682256b4b31d",
+      "chunks": [
+        {
+          "git_blob_sha": "bd2a3c1462cb091bf0513f4997c1b6f026659e22",
+          "bytes": 750000,
+          "sha256": "524ee6c6de999d4f9f3018610416fdbd41b90436e7de598aeffb48bfbe317936"
+        },
+        {
+          "git_blob_sha": "c31dcf1f0e19bf6c100efe798960716a5937f4e5",
+          "bytes": 750000,
+          "sha256": "b112c25da986fbbefc10099c9285b3e4d3a1564458678a2d4d94f83320ecd238"
+        },
+        {
+          "git_blob_sha": "f1aacff0d9289711087632d7426afae6b159e981",
+          "bytes": 750000,
+          "sha256": "a27adb2a7862f08e3422a17bba07947f9760d55a16ca9987b24160fb55540680"
+        },
+        {
+          "git_blob_sha": "d4babc4fe71fc988b1f75750e880d4bb85ea51c3",
+          "bytes": 750000,
+          "sha256": "7acfa8d2843e474c2ea0825003ac6b3f0167b881b60aca446fa8e947edb02671"
+        },
+        {
+          "git_blob_sha": "17dc0be46fca84fb830e2273be1f4b17d0295edd",
+          "bytes": 750000,
+          "sha256": "4538467f61d281d9d3453d378befe0c10156a1cc6cc5aa894ff0c712ed583706"
+        },
+        {
+          "git_blob_sha": "33eba7b5e1f745ae55bb85a4112c343b8d0f9e61",
+          "bytes": 202,
+          "sha256": "c43de0413fe075881c2b86027b794d178788e7543ecab829d0d26cc0655c00f9"
+        }
+      ]
+    }
+  },
+  "source": {
+    "name": "beta8-exact-source.zip",
+    "bytes": 932600,
+    "sha256": "fd5a48cbcfedf92f618575b226d538020ce44ef326d4cbc09f115b0506c718bd",
+    "chunks": [
+      {
+        "git_blob_sha": "98dc2bf9dc4df001724b1ee643a864715e9d8fc8",
+        "bytes": 524288,
+        "sha256": "42753447ff90b72a4130a4306b24d55f30365a6e4ac3a807a31e93cd7b2cc5c9"
+      },
+      {
+        "git_blob_sha": "6db68057260209c4a524bb3594e95cd8b50a66da",
+        "bytes": 408312,
+        "sha256": "3bbab002ab20d49ef5e7a2932bcc285dc0f567f98b86366ed9bb73f67c2d4a46"
+      }
+    ]
+  }
+}
