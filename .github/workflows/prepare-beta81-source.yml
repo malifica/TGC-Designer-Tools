@@ -1,0 +1,114 @@
+name: Prepare Beta 8.1 source (no executable build)
+on:
+  push:
+    branches: ['release/beta8.1-publication']
+    paths:
+      - '.github/workflows/prepare-beta81-source.yml'
+      - 'release-prep/beta81/**'
+permissions:
+  contents: write
+concurrency:
+  group: tgc-beta81-source-preparation
+  cancel-in-progress: false
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+  PYTHONUTF8: '1'
+  PYTHONUNBUFFERED: '1'
+  EXPECTED_MAIN: '670e7aa57a19d6a6228718e40c6b846e34e72034'
+jobs:
+  prepare:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Read reviewed preparation package
+        uses: actions/checkout@v6
+        with:
+          path: staging
+          persist-credentials: false
+      - name: Read actual main (never reset or force-push)
+        uses: actions/checkout@v6
+        with:
+          ref: main
+          path: source
+          fetch-depth: 1
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+      - name: Verify package and prepare source
+        shell: python
+        run: |
+          import hashlib, io, json, os, pathlib, subprocess, sys, zipfile
+          root = pathlib.Path(os.environ['GITHUB_WORKSPACE'])
+          src = root / 'source'
+          assert subprocess.check_output(['git','rev-parse','HEAD'], cwd=src, text=True).strip() == os.environ['EXPECTED_MAIN'], 'Main advanced; review rather than overwrite'
+          package = b''.join((root/'staging/release-prep/beta81'/('bundle.part'+str(i))).read_bytes() for i in range(1,5))
+          assert hashlib.sha256(package).hexdigest() == '3d2852f671adacd94d7cfb2435b8a1c5dc29954c1315b0f795292b2b8e6b7d1a', 'Preparation transfer checksum mismatch'
+          prep = pathlib.Path(os.environ['RUNNER_TEMP'])/'beta81-prep'
+          prep.mkdir()
+          with zipfile.ZipFile(io.BytesIO(package)) as archive:
+              assert set(archive.namelist()) == {'TGC_BETA8_OSM_WOODS_V1.zip','prepare_beta81.py','COLLECT_BETA8_FOR_PUBLICATION.py'}
+              assert archive.testzip() is None
+              archive.extractall(prep)
+          receipt = root/'verification'
+          receipt.mkdir()
+          result = subprocess.run([sys.executable,str(prep/'prepare_beta81.py'),str(src)], capture_output=True, text=True)
+          (receipt/'prepare.log').write_text(result.stdout+result.stderr, encoding='utf-8')
+          print(result.stdout, result.stderr)
+          result.check_returncode()
+          changes = json.loads(result.stdout)
+          assert changes['version']=='v0.5.0-2k25-beta8.1' and len(changes['changed_files'])==27
+          (receipt/'prepared.json').write_text(json.dumps(changes, indent=2)+'\n', encoding='utf-8')
+      - name: Install actual runtime dependencies for source checks
+        working-directory: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install -r requirements.txt
+          command -v xvfb-run || { sudo apt-get update -qq && sudo apt-get install -y xvfb xauth; }
+          python -c "import overpy, rasterio, shapely, scipy, tkinter; print('Native overpy:', overpy.__version__); print('Rasterio:', rasterio.__version__); print('Shapely:', shapely.__version__)"
+      - name: Run real-dependency regression checks (not Windows or game testing)
+        working-directory: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          for test in VERIFY_BETA8_OSM_WOODS_V1.py VERIFY_TGC_HBCC_MULCH_V1.py VERIFY_TGC_UNITY_RAW_SVG_V1.py VERIFY_BETA7_UNITY_INTEGRATION_V2.py VERIFY_BETA8_CFS.py VERIFY_BETA8_TREE_CONTROLS.py VERIFY_BETA8_RESOLVED_SHAPES.py VERIFY_BETA8_THEME_PLANTING.py VERIFY_BETA6_TREE_TOPOLOGY.py VERIFY_BETA6_MULTIPOLYGON_MULCH_V1.py VERIFY_BETA7_LOCAL_RELATIONS.py VERIFY_BETA7_LOCAL_RELATION_CONSUMERS.py; do
+            test -f "$test"
+            xvfb-run -a python "$test" 2>&1 | tee "../verification/${test%.py}.log"
+          done
+          xvfb-run -a python VERIFY_BETA7_LOCAL_FEATURES_V6.py --installed 2>&1 | tee ../verification/VERIFY_BETA7_LOCAL_FEATURES_V6_installed.log
+      - name: Commit verified source only to main
+        shell: python
+        run: |
+          import ast, hashlib, json, os, pathlib, subprocess
+          root=pathlib.Path(os.environ['GITHUB_WORKSPACE']); src=root/'source'; receipt=root/'verification'
+          def git(*args): return subprocess.check_output(['git',*args],cwd=src,text=True).strip()
+          report=json.loads((receipt/'prepared.json').read_text())
+          changed=set(git('diff','--name-only').splitlines()) | set(git('ls-files','--others','--exclude-standard').splitlines())
+          assert changed==set(report['changed_files']), 'Unexpected files after tests: '+repr(changed.symmetric_difference(report['changed_files']))
+          assert git('rev-parse','HEAD')==os.environ['EXPECTED_MAIN']
+          assert git('ls-remote','origin','refs/heads/main').split()[0]==os.environ['EXPECTED_MAIN'], 'Main advanced; refusing overwrite'
+          manifest=json.loads((src/'BETA8_1_SOURCE_PREPARATION.json').read_text())
+          for name,expected in manifest['files'].items():
+              assert hashlib.sha256((src/name).read_bytes()).hexdigest()==expected['sha256'], 'Source changed during validation: '+name
+          for name in report['changed_files']:
+              if name.endswith('.py'): ast.parse((src/name).read_text('utf-8-sig'),filename=name,feature_version=(3,11))
+          git('config','user.name','github-actions[bot]');git('config','user.email','41898282+github-actions[bot]@users.noreply.github.com')
+          git('add','--',*report['changed_files'])
+          git('commit','-m','Prepare Beta 8.1: standard OSM woodland/woodchip import and separate tree points')
+          commit=git('rev-parse','HEAD')
+          git('push','origin','HEAD:main')
+          assert git('ls-remote','origin','refs/heads/main').split()[0]==commit
+          report.update(source_commit=commit,base_commit=os.environ['EXPECTED_MAIN'],native_dependencies=True,windows_exe_built=False,release_tag_created=False,release_assets_published=False)
+          (receipt/'source-preparation-receipt.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8')
+          with open(os.environ['GITHUB_STEP_SUMMARY'],'a',encoding='utf-8') as summary:
+              summary.write('## Beta 8.1 source prepared\n\nCommit: `'+commit+'`\n\n27 source/build/documentation files updated. Real-dependency regression checks passed. No Windows executable was compiled; no release/tag/assets were published. The existing Beta 8 release is unchanged.\n')
+          print(json.dumps(report,indent=2))
+      - name: Retain preparation and validation receipts
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: TGC-Beta81-Source-Preparation-${{ github.run_id }}-${{ github.run_attempt }}
+          path: verification/
+          retention-days: 30
+          if-no-files-found: error
