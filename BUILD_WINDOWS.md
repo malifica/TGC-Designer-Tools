@@ -2,7 +2,7 @@
 
 ## Current source: Beta 8.1
 
-The repository is prepared for `v0.5.0-2k25-beta8.1`. The published Beta 8 download remains unchanged until a tested Beta 8.1 Windows build and matching source are supplied and published.
+The [Beta 8.1 Windows prerelease](https://github.com/malifica/TGC-Designer-Tools/releases/tag/v0.5.0-2k25-beta8.1) contains the supplied executable unchanged and its matching source. Measured executable and source hashes are recorded in [BETA8_1_BUILD_SOURCE_MANIFEST.json](BETA8_1_BUILD_SOURCE_MANIFEST.json).
 
 Use the existing Windows checkout and virtual environment; do not reset local changes:
 
@@ -24,7 +24,7 @@ After a successful tested build, collect the existing executable and source with
 
 The collector creates a timestamped ZIP under `_release_upload` with `UPLOAD_MANIFEST.json`. It does not publish, rename, rebuild, or modify the EXE. Collection records byte hashes; the publisher must additionally verify that source and frozen modules match.
 
-Use the existing-build publication procedure described in `BETA8_1_PUBLICATION_HANDOFF.md`. Once a verified Beta 8.1 EXE exists, publish those exact bytes; do not silently rebuild, substitute the Beta 8 EXE, or relabel it. Historical instructions below are retained for reference, not as current build commands.
+The existing-build publication procedure is retained in `BETA8_1_PUBLICATION_HANDOFF.md`. Publication uses the verified supplied EXE bytes without a rebuild or substitution. Historical instructions below are retained for reference, not as current build commands.
 
 
 ## Historical Beta 8 publication

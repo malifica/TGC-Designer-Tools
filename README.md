@@ -2,18 +2,18 @@
 
 Build PGA TOUR 2K25 courses from **LiDAR, GeoTIFF DEMs, OpenStreetMap, and Unity RAW/SVG data**. Import real-world terrain and course features, align the layout visually, choose regional vegetation, and export a `.course` file for Designer.
 
-**Latest published release: v0.5.0-2k25-beta8** · **Windows x64** · Maintained by **malifica**
+**Latest published release: v0.5.0-2k25-beta8.1** · **Windows x64** · Maintained by **malifica**
 
-[Download Beta 8](https://github.com/malifica/TGC-Designer-Tools/releases/tag/v0.5.0-2k25-beta8) · [Release notes](RELEASE_NOTES_v0.5.0-2k25-beta8.md) · [Change history](CHANGELOG.md)
+[Download Beta 8.1](https://github.com/malifica/TGC-Designer-Tools/releases/tag/v0.5.0-2k25-beta8.1) · [Release notes](RELEASE_NOTES_v0.5.0-2k25-beta8.1.md) · [Change history](CHANGELOG.md)
 
-## Beta 8.1 source update — Windows publication pending
+## Beta 8.1 highlights
 
-**Current source:** `v0.5.0-2k25-beta8.1`. **Latest published download remains Beta 8** until the matching Windows EXE is supplied and published.
+The supplied Beta 8.1 Windows executable is published unchanged, with matching [release source](https://github.com/malifica/TGC-Designer-Tools/commit/67980485fd0639e3458382487ed1fee831de078d) and a [build/source manifest](BETA8_1_BUILD_SOURCE_MANIFEST.json).
 
 - Separate **Import Woods / Woodchip Areas (Mulch)** and **Import Individual OSM Tree Points** controls. Both default OFF; woodland surfaces no longer enable tree-point planting.
 - Standard `natural=wood`, `landuse=forest`, and closed `surface=woodchips` areas generate dry native mulch, separate from water.
 - Complete woodland multipolygons preserve inner cutouts; incomplete or invalid geometry is reported rather than filled across missing members.
-- Unity/SVG export writes standard woodland or woodchip classifications and omits private `tgc:*` feature annotations.
+- Unity/SVG export writes standard woodland or woodchip classifications. Multipolygon member ways retain `tgc:svg_id` bookkeeping metadata.
 - Obsolete `golf=mulch` areas warn and are skipped instead of being silently reclassified.
 - Existing LiDAR-tree detection, weighted planting, regional themes, terrain, background registration, and local feature editing are retained.
 
@@ -122,15 +122,15 @@ Regional profiles provide weighted tree palettes and coordinated playing-surface
 
 ## Windows downloads and source build
 
-The Windows release contains `tgc_gui_2k25_beta8.exe`. Its title is **TGC Designer Tools 2K25 - Beta 8**. Download the Windows ZIP for the executable, editable profiles, spline configuration, and documentation. SHA-256 files accompany both the standalone EXE and ZIP.
+The Windows release contains `tgc_gui_2k25_beta8_1.exe`. Its title is **TGC Designer Tools 2K25 - Beta 8.1**. Download the Windows ZIP for the executable, editable profiles, spline configuration, and documentation. SHA-256 files accompany both the standalone EXE and ZIP.
 
 For an existing source checkout with its dependencies installed, run:
 
 ```bat
-BUILD_TGC_2K25_BETA8.bat
+BUILD_TGC_2K25_BETA8_1.bat
 ```
 
-The executable is written to `dist\tgc_gui_2k25_beta8.exe`. Beta 7 remains available separately. Environment details are in [BUILD_WINDOWS.md](BUILD_WINDOWS.md).
+The executable is written to `dist\tgc_gui_2k25_beta8_1.exe`. [Beta 8](https://github.com/malifica/TGC-Designer-Tools/releases/tag/v0.5.0-2k25-beta8) and [Beta 7](https://github.com/malifica/TGC-Designer-Tools/releases/tag/v0.5.0-2k25-beta7) remain available separately. Environment details are in [BUILD_WINDOWS.md](BUILD_WINDOWS.md).
 
 ## Credits and license
 

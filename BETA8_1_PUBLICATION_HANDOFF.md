@@ -1,8 +1,18 @@
 # Beta 8.1 publication handoff
 
-## Prepared source, not published Windows assets
+## Published release
 
-Repository: `malifica/TGC-Designer-Tools`. Source preparation starts from Beta 8 commit `670e7aa57a19d6a6228718e40c6b846e34e72034`. Read current `main` and its preparation manifest to identify the resulting commit. The publication-control branch is `release/beta8.1-publication`; do not rerun its source-preparation workflow after main has advanced.
+[Beta 8.1 Windows prerelease](https://github.com/malifica/TGC-Designer-Tools/releases/tag/v0.5.0-2k25-beta8.1) uses the supplied `tgc_gui_2k25_beta8_1.exe` unchanged. Its release tag points to source commit [`67980485fd0639e3458382487ed1fee831de078d`](https://github.com/malifica/TGC-Designer-Tools/commit/67980485fd0639e3458382487ed1fee831de078d).
+
+The executable is 194,211,815 bytes with SHA-256 `d05d4e17e59a4e69d7185d411341cef9b3c713ad6e6fc4e48101c63aec9f37d4`. See `BETA8_1_BUILD_SOURCE_MANIFEST.json`, `BETA8_1_BUILD_VALIDATION.json`, and `BETA8_1_UPLOAD_MANIFEST.json` for the recorded source and binary checks. No additional Windows GUI or in-game testing is claimed.
+
+The [publication workflow](https://github.com/malifica/TGC-Designer-Tools/actions/runs/41085429145) downloaded all four public assets and both automatic source archives without authentication. Their bytes, checksums, packaged support, and all 187 committed source files passed verification. The complete result is recorded in [BETA8_1_PUBLICATION_VERIFICATION.json](BETA8_1_PUBLICATION_VERIFICATION.json).
+
+The procedure below is retained as publication history and guardrails. The existing public tag and assets must not be replaced with different bytes.
+
+## Source preparation
+
+Repository: `malifica/TGC-Designer-Tools`. Source preparation started from Beta 8 commit `670e7aa57a19d6a6228718e40c6b846e34e72034` and produced commit `4d666d4c91b877bb755d8e3f29104b24e4dc89d9`. Publication then recorded the actual build and matching source in the release commit above. The publication-control branch is `release/beta8.1-publication`; do not rerun its source-preparation workflow after main has advanced.
 
 Identity:
 - Tag: `v0.5.0-2k25-beta8.1`
@@ -19,13 +29,13 @@ The prior successful publication used branch `release/beta8-publication`; the fi
 
 Do not reuse Beta 8 release IDs, asset IDs, hashes, or target commit. The old release and tag must remain unchanged.
 
-## Required input
+## Supplied input
 
-Look for the user's newly supplied `TGC_BETA8_1_EXISTING_BUILD_AND_SOURCE_*.zip` in the current conversation or Library. It must contain `dist/tgc_gui_2k25_beta8_1.exe`, matching application source, profiles/build support, and `UPLOAD_MANIFEST.json`. A Beta 8 archive is not a substitute. No Beta 8.1 EXE was created by source preparation.
+The supplied archive was `TGC_BETA8_1_EXISTING_BUILD_AND_SOURCE_20261030T142434_679432Z.zip`. It contains `dist/tgc_gui_2k25_beta8_1.exe`, matching application source, profiles/build support, and `UPLOAD_MANIFEST.json`. All 142 manifest entries were verified. No Beta 8.1 EXE was created by source preparation.
 
-If no Beta 8.1 build exists, provide the normal Windows CMD build/collect commands from BUILD_WINDOWS.md and ask for the resulting ZIP. Once it exists, do not build it again for publication.
+The build and collector commands remain documented in BUILD_WINDOWS.md for development. The published executable was supplied separately and was not rebuilt during publication.
 
-## Verify and publish
+## Publication procedure (reference)
 
 1. Verify every upload-manifest entry and record the supplied EXE SHA-256. Check its PE header, embedded release identity, required standard-OSM code and independent woodland/tree options. Compare matching Python source against frozen modules using the same Python bytecode version; do not compare Python 3.11 and 3.13 marshalled code naively. Include packaged regional profiles and supporting assets.
 2. Reconcile the actual build's source with current main. Do not overwrite newer source, drop unrelated updates, or label a mismatched tree as matching. BETA8_1_SOURCE_PREPARATION.json is a source-only record, not a compiled-build attestation. BETA8_BUILD_SOURCE_MANIFEST.json is historical Beta 8 evidence.
