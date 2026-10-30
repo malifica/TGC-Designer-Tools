@@ -1,0 +1,161 @@
+name: Finalize existing TGC Designer Tools Beta 8 release
+
+on:
+  push:
+    branches: ['release/beta8-publication']
+    paths:
+      - '.github/workflows/finalize-existing-beta8.yml'
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: tgc-beta8-publication
+  cancel-in-progress: false
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+  PYTHONUTF8: '1'
+
+jobs:
+  finalize:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Verify the existing draft, publish it, and download all four assets
+        shell: python
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          from concurrent.futures import ThreadPoolExecutor
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+          import time
+          import urllib.error
+          import urllib.request
+          import zipfile
+
+          REPO = 'malifica/TGC-Designer-Tools'
+          RELEASE_ID = 428940957
+          TAG = 'v0.5.0-2k25-beta8'
+          SOURCE = '670e7aa57a19d6a6228718e40c6b846e34e72034'
+          TITLE = 'TGC Designer Tools 2K25 - Beta 8'
+          EXE = 'tgc_gui_2k25_beta8.exe'
+          ZIP = 'TGC-Designer-Tools-2K25-v0.5.0-2k25-beta8-Windows-x64.zip'
+          NOTES = 'RELEASE_NOTES_v0.5.0-2k25-beta8.md'
+          NOTES_SHA = '74196a427d57e400ee05388b205e313ce29f5344aa89aabbd36588b53592431a'
+          EXPECTED = {
+              ZIP: {'id': 691869385, 'bytes': 192851611, 'sha256': '7d114b0e062e7a3f44f4f416e31f54a633f415fff3c455f73a4c6861ec94c328'},
+              ZIP + '.sha256.txt': {'id': 691869640, 'bytes': 124, 'sha256': 'c79f489f0da99a7cf0bb3f31a9a97d1ed593743dd7608990bad33396fe53169b'},
+              EXE: {'id': 691869695, 'bytes': 194206055, 'sha256': 'c09217ae1b167e7c9fd232cde24c11b5206944f795de964ad9107510861b3d81'},
+              EXE + '.sha256.txt': {'id': 691869966, 'bytes': 89, 'sha256': '2798d079b2476002793767bdb20d8c3a4e3d07b03ee081f9f4c3024dd2106a5e'},
+          }
+
+          def require(condition, message):
+              if not condition:
+                  raise RuntimeError(message)
+
+          require(os.environ['GITHUB_REPOSITORY'] == REPO, 'Wrong repository')
+
+          def api(path, method='GET', body=None):
+              headers = {'Accept': 'application/vnd.github+json', 'Authorization': 'Bearer ' + os.environ['GH_TOKEN'], 'X-GitHub-Api-Version': '2022-11-28'}
+              payload = None if body is None else json.dumps(body).encode('utf-8')
+              if payload is not None:
+                  headers['Content-Type'] = 'application/json'
+              request = urllib.request.Request('https://api.github.com/repos/' + REPO + '/' + path, data=payload, headers=headers, method=method)
+              with urllib.request.urlopen(request, timeout=90) as response:
+                  return json.load(response)
+
+          def validate(release):
+              require(release['id'] == RELEASE_ID and release['tag_name'] == TAG and release['name'] == TITLE, 'Release identity differs')
+              require(release['target_commitish'] == SOURCE and release['prerelease'] is True, 'Release source or prerelease state differs')
+              require(hashlib.sha256(release['body'].encode('utf-8')).hexdigest() == NOTES_SHA, 'Approved notes differ')
+              actual = {asset['name']: asset for asset in release['assets']}
+              require(len(release['assets']) == 4 and set(actual) == set(EXPECTED), 'Unexpected release asset set')
+              for name, expected in EXPECTED.items():
+                  asset = actual[name]
+                  require(asset['id'] == expected['id'] and asset['state'] == 'uploaded' and asset['size'] == expected['bytes'] and asset['digest'] == 'sha256:' + expected['sha256'], 'Uploaded asset differs: ' + name)
+              for ref in ('heads/main', 'tags/' + TAG):
+                  require(api('git/ref/' + ref)['object']['sha'] == SOURCE, 'Published source reference differs: ' + ref)
+              return actual
+
+          release = api('releases/' + str(RELEASE_ID))
+          validate(release)
+          if release['draft']:
+              api('releases/' + str(RELEASE_ID), method='PATCH', body={'draft': False, 'prerelease': True, 'make_latest': 'false'})
+          release = api('releases/' + str(RELEASE_ID))
+          assets = validate(release)
+          require(release['draft'] is False and release['published_at'], 'Release is not public')
+          print('Existing Beta 8 prerelease is public:', release['html_url'], flush=True)
+
+          downloads = Path('public-downloads')
+          downloads.mkdir()
+          prefix = 'https://github.com/' + REPO + '/releases/download/' + TAG + '/'
+
+          def download(name):
+              asset = assets[name]
+              require(asset['browser_download_url'] == prefix + name, 'Unexpected public download URL')
+              destination = downloads / name
+              # Public downloads deliberately carry no GitHub authorization header.
+              request = urllib.request.Request(asset['browser_download_url'], headers={'User-Agent': 'TGC-Beta8-release-verification'})
+              for attempt in range(5):
+                  try:
+                      checksum = hashlib.sha256()
+                      size = 0
+                      with urllib.request.urlopen(request, timeout=180) as response, destination.open('wb') as output:
+                          while True:
+                              block = response.read(1024 * 1024)
+                              if not block:
+                                  break
+                              output.write(block)
+                              checksum.update(block)
+                              size += len(block)
+                      expected = EXPECTED[name]
+                      require(size == expected['bytes'] and checksum.hexdigest() == expected['sha256'], 'Actual public download differs: ' + name)
+                      print('Verified public download:', name, size, checksum.hexdigest(), flush=True)
+                      return name
+                  except urllib.error.HTTPError as error:
+                      if error.code not in (404, 429, 500, 502, 503, 504) or attempt == 4:
+                          raise
+                      time.sleep(2 ** attempt)
+
+          with ThreadPoolExecutor(max_workers=2) as pool:
+              require(set(pool.map(download, sorted(EXPECTED))) == set(EXPECTED), 'Incomplete public download verification')
+
+          for name in (EXE, ZIP):
+              expected_text = EXPECTED[name]['sha256'] + '  ' + name + '\n'
+              require((downloads / (name + '.sha256.txt')).read_text(encoding='ascii') == expected_text, 'Published checksum file differs')
+
+          with zipfile.ZipFile(downloads / ZIP) as zipped:
+              with zipped.open(EXE) as stream:
+                  require(hashlib.file_digest(stream, 'sha256').hexdigest() == EXPECTED[EXE]['sha256'], 'Downloaded ZIP executable differs from supplied build')
+              require(hashlib.sha256(zipped.read(NOTES)).hexdigest() == NOTES_SHA, 'Downloaded ZIP notes differ')
+              require(len([name for name in zipped.namelist() if name.startswith('tree_profiles/') and name.endswith('.json')]) == 14, 'Downloaded ZIP profiles are incomplete')
+
+          validate(api('releases/' + str(RELEASE_ID)))
+          report = {
+              'release_url': release['html_url'],
+              'release_id': RELEASE_ID,
+              'source_sha': SOURCE,
+              'actual_public_downloads_verified_without_authentication': True,
+              'zip_executable_matches_supplied_build': True,
+              'exe_sha256': EXPECTED[EXE]['sha256'],
+              'assets': {name: {**expected, 'url': assets[name]['browser_download_url']} for name, expected in EXPECTED.items()},
+          }
+          receipts = Path('verification')
+          receipts.mkdir()
+          (receipts / 'verified-release.json').write_text(json.dumps(report, indent=2) + '\n', encoding='utf-8')
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a', encoding='utf-8') as summary:
+              summary.write('## Beta 8 publication verified\n\n' + release['html_url'] + '\n\nAll four actual public downloads were retrieved without authentication and matched their expected SHA-256 checksums. The executable inside the Windows ZIP matches the supplied build byte for byte.\n\nSource: `' + SOURCE + '`\n\nExecutable SHA-256: `' + EXPECTED[EXE]['sha256'] + '`\n')
+          print(json.dumps(report, indent=2), flush=True)
+
+      - name: Retain the public download verification receipt
+        uses: actions/upload-artifact@v6
+        with:
+          name: TGC-Beta8-Public-Download-Verification-${{ github.run_id }}-${{ github.run_attempt }}
+          path: verification/verified-release.json
+          retention-days: 30
+          if-no-files-found: error
