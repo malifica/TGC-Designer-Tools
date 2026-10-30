@@ -85,16 +85,21 @@ jobs:
           def git(*args): return subprocess.check_output(['git',*args],cwd=src,text=True).strip()
           report=json.loads((receipt/'prepared.json').read_text())
           changed=set(git('diff','--name-only').splitlines()) | set(git('ls-files','--others','--exclude-standard').splitlines())
+          # Only this explicitly reviewed new metadata file is ignored by *.json.
+          manifest_name='BETA8_1_SOURCE_PREPARATION.json'
+          assert (src/manifest_name).is_file()
+          if subprocess.run(['git','check-ignore','-q',manifest_name],cwd=src).returncode==0:
+              changed.add(manifest_name)
           assert changed==set(report['changed_files']), 'Unexpected files after tests: '+repr(changed.symmetric_difference(report['changed_files']))
           assert git('rev-parse','HEAD')==os.environ['EXPECTED_MAIN']
           assert git('ls-remote','origin','refs/heads/main').split()[0]==os.environ['EXPECTED_MAIN'], 'Main advanced; refusing overwrite'
-          manifest=json.loads((src/'BETA8_1_SOURCE_PREPARATION.json').read_text())
+          manifest=json.loads((src/manifest_name).read_text())
           for name,expected in manifest['files'].items():
               assert hashlib.sha256((src/name).read_bytes()).hexdigest()==expected['sha256'], 'Source changed during validation: '+name
           for name in report['changed_files']:
               if name.endswith('.py'): ast.parse((src/name).read_text('utf-8-sig'),filename=name,feature_version=(3,11))
           git('config','user.name','github-actions[bot]');git('config','user.email','41898282+github-actions[bot]@users.noreply.github.com')
-          git('add','--',*report['changed_files'])
+          git('add','-f','--',*report['changed_files'])
           git('commit','-m','Prepare Beta 8.1: standard OSM woodland/woodchip import and separate tree points')
           commit=git('rev-parse','HEAD')
           git('push','origin','HEAD:main')
