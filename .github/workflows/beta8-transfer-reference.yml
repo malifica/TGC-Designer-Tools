@@ -1,0 +1,50 @@
+name: Prepare exact Beta 8 transfer
+on:
+  push:
+    branches: ['release/beta8-publication']
+    paths: ['.github/workflows/beta8-transfer-reference.yml']
+permissions:
+  contents: read
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+  PYTHONUTF8: '1'
+jobs:
+  reference:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Retrieve published binary and package references
+        shell: python
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          import pathlib, subprocess, json, hashlib, zipfile, sys
+          out=pathlib.Path('transfer-reference'); out.mkdir()
+          for version in (6,7):
+              subprocess.run(['gh','release','download','v0.5.0-2k25-beta'+str(version),'--repo',__import__('os').environ['GITHUB_REPOSITORY'],'--pattern','tgc_gui_2k25_beta'+str(version)+'.exe','--dir',str(out)],check=True)
+          wheels=out/'wheels'; wheels.mkdir()
+          packages=['PySide6_Essentials==6.12.0','shiboken6==6.12.0','shapely==2.1.2','Pillow==11.0.0','charset_normalizer==3.4.4']
+          results={}
+          for package in packages:
+              result=subprocess.run([sys.executable,'-m','pip','download','--disable-pip-version-check','--only-binary=:all:','--no-deps','--platform','win_amd64','--python-version','311','--implementation','cp','--dest',str(wheels),package],capture_output=True,text=True)
+              results[package]={'returncode':result.returncode,'output':result.stdout+result.stderr}
+              print(package, 'downloaded' if result.returncode==0 else 'not available; will use exact local data')
+          (out/'retrieval.json').write_text(json.dumps(results,indent=2),encoding='utf8')
+          names=subprocess.check_output(['git','ls-files'],text=True).splitlines()
+          with zipfile.ZipFile(out/'repository-source.zip','w',zipfile.ZIP_DEFLATED) as z:
+              for name in names:
+                  p=pathlib.Path(name)
+                  if p.is_file(): z.write(p,name)
+          hashes={str(p.relative_to(out)):{'bytes':p.stat().st_size,'sha256':hashlib.sha256(p.read_bytes()).hexdigest()} for p in out.rglob('*') if p.is_file()}
+          (out/'sha256.json').write_text(json.dumps(hashes,indent=2),encoding='utf8')
+          print(json.dumps({k:v for k,v in hashes.items() if k.endswith('.exe')},indent=2))
+      - uses: actions/upload-artifact@v6
+        with:
+          name: Beta8-Exact-Transfer-References
+          path: transfer-reference/
+          retention-days: 2
+          compression-level: 0
+          if-no-files-found: error
