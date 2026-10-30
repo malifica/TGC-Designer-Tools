@@ -1,0 +1,1077 @@
+{
+  "archive": {
+    "name": "TGC_BETA8_1_EXISTING_BUILD_AND_SOURCE_20261030T142434_679432Z.zip",
+    "bytes": 193924535,
+    "sha256": "0fab1165ebae4aa036b1092198dab6b7a6fe65c5939aa7ec71057a7237672f1e"
+  },
+  "manifest_entries_verified": 142,
+  "exe": {
+    "path": "dist/tgc_gui_2k25_beta8_1.exe",
+    "bytes": 194211815,
+    "sha256": "d05d4e17e59a4e69d7185d411341cef9b3c713ad6e6fc4e48101c63aec9f37d4",
+    "pe_machine": "0x8664",
+    "optional_header_magic": "0x20b",
+    "pyinstaller_python_version": 311,
+    "python_library": "python311.dll"
+  },
+  "no_exe_modification_or_rebuild": true,
+  "schema": "tgc-beta81-read-only-build-source-validation-v1",
+  "status": "pass",
+  "validation_python": "3.11.17 (main, Oct 14 2026, 01:05:33) [Clang 23.1.3 ]",
+  "frozen_python_bytecode_version": "3.11",
+  "pyz_magic": "a70d0d0a",
+  "carchive_entry_count": 2032,
+  "pyz_module_count": 1667,
+  "comparison_method": "Compile supplied source under matching CPython 3.11 bytecode version without executing it; recursively compare code objects, excluding environment-specific co_filename and debug column ranges. Preserve decoded bytecode-to-line mapping, first line numbers, exception tables, exact bytecode, arguments, names, stack sizes, flags and recursively typed constants. JSON canonicalization avoids marshal reference/interning representation differences. Three inherited verification functions have only debug column-range differences under CPython 3.11.17; decoded line mappings and all executable fields match exactly.",
+  "compared_source_count": 57,
+  "frozen_source_comparisons": [
+    {
+      "module": "GeoPointCloud",
+      "source": "GeoPointCloud.py",
+      "source_bytes": 12968,
+      "source_sha256": "75431052f9ebab4b90d120d132b831398eb86ee3589aba10bc4bf6f533c1f8c3",
+      "normalized_code_sha256": "9a6ee6b9743e6a6dcd5366c6cf16cc7c215929db45bf0fa60fc800c4cd7f0d39",
+      "matching_optimization_levels": [
+        0,
+        1,
+        2
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1,
+        2
+      ]
+    },
+    {
+      "module": "OSMTGC",
+      "source": "OSMTGC.py",
+      "source_bytes": 114742,
+      "source_sha256": "d433568a85f210bc9c2fd5afbb32bdff2dc1579b59dc3df97313502b86211219",
+      "normalized_code_sha256": "b754c4c57c4c93523ffb6639260a223393b75fd1523454e7d946252dc1f8d6a8",
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "VERIFY_BETA8_THEME_PLANTING",
+      "source": "VERIFY_BETA8_THEME_PLANTING.py",
+      "source_bytes": 4755,
+      "source_sha256": "121cf1a09fd4bd4e10ce97472f04052b8bd3c2a56c823182dc0ef89f025235ad",
+      "normalized_code_sha256": "014032dfb870f421e93a462bbd335b4e76d23e33cc0f6272f81ed2c991df8195",
+      "matching_optimization_levels": [
+        0
+      ],
+      "raw_debug_line_table_matching_optimization_levels": []
+    },
+    {
+      "module": "auto_red_mask",
+      "source": "auto_red_mask.py",
+      "source_bytes": 24213,
+      "source_sha256": "9315b13bb104400fc36edf7924fd9ebfb0d8c869893e0161eb5566b85a9670a8",
+      "normalized_code_sha256": "58aec4809671ab0a4b7cbfff615dfd05eb599170f415a67b76634dd5548523fe",
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "cfs_georef",
+      "source": "cfs_georef.py",
+      "source_bytes": 8517,
+      "source_sha256": "c6a4210c18240f15591d3088074cedd3770b782019f57be767e6b5291f6225a6",
+      "normalized_code_sha256": "cf62523b827df3d43e5a37bded15437cec25e391c24d374f4fbe003cda9bfd23",
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "dem_map_api",
+      "source": "dem_map_api.py",
+      "source_bytes": 43015,
+      "source_sha256": "c7b154401f4915226a5d59543452e3ffafc956b5d410a023cc5cac030bafb3d8",
+      "normalized_code_sha256": "3cc6ecf0abfc443aa1717fa232e9b84668e64b5beb8e87017b8eb18f626fcb0c",
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "exus_additional_countries",
+      "source": "exus_additional_countries.py",
+      "source_bytes": 23779,
+      "source_sha256": "8ce5eec36803da837eeab55cd747320291b7258113ee72643a518c0a59da76bb",
+      "normalized_code_sha256": "af3c604e83a4dd0a2cf0aeec7177317c7bf8201450887a6a383550a449f6a322",
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "exus_france_crs",
+      "source": "exus_france_crs.py",
+      "source_bytes": 15676,
+      "source_sha256": "efb2e892afebf9d1526478d8d7a485b2d135edb780d4e1ba2b9f97ea391d6694",
+      "normalized_code_sha256": "cd7f4adbc25149eda199755b8f2d3472e9e469f2efa0d7d10e289890e1957e63",
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "exus_lidar_sources",
+      "source": "exus_lidar_sources.py",
+      "source_bytes": 20460,
+      "source_sha256": "96a506e225d828c0ae9ee010786674c12dcac1c2884ae482306ee1edc78f87bb",
+      "normalized_code_sha256": "a160581d25aa04f7accc2b5911367f21a36a2f6a4790779e6b9c01a8607e6b41",
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "exus_raster",
+      "source": "exus_raster.py",
+      "source_bytes": 4914,
+      "source_sha256": "241a6efd28d27a826d6d79d4b17f514bd6197b2b3641aa1b74273124c3935d2d",
+      "normalized_code_sha256": "d309bec0b81ae3e3a861015b816821bad5a8531acda1c65647f5348f64e1492b",
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "exus_resolution_policy",
+      "source": "exus_resolution_policy.py",
+      "source_bytes": 5765,
+      "source_sha256": "eebf38eb3b91e8f2d84b11f9fb92e79f38c0188c450ac35f83f5afa677ad13bc",
+      "normalized_code_sha256": "ee8fef8b2123424fddf666eaf3c637c1d78cc29de447e33978e848c2dc876714",
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "exus_service_raster",
+      "source": "exus_service_raster.py",
+      "source_bytes": 13616,
+      "source_sha256": "4d09b7e11fe5ab8fa42ea9bda73fbcc2576c35de19884793d6697430525d625a",
+      "normalized_code_sha256": "d5af91c1dc9647c94caeb6fe4e16eca60eff8c6101409fb53a4b3063877bd5c3",
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "infill_image",
+      "source": "infill_image.py",
+      "source_bytes": 4933,
+      "source_sha256": "7a3496c9c9978146f88a6a406be865f62003bbfdd5c484b24de2c822c7577380",
+      "normalized_code_sha256": "224817d84a7f822d2fa43eac496ae35c7e57db2525ab60cd8f4881e02996c243",
+      "matching_optimization_levels": [
+        0,
+        1,
+        2
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1,
+        2
+      ]
+    },
+    {
+      "module": "lidar_fast_native",
+      "source": "lidar_fast_native.py",
+      "source_bytes": 4378,
+      "source_sha256": "66d8208e6e9828d3a62c0001adff00590852d5458a530273d5f0fd5a769b9a8a",
+      "normalized_code_sha256": "f890a239851b17a6bec2fb2d8a5a100a4132038072ccf841ecd45dee147fe91b",
+      "matching_optimization_levels": [
+        0,
+        1,
+        2
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1,
+        2
+      ]
+    },
+    {
+      "module": "lidar_feature_filter",
+      "source": "lidar_feature_filter.py",
+      "source_bytes": 19485,
+      "source_sha256": "438f375ef7e901552036d754ad06fcfc1ae4c0b3deb4feddacff42d5c9cb5546",
+      "normalized_code_sha256": "c2f7797d26263ae9f908e040b1d9a3fa42456a9a24ebde57417a199fa245a74d",
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "lidar_map_api",
+      "source": "lidar_map_api.py",
+      "source_bytes": 59657,
+      "source_sha256": "f775866d8d6c3ca1e639b231225569fb4df985d48c73daa34bf65e3cb07f5aa7",
+      "normalized_code_sha256": "5f65ec0fa0b10f32589da3ea9cec5084d92be10f40fdf95669539aff4505a837",
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "lidar_tree_topology",
+      "source": "lidar_tree_topology.py",
+      "source_bytes": 17641,
+      "source_sha256": "22e159615d1c7b8638616228fe2115545560f2c40a7e1541f90b0dbed85b26fe",
+      "normalized_code_sha256": "773f2d87e27ff3a2661114300b887a66fc84ca12dfe2d3959989f05a4ea39ed5",
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "osm_alignment_viewer",
+      "source": "osm_alignment_viewer.py",
+      "source_bytes": 45933,
+      "source_sha256": "7d09a9ec7b5f1d02692c8e447d6ee61738539df9279ae8b492b14a5f2dce02e4",
+      "normalized_code_sha256": "5073250883224f79a27c302e895e61cfb889405dc8c52f502c64d6487246ba54",
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "osm_custom_layout",
+      "source": "osm_custom_layout.py",
+      "source_bytes": 9808,
+      "source_sha256": "7373b88d8c758cebdc0aa721f59a1971ad896915326dbc4a1a923ffde9f6908a",
+      "normalized_code_sha256": "2ea7097977f1dd33b9a5bb1e905838e2543f2d7dc17dd2b751aff7a60c1d2a48",
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "osm_mask_alignment",
+      "source": "osm_mask_alignment.py",
+      "source_bytes": 31498,
+      "source_sha256": "a1fcca2f317ec4ba7f6027eec9ac1883cfb8d022644c739904d1baa42c8cb274",
+      "normalized_code_sha256": "16560328a23795fd44aebdbe284acc8752507d6ef9d61d2d111bfb9c7dc115e9",
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "osm_preview_relations",
+      "source": "osm_preview_relations.py",
+      "source_bytes": 6758,
+      "source_sha256": "ae6f0bbca52d6288b76e9fbda5dbbc51eb5074c4d4271b825ee1472420132c3c",
+      "normalized_code_sha256": "aed132def11cc0ecad1dd8fb612b3042d423192b7411e8ea3fef4f821e770b13",
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "osm_water_mulch_lock",
+      "source": "osm_water_mulch_lock.py",
+      "source_bytes": 4235,
+      "source_sha256": "955ca414de2e6524bca117b651182f4fabc081d71414856a3c979c653a35392a",
+      "normalized_code_sha256": "e023ee377bcd9cd1adc634f502ccd2f338c6753f0e193924f7e3b82a3c42429f",
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "scotland_s3",
+      "source": "scotland_s3.py",
+      "source_bytes": 13956,
+      "source_sha256": "9be8164bca25958540f46ab5a245af50e384c87ea34980c0a5ffa6c35627d4c2",
+      "normalized_code_sha256": "c18d2040e20c2fbe6f57e42e9063d8ae9565fed59089623bf68ad79a7ae79da8",
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "tgc_beta8_entry",
+      "source": "tgc_beta8_entry.py",
+      "source_bytes": 293,
+      "source_sha256": "238453961c16d0d40f073866226eb26e56a573f244b008e32290368058f60d55",
+      "normalized_code_sha256": "e1ebc30c698a84ac043565d1e25b7cc8335a2a34b9dec664fa163f9101cfffd6",
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "tgc_cfs_display",
+      "source": "tgc_cfs_display.py",
+      "source_bytes": 6720,
+      "source_sha256": "cba2d479bcd6a850db60381b298b88e73dc654822a46851f26518ff2597a166a",
+      "normalized_code_sha256": "b0908f09647c26561482575705880af025b235d84ef9262b60bf6a518afef08c",
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "tgc_cfs_widgets",
+      "source": "tgc_cfs_widgets.py",
+      "source_bytes": 2540,
+      "source_sha256": "2ab8781191fbbc2f5b3482a02d3b4136a992d91d0743d841b15745bb514d0e40",
+      "normalized_code_sha256": "32f571137374c85e7cb9d01b26245aa46a8dcbab0e9ef342f90e1166a835b5a3",
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "tgc_definitions",
+      "source": "tgc_definitions.py",
+      "source_bytes": 23158,
+      "source_sha256": "de43430eeaf97ace01099874908df5c412ec4ff19c2f7c9cc5a437386eab306f",
+      "normalized_code_sha256": "22fbf664b93fadf55f23b518e438f5072b1618261611ad10df190eaa90dd8dc9",
+      "matching_optimization_levels": [
+        0,
+        1,
+        2
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1,
+        2
+      ]
+    },
+    {
+      "module": "tgc_dem_preview",
+      "source": "tgc_dem_preview.py",
+      "source_bytes": 5791,
+      "source_sha256": "2546b9d8f0b85acf9bbeec3f60737244099132ea1bc14d0fe5bac8247b6d6c9b",
+      "normalized_code_sha256": "ced6a1dfee679f7df4c669f2e06b28235ff471c1860365b5f29e9145585c0ea7",
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "tgc_gui",
+      "source": "tgc_gui.py",
+      "source_bytes": 157579,
+      "source_sha256": "726fddff6fac1ffd814745651b6e42cd30f70dd6edfe8aa570c6a50d37468eff",
+      "normalized_code_sha256": "665093223c411478ddfb270171a98c9456ddcc67e96a0191417be6971a199a93",
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "tgc_image_terrain",
+      "source": "tgc_image_terrain.py",
+      "source_bytes": 60485,
+      "source_sha256": "cde708a9e1300a86d98914dfbdf90842bf6a4e5b871be6ee45e68d13851ff6f0",
+      "normalized_code_sha256": "48c10f6aa1109caf2d59e79c7061ff2566ee8cb9a12e490b530e2f6f47647215",
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "tgc_local_alignment",
+      "source": "tgc_local_alignment.py",
+      "source_bytes": 32111,
+      "source_sha256": "782a2b60417468abb41ea009762fb4c46f70a7b97b4ecef8d1adc61c8c4a88f8",
+      "normalized_code_sha256": "9c36cf4e186c297c138243234c081c5eacf0a06e8399f93fcc0cd792f526c87e",
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "tgc_local_alignment_detector",
+      "source": "tgc_local_alignment_detector.py",
+      "source_bytes": 13426,
+      "source_sha256": "d7fd0f9e0ca1899e21e43374d1c6bdf991bc8d42849e57336cc3f42a164634cb",
+      "normalized_code_sha256": "180d474544f7045e4b3d1226539e0d52cc638cebf4a0507b1f991736d95c7e2e",
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "tgc_local_alignment_export",
+      "source": "tgc_local_alignment_export.py",
+      "source_bytes": 16645,
+      "source_sha256": "7b54f2aaff7f4e67fbf2efd8ca2369953cb108f34caab951047649d20953e0fc",
+      "normalized_code_sha256": "4799416efe4541a03b18b17e9c65d60fcf0bf2c3c73eaef8176c90f1dd75cacd",
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "tgc_local_alignment_topology",
+      "source": "tgc_local_alignment_topology.py",
+      "source_bytes": 33044,
+      "source_sha256": "75b52bec67dd2489dae74b10860b146f834ca10e8b12d7bff76d8ac77c59d5ee",
+      "normalized_code_sha256": "523ea0f71ed6279a1e098c672c98fdeabc02b4c38ee9e5436b1be016585c2e4b",
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "tgc_local_alignment_ui",
+      "source": "tgc_local_alignment_ui.py",
+      "source_bytes": 79692,
+      "source_sha256": "91ba48e459b73643699323a54c7afc0acd106575e87f67acc53b346ea5d24812",
+      "normalized_code_sha256": "3c0070697c1a0323591caa9ab175e488a4edadc194f937f6b9eb550f968ff79b",
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "tgc_local_feature_filters",
+      "source": "tgc_local_feature_filters.py",
+      "source_bytes": 5636,
+      "source_sha256": "c7b8905bfb65632811bfd535f8271dd6a22e7ee3c90f89be5f1fc64d4e98168b",
+      "normalized_code_sha256": "aa5f4cf72b60c135c5343ec340bfdecf537e2450b2df9514591048780b75a2d0",
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "tgc_output_progress",
+      "source": "tgc_output_progress.py",
+      "source_bytes": 9448,
+      "source_sha256": "6787e7dbabbfb14695643d9fede3a107e5a72c568e4629038ab72a6a815d6ac3",
+      "normalized_code_sha256": "050af7a82d134095945f7296b5a7fa2deb0daaa354cded307c8d3b70f7dd6b01",
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "tgc_project_paths",
+      "source": "tgc_project_paths.py",
+      "source_bytes": 1630,
+      "source_sha256": "0def11080fb2729040e0d17a38d5cbd1aca78ae223c9e3e1d9b1b7e464c2d161",
+      "normalized_code_sha256": "e70bbf089f9e3aa6e5980625dd55b1b153bb9ea377a2f3554d9c0b4affd34f79",
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "tgc_projection_cache",
+      "source": "tgc_projection_cache.py",
+      "source_bytes": 1490,
+      "source_sha256": "e026e2cf83c392541874203c597c48f2013485eaa2c3bb671934cac05fd58daf",
+      "normalized_code_sha256": "b480a53e474d8cf18ab1fe0436ffe162a3910ad8714554c908674fce0fbccdb6",
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "tgc_tools",
+      "source": "tgc_tools.py",
+      "source_bytes": 60608,
+      "source_sha256": "95cf5dc3c522c68077caeaa6ca024c5a95d4b84871d79a9b7fc8a8921ca76f0f",
+      "normalized_code_sha256": "f82a738e3fb510ea56480f2f0e9e082df088647ddf9541445e8440cda458cc10",
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "tgc_tree_filter_controls",
+      "source": "tgc_tree_filter_controls.py",
+      "source_bytes": 2795,
+      "source_sha256": "6ad390fcafc831eda680533c823e7a4326a9065631f8928fb74e29f9d589c3af",
+      "normalized_code_sha256": "4b58c97325346ae01bd5817881651127892b590a2c126abce19ccda4fdfd12b8",
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "tgc_tree_size_test1_entry",
+      "source": "tgc_tree_size_test1_entry.py",
+      "source_bytes": 3746,
+      "source_sha256": "2b5e33aa34d6dd455dde21783acadbead9c9165388d007c7103773efd41af4f4",
+      "normalized_code_sha256": "06ee11e66c073df44ce538b3f4575726b03c6269a58969f044315c9654fb6380",
+      "matching_optimization_levels": [
+        0
+      ],
+      "raw_debug_line_table_matching_optimization_levels": []
+    },
+    {
+      "module": "tgc_ui_style",
+      "source": "tgc_ui_style.py",
+      "source_bytes": 30555,
+      "source_sha256": "604c31adc59602c54eb90f445ea23a86b0dc440a0835223cd93bbf5892c1725e",
+      "normalized_code_sha256": "f47a3d325ec4909a9b67c02e7692f928acbda08c36889dd3a3ebfa1db77f6ec2",
+      "matching_optimization_levels": [
+        0
+      ],
+      "raw_debug_line_table_matching_optimization_levels": []
+    },
+    {
+      "module": "tgc_unity_build_check",
+      "source": "tgc_unity_build_check.py",
+      "source_bytes": 3598,
+      "source_sha256": "d3edae4b04b900507bd310c282bc75c086ee33697d3fb407ec36ea41bd6bbcd6",
+      "normalized_code_sha256": "7fca50eed406f259da1d7e060c6f1fe15f810a4b1aa7b63eddc4c8f086f7a8df",
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "tgc_unity_import_ui",
+      "source": "tgc_unity_import_ui.py",
+      "source_bytes": 13968,
+      "source_sha256": "22a8a66b903c0a6ae4cf9db2cbf93a799d6033fb082e3f57ca653f949cb4f3d2",
+      "normalized_code_sha256": "de02491af7beab7c47b67db8a661318c82d0efe3bb42fc667587ea09c7c7c02c",
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "tgc_unity_presets",
+      "source": "tgc_unity_presets.py",
+      "source_bytes": 277,
+      "source_sha256": "c48795dbeefd700403e0f1f9ca554bd9d4f01ec203ea1d8d85384c3bc5f3b4d5",
+      "normalized_code_sha256": "517c67846a7244d09ff3733b682aa04899eb8c048ea68296111a860cdbe5dbb7",
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "tgc_unity_raw_svg",
+      "source": "tgc_unity_raw_svg.py",
+      "source_bytes": 24220,
+      "source_sha256": "86ee1f451bad7e7dc5444249d45bd61769c0c85a0f4ef77f24878ac3119985ec",
+      "normalized_code_sha256": "7beff548084d620ad6b7d82d8cdf2a2aae3184de943bd3ca54d202dc70a2cd8c",
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "tgc_unity_svg_paths",
+      "source": "tgc_unity_svg_paths.py",
+      "source_bytes": 7112,
+      "source_sha256": "215069e437627b6984de5bba27a0df0b1bb40777bc3cf35bb5b98da50ec07f94",
+      "normalized_code_sha256": "25812c4afb4de5a812a5db8d5b10379ca8760725308081eeba435973dd996d82",
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "tgc_visualizer",
+      "source": "tgc_visualizer.py",
+      "source_bytes": 19589,
+      "source_sha256": "0ac91157018bed4510958fde54b91e5558fa312fcc002e2206659a2fcc541769",
+      "normalized_code_sha256": "c81237329b3ff15bd877278c492051b8e3df07d743c572f92b99189b6ad09a12",
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "tgc_window_layout",
+      "source": "tgc_window_layout.py",
+      "source_bytes": 3090,
+      "source_sha256": "77e2aa38e5b7c2ed978ae19a30607b776a587ea9434cf14fee259b0337e4fd92",
+      "normalized_code_sha256": "b28c842e1391b3f58681bf8f25f894bec69014a4b68f8b933fbb5143e97eec69",
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "tree_mapper",
+      "source": "tree_mapper.py",
+      "source_bytes": 5958,
+      "source_sha256": "50b65c6181086a907f8e8ad044fd519ba7e79f5f08c8cdca909d5add0fdfa496",
+      "normalized_code_sha256": "a3eee4f4944c69de90551e14c754c5f1c017693163e8ab3c4d7035578246a62a",
+      "matching_optimization_levels": [
+        0,
+        1,
+        2
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1,
+        2
+      ]
+    },
+    {
+      "module": "tree_profile_manager",
+      "source": "tree_profile_manager.py",
+      "source_bytes": 12116,
+      "source_sha256": "6b06516e4d96fd3c56c4441c195ffa6d157b81ebebe0d85908644c4ba363463b",
+      "normalized_code_sha256": "e248bc6ce1392e99147f5fc589eed76ce4ad3bb1f6bb22a523ea255f061c42e1",
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "uk_lidar_downloader",
+      "source": "uk_lidar_downloader.py",
+      "source_bytes": 35319,
+      "source_sha256": "108379ab647a763f05e7b3b69011ee20cd36246aaf910a676d81aaf361d53f61",
+      "normalized_code_sha256": "02141667a15c04dea2ccfef0d46d7da2fae2b7f31e697bf67998c2ece62f36d1",
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "uk_lidar_ui",
+      "source": "uk_lidar_ui.py",
+      "source_bytes": 35618,
+      "source_sha256": "64884a2df455e569144cbaf81d961a36ab57511ebd5c4e69ee7b75601d71e7a4",
+      "normalized_code_sha256": "8d3e284a076175da4d0e072c7758c7760c2d002b0a5817584830810f8039ec01",
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "usgs_ept_downloader",
+      "source": "usgs_ept_downloader.py",
+      "source_bytes": 46109,
+      "source_sha256": "2cb57a9d8a7264fe889242ca663c390536aab3b7aa78ba8653ca651a979690b7",
+      "normalized_code_sha256": "012d93dbbd4d5bdc282fd18dcf6551c61259a4ee179ff0849d52ce8cd8b9c08b",
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "usgs_lidar_parser",
+      "source": "usgs_lidar_parser.py",
+      "source_bytes": 22679,
+      "source_sha256": "204318a68d1ec4460756ebd7e50bb881db5b8a5709430c4adf1799d52321a1ee",
+      "normalized_code_sha256": "837cc6d7fb80127d16d2ba424368aa2e5a86d214718f38e42a6afa001e56c36e",
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "rthook_rasterio",
+      "source": "PyInstaller/rthook_rasterio.py",
+      "source_bytes": 399,
+      "source_sha256": "8bd2fbc9c7ff6f1fba422aa2f2293f25a22f01912bc9ac22a1e7d40f2a683227",
+      "normalized_code_sha256": "6e72edc194f153870f0590775da20b8d6613acb4e9b1976fdd3b98731dd1e3e4",
+      "matching_optimization_levels": [
+        0,
+        1,
+        2
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1,
+        2
+      ]
+    }
+  ],
+  "mismatch_count": 0,
+  "debug_column_only_difference_modules": [
+    "VERIFY_BETA8_THEME_PLANTING",
+    "tgc_tree_size_test1_entry",
+    "tgc_ui_style"
+  ],
+  "source_files_not_frozen": [
+    "BUILD_TGC_2K25_BETA7.py",
+    "BUILD_TGC_2K25_BETA8.py",
+    "BUILD_TGC_2K25_BETA8_1.py",
+    "COLLECT_BETA8_1_FOR_PUBLICATION.py",
+    "VERIFY_BETA3_1_SOURCE.py",
+    "VERIFY_BETA3_SOURCE.py",
+    "VERIFY_BETA4_SOURCE.py",
+    "VERIFY_BETA5_DEV_SOURCE.py",
+    "VERIFY_BETA6_CFS_ASYNC_MASK_REBUILD_V3.py",
+    "VERIFY_BETA6_CFS_MASK_ALIGNMENT_WORKFLOW_V1.py",
+    "VERIFY_BETA6_CUSTOM_UNMATCHED_OSM_V5.py",
+    "VERIFY_BETA6_CUSTOM_UNMATCHED_OSM_V5_1.py",
+    "VERIFY_BETA6_DEM_PREVIEW_FIX.py",
+    "VERIFY_BETA6_LIDAR_TREE_MASK_MASTER_GRID_FIX_V1.py",
+    "VERIFY_BETA6_MULTIPOLYGON_MULCH_V1.py",
+    "VERIFY_BETA6_OSM_ROAD_SPLIT_V4.py",
+    "VERIFY_BETA6_OUTPUT_PROGRESS.py",
+    "VERIFY_BETA6_SOURCE.py",
+    "VERIFY_BETA6_SPLINE_SURFACE_FIX_V1.py",
+    "VERIFY_BETA6_TREE_TOPOLOGY.py",
+    "VERIFY_BETA6_WORKFLOW_UI_REORDER_V2.py",
+    "VERIFY_BETA7_BACKGROUND_GEOREF_V1.py",
+    "VERIFY_BETA7_CFS.py",
+    "VERIFY_BETA7_EXUS_COUNTRIES_5M.py",
+    "VERIFY_BETA7_EXUS_DOWNLOAD.py",
+    "VERIFY_BETA7_FRANCE_CAPABILITIES_FIX.py",
+    "VERIFY_BETA7_FRANCE_CRS.py",
+    "VERIFY_BETA7_FRANCE_POLAND_SERVICE.py",
+    "VERIFY_BETA7_LARGE_WINDOWS.py",
+    "VERIFY_BETA7_LOCAL_ACCEPT_V7.py",
+    "VERIFY_BETA7_LOCAL_ALIGNMENT.py",
+    "VERIFY_BETA7_LOCAL_ALIGNMENT_ENGINE.py",
+    "VERIFY_BETA7_LOCAL_FEATURES_V6.py",
+    "VERIFY_BETA7_LOCAL_MANUAL.py",
+    "VERIFY_BETA7_LOCAL_MANUAL_UI.py",
+    "VERIFY_BETA7_LOCAL_RELATIONS.py",
+    "VERIFY_BETA7_LOCAL_RELATION_CONSUMERS.py",
+    "VERIFY_BETA7_LOCAL_UI_V6.py",
+    "VERIFY_BETA7_RESOLVED_SHAPES.py",
+    "VERIFY_BETA7_TREE_CONTROLS.py",
+    "VERIFY_BETA7_UI_STYLE_V1.py",
+    "VERIFY_BETA7_UK_DOWNLOAD.py",
+    "VERIFY_BETA7_UK_REPORT_FONT_FIX.py",
+    "VERIFY_BETA7_UK_REPORT_PANE.py",
+    "VERIFY_BETA7_UK_UI_FIX.py",
+    "VERIFY_BETA7_UK_UI_LAYOUT_FIX.py",
+    "VERIFY_BETA7_UNITY_DISPATCH_V4.py",
+    "VERIFY_BETA7_UNITY_INTEGRATION_V2.py",
+    "VERIFY_BETA7_UNITY_ROW_DESERT_SW_V1.py",
+    "VERIFY_BETA8_CFS.py",
+    "VERIFY_BETA8_OSM_WOODS_V1.py",
+    "VERIFY_BETA8_RESOLVED_SHAPES.py",
+    "VERIFY_BETA8_TREE_CONTROLS.py",
+    "VERIFY_TGC_HBCC_MULCH_V1.py",
+    "VERIFY_TGC_UNITY_RAW_SVG_V1.py",
+    "offset_ui_tool.py",
+    "tgc_kd_terrain.py",
+    "tgc_terrain_replay.py",
+    "tree_profile_analyzer.py"
+  ],
+  "identity_and_split_controls_verified": [
+    "Import Individual OSM Tree Points",
+    "Import Woods / Woodchip Areas (Mulch)",
+    "TGC Designer Tools 2K25 - Beta 8.1",
+    "v0.5.0-2k25-beta8.1"
+  ],
+  "default_controls": {
+    "wood": false,
+    "tree": false
+  },
+  "runtime_support_verified": [
+    {
+      "path": "tree_profiles/_template.json",
+      "bytes": 1080,
+      "sha256": "b45b1b06d46999cde9597c900e2a0cf826723627224277a534e68a54716660c5",
+      "exact_source_match": true
+    },
+    {
+      "path": "tree_profiles/bass_strait_coastal_links.json",
+      "bytes": 2871,
+      "sha256": "6ff237586c71885d338fbd1da2b64e2980251b6d0f76f5cb43b2b9c3c00467ab",
+      "exact_source_match": true
+    },
+    {
+      "path": "tree_profiles/carolina_piedmont_autumn.json",
+      "bytes": 11110,
+      "sha256": "7e90ab2fa02d337d92c38e3ab9a5dc80ce517076adda8f9431895324d2fee028",
+      "exact_source_match": true
+    },
+    {
+      "path": "tree_profiles/desert_southwest.json",
+      "bytes": 12153,
+      "sha256": "a42f8a42a4065696d3e5c7fa881fcadf5119d472927b7d655772eb1ea6ee1b08",
+      "exact_source_match": true
+    },
+    {
+      "path": "tree_profiles/georgia_piedmont.json",
+      "bytes": 11120,
+      "sha256": "4ecd730460bf63bae75bec099eb5011365d54d153c7ff45afec502dd5c322581",
+      "exact_source_match": true
+    },
+    {
+      "path": "tree_profiles/hudson_valley_mixed_forest.json",
+      "bytes": 11419,
+      "sha256": "503a640aeba422a2dc16ba48f94428033b5017399b1cd8fe6821b2ce5488c9ad",
+      "exact_source_match": true
+    },
+    {
+      "path": "tree_profiles/monterey_bay_coast.json",
+      "bytes": 12174,
+      "sha256": "f82a8e7b7213ab787e0ada34bf77535119ad6a51cdcbf4370df1b0205ab8f587",
+      "exact_source_match": true
+    },
+    {
+      "path": "tree_profiles/niagara_escarpment.json",
+      "bytes": 11890,
+      "sha256": "60ca71d60a9520283a132a6a54ea5b9ba90adb78c28e17c67ef19efcae7211c7",
+      "exact_source_match": true
+    },
+    {
+      "path": "tree_profiles/northern_rockies.json",
+      "bytes": 6438,
+      "sha256": "2ec8001b78f98f51fd757c8c30eb9efb4db14d6f19ad02970ad0e2a63e33ffb4",
+      "exact_source_match": true
+    },
+    {
+      "path": "tree_profiles/pacific_northwest.json",
+      "bytes": 6423,
+      "sha256": "a93c5b25be2e5086ec96c5ec51f37ce2826bcbb1c888ec2c43e4d98653e5aab9",
+      "exact_source_match": true
+    },
+    {
+      "path": "tree_profiles/san_francisco_peninsula.json",
+      "bytes": 11174,
+      "sha256": "f30b8facac640f15f6b4d25d398f98cf9bd756d1b4457a6c091667811091c23f",
+      "exact_source_match": true
+    },
+    {
+      "path": "tree_profiles/south_carolina_lowcountry.json",
+      "bytes": 9857,
+      "sha256": "f29e8f0e3403c6d23a0de4ce855d2e1c2a65b96147fb44fe7c642e44223e9c60",
+      "exact_source_match": true
+    },
+    {
+      "path": "tree_profiles/texas_hill_country.json",
+      "bytes": 12087,
+      "sha256": "db5d540a7386ff4a40229bf63e4067a1758c08f5c53313eb397af71b22dbee53",
+      "exact_source_match": true
+    },
+    {
+      "path": "tree_profiles/virginia_coastal_plain.json",
+      "bytes": 9547,
+      "sha256": "f6a8b41dca504331a2de83e5a64bd061adc31ca2a08f31bc6eb4680a9df75364",
+      "exact_source_match": true
+    },
+    {
+      "path": "laszip/laszip-cli.exe",
+      "bytes": 815104,
+      "sha256": "1fa8fb7cf5246dbe8dee8fe6900c6caedcb72213d4c9ce96fbcbaa2af8677423",
+      "exact_source_match": true
+    },
+    {
+      "path": "tgc_lidar_fast_native.dll",
+      "bytes": 9216,
+      "sha256": "2443a6dd1f375db74985b1fe88e5e6d11997ba10341e87d89eb6fe778f267007",
+      "exact_source_match": true
+    }
+  ],
+  "runtime_dependencies_present": {
+    "python311.dll": true,
+    "base_library.zip": true,
+    "shapely_geos_c_dll": true
+  },
+  "feature_review": {
+    "standard_woodland_and_woodchip_classifier": true,
+    "independent_default_off_wood_and_tree_controls": true,
+    "legacy_golf_mulch_warning_and_skip_present": true,
+    "notes": "Prepared source retains tgc:svg_id bookkeeping tags on multipolygon outer/inner member ways in tgc_unity_raw_svg.write_osm. Standard feature classification uses natural=wood or surface=woodchips; simple polygon exports omit private tgc:* tags. This is existing supplied/prepared behavior; no source or EXE was modified."
+  },
+  "checks_not_performed": [
+    "Execute Windows EXE",
+    "Windows GUI interaction",
+    "TGC in-game import/playtesting"
+  ],
+  "executed_project_code": false,
+  "rebuilt_or_modified_exe": false
+}

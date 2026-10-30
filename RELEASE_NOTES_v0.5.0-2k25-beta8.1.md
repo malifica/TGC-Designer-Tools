@@ -8,7 +8,7 @@
 - Separate **Import Woods / Woodchip Areas (Mulch)** and **Import Individual OSM Tree Points** controls. Both default OFF; woodland surfaces no longer enable tree-point planting.
 - Standard `natural=wood`, `landuse=forest`, and closed `surface=woodchips` areas generate dry native mulch, separate from water.
 - Complete woodland multipolygons preserve inner cutouts; incomplete or invalid geometry is reported rather than filled across missing members.
-- Unity/SVG export writes standard woodland or woodchip classifications and omits private `tgc:*` feature annotations.
+- Unity/SVG export writes standard woodland or woodchip classifications. Multipolygon member ways retain `tgc:svg_id` bookkeeping metadata.
 - Obsolete `golf=mulch` areas warn and are skipped instead of being silently reclassified.
 - Existing LiDAR-tree detection, weighted planting, regional themes, terrain, background registration, and local feature editing are retained.
 
@@ -30,4 +30,4 @@ Standard tags do not make synthetic Unity/SVG coordinates suitable for the publi
 
 ## Scope and validation
 
-This is the main TGC Designer Tools application. No separate utility release is included. This source preparation does not build or publish a Windows EXE, create a release tag, or change the published Beta 8 assets. Windows/in-game testing is not claimed here. The publication handoff must verify the supplied Beta 8.1 binary and matching source before publishing it unchanged.
+This release uses the supplied, previously built Windows EXE unchanged. All 142 upload-manifest entries were verified. All 57 project Python modules present in the frozen application, including its entry point and OSM/Unity modules, match the supplied source using the same Python 3.11 bytecode version, with environment-specific filenames and debug column ranges normalized. Embedded regional profiles and native runtime support were also checked. Publication does not rebuild or modify the EXE. No additional Windows GUI or in-game testing is claimed.
