@@ -1,0 +1,12 @@
+{
+  "source_sha": "d1f31128ccfeb964a3f8ebaf800a9ca415cc26be",
+  "cmd_bytes": 245603,
+  "cmd_sha256": "7b4086eb68645abbc61059cc240791540b27b89fa3db687674fdf13b6a4620fe",
+  "chunks": [
+    {
+      "bytes": 245603,
+      "git_blob_sha": "67238d99719b1b3c60ec010b862a10576f05e3f4",
+      "sha256": "7b4086eb68645abbc61059cc240791540b27b89fa3db687674fdf13b6a4620fe"
+    }
+  ]
+}

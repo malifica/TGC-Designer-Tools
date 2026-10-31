@@ -1,0 +1,44 @@
+name: Check Beta 8.2 Downloads CMD on Windows
+on:
+  push:
+    branches: ['checks/beta82-downloads-cmd']
+    paths: ['.github/workflows/check-beta82-downloads-cmd.yml']
+permissions:
+  contents: read
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+  PYTHONUTF8: '1'
+jobs:
+  check:
+    if: github.repository == 'malifica/TGC-Designer-Tools' && github.ref == 'refs/heads/checks/beta82-downloads-cmd'
+    runs-on: windows-2022
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+          architecture: 'x64'
+      - name: Stage exact Downloads file and disposable Beta 8.1 checkout
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python .github/verification/check_beta82_downloads.py stage
+      - name: Exercise the actual CMD on Windows and compare source bytes
+        run: python .github/verification/check_beta82_downloads.py exercise
+      - name: Install dependencies for source tests
+        shell: pwsh
+        run: |
+          Set-Location 'C:\TGC-Designer-Tools'
+          & '.\.venv_local_osm\Scripts\python.exe' -m pip install --disable-pip-version-check -r requirements.txt
+      - name: Run parking, woodland, mask and Tk source checks (no EXE build)
+        shell: pwsh
+        run: |
+          Set-Location 'C:\TGC-Designer-Tools'
+          $py = '.\.venv_local_osm\Scripts\python.exe'
+          & $py VERIFY_BETA8_2_PARKING.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & $py VERIFY_BETA8_OSM_WOODS_V1.py
+          exit $LASTEXITCODE
