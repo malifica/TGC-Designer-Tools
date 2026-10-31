@@ -93,7 +93,7 @@ def main():
         ("splines.json road width reader", 'get("road")' in alignment and '"pathWidth"' in alignment),
         ("CFS road preview color", '"road": "#ff5a5a"' in viewer),
         ("CFS shared classifier", "OSMTGC.classifyHighwayForTGC(tags)" in viewer),
-        ("CFS Road legend", '("Road", FEATURE_COLORS["road"])' in viewer),
+        ("CFS Road legend", '("Road / surface parking", FEATURE_COLORS["road"])' in viewer),
     ]
     failed = []
     for label, ok in checks:

@@ -6,7 +6,11 @@ Build PGA TOUR 2K25 courses from **LiDAR, GeoTIFF DEMs, OpenStreetMap, and Unity
 
 [Download Beta 8.1](https://github.com/malifica/TGC-Designer-Tools/releases/tag/v0.5.0-2k25-beta8.1) · [Release notes](RELEASE_NOTES_v0.5.0-2k25-beta8.1.md) · [Change history](CHANGELOG.md)
 
-## Source update after Beta 8.1: Natural Wood only
+## Beta 8.2: source ready for a Windows build
+
+**Import Surface Parking Lots (Road Surface)** is a new, separate checkbox under OpenStreetMap options. It starts off. Enable it to fill a mapped ground-level car park with the same primary surface as automobile roads (asphalt by default in 2K25). Valid closed `amenity=parking` areas and complete multipolygons qualify when `parking=surface` is explicit, or when the parking type is omitted and no tags indicate a structure. Islands stay open. Garages, underground and rooftop parking, individual spaces and entrances are excluded. Parking aisles mapped as service roads still follow **Import Automobile Roads**.
+
+The parking-lot control does not change the automatic terrain mask. Lot outlines are available for alignment. See the [Beta 8.2 notes](RELEASE_NOTES_v0.5.0-2k25-beta8.2.md) and the [Windows build guide](BUILD_WINDOWS.md).
 
 **Import Natural Wood as Mulch (natural=wood)** is off by default. When enabled, it creates dry course splines only from valid closed ways or complete multipolygons explicitly tagged `natural=wood`. Meadow, forest-only and woodchip-only areas do not qualify. A separately mapped wood island inside a meadow can qualify on its own; the meadow around it does not.
 
@@ -132,13 +136,13 @@ Regional profiles provide weighted tree palettes and coordinated playing-surface
 
 The Windows release contains `tgc_gui_2k25_beta8_1.exe`. Its title is **TGC Designer Tools 2K25 - Beta 8.1**. Download the Windows ZIP for the executable, editable profiles, spline configuration, and documentation. SHA-256 files accompany both the standalone EXE and ZIP.
 
-For an existing source checkout with its dependencies installed, run:
+For a Beta 8.2 source checkout with its dependencies installed, run:
 
 ```bat
-BUILD_TGC_2K25_BETA8_1.bat
+BUILD_TGC_2K25_BETA8_2.bat
 ```
 
-The executable is written to `dist\tgc_gui_2k25_beta8_1.exe`. [Beta 8](https://github.com/malifica/TGC-Designer-Tools/releases/tag/v0.5.0-2k25-beta8) and [Beta 7](https://github.com/malifica/TGC-Designer-Tools/releases/tag/v0.5.0-2k25-beta7) remain available separately. Environment details are in [BUILD_WINDOWS.md](BUILD_WINDOWS.md).
+The Beta 8.2 build writes `dist\tgc_gui_2k25_beta8_2.exe` and keeps the Beta 8.1 executable. For the single-file Downloads updater, Windows CMD commands, and collection steps, see [BUILD_WINDOWS.md](BUILD_WINDOWS.md).
 
 ## Credits and license
 

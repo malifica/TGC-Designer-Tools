@@ -252,7 +252,8 @@ class ExportTests(unittest.TestCase):
     def test_build_does_not_restore_private_tag(self):
         s=(ROOT/'tgc_unity_build_check.py').read_text();self.assertIn("t.get('surface')=='woodchips'",s);self.assertNotIn("t.get('golf')=='mulch'",s)
     def test_beta8_kept(self):
-        s=(ROOT/'BUILD_TGC_2K25_BETA8.py').read_text();self.assertIn("EXE_NAME='tgc_gui_2k25_beta8_1'",s);self.assertIn("VERIFY_BETA8_OSM_WOODS_V1.py",s)
+        b=(ROOT/'BUILD_TGC_2K25_BETA8_2.py').read_text();self.assertIn("EXE_NAME='tgc_gui_2k25_beta8_2'",b)
+        self.assertIn('VERIFY_BETA8_OSM_WOODS_V1.py',(ROOT/'BUILD_TGC_2K25_BETA8.py').read_text())
     def test_no_liDAR_processing_change(self):
         s=(ROOT/'tgc_gui.py').read_text();self.assertIn('Add Trees From Lidar (Experimental)',s);self.assertIn('Import Individual OSM Tree Points',s)
 @unittest.skipUnless(os.name=='nt' or os.environ.get('DISPLAY'),'Tk display not available')

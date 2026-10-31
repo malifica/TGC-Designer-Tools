@@ -189,6 +189,8 @@ def _parse_osm(path):
 
 
 def _feature_style(tags):
+    if OSMTGC._surface_parking_area(tags):
+        return "parking_lot", FEATURE_COLORS["road"]
     if OSMTGC.classifyDryAreaForTGC(tags):
         return "mulch", FEATURE_COLORS["mulch"]
     if tags.get("golf") == "mulch":
@@ -637,7 +639,7 @@ class AlignmentViewer:
             ("Natural wood", FEATURE_COLORS["mulch"]),
             ("Water", FEATURE_COLORS["water_hazard"]),
             ("Cart Path", FEATURE_COLORS["cartpath"]),
-            ("Road", FEATURE_COLORS["road"]),
+            ("Road / surface parking", FEATURE_COLORS["road"]),
             ("Walking Path", FEATURE_COLORS["walkingpath"]),
         ]
         ttk.Label(

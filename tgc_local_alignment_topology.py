@@ -128,6 +128,7 @@ SURFACE_NAMES = {
     "cartpath": "Cart path", "path": "Path", "road": "Road", "range": "Driving range",
     "wood": "Natural wood", "building": "Building", "hole": "Hole route",
     "forest": "Forest (outline only)", "woodchips": "Woodchips (outline only)",
+    "parking_lot": "Surface parking lot",
 }
 LINE_KINDS = {"cartpath", "path", "road", "hole"}
 
@@ -138,9 +139,11 @@ def surface_kind(tags):
     aliases = {"water_hazard": "water", "lateral_water_hazard": "water",
                "driving_range": "range", "heavy_rough": "heavyrough"}
     kind = aliases.get(golf, golf)
-    if kind in SURFACE_NAMES and kind not in ("mulch", "wood", "forest", "woodchips"):
+    if kind in SURFACE_NAMES and kind not in ("mulch", "wood", "forest", "woodchips", "parking_lot"):
         return kind
-    from OSMTGC import classifyDryAreaForTGC
+    from OSMTGC import classifyDryAreaForTGC, _surface_parking_area
+    if _surface_parking_area(tags):
+        return "parking_lot"
     dry_kind = classifyDryAreaForTGC(tags)
     if dry_kind:
         return dry_kind

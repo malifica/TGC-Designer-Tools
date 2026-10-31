@@ -80,7 +80,7 @@ class GeometryTests(unittest.TestCase):
         raw,g,p,_=fixture();root=ET.fromstring(raw);way=root.find("way[@id='202']")
         # 'mulch' is a legacy view key, not an OSM golf classification.
         land_cover = {'wood': {'natural':'wood'}, 'forest': {'landuse':'forest'},
-                      'woodchips': {'surface':'woodchips'}}
+                      'woodchips': {'surface':'woodchips'}, 'parking_lot': {'amenity':'parking','parking':'surface'}}
         for kind in topology.SURFACE_NAMES.keys() - {'mulch'}:
             for t in list(way.findall('tag')):way.remove(t)
             tags = land_cover.get(kind, {'golf':kind})

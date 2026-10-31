@@ -52,7 +52,7 @@ class Tests(unittest.TestCase):
         tree=ast.parse((ROOT/'tgc_gui.py').read_text(encoding='utf-8-sig'))
         values={t.id:ast.literal_eval(n.value) for n in tree.body if isinstance(n,ast.Assign)
                 for t in n.targets if isinstance(t,ast.Name) and t.id in ('TGC_APP_TITLE','TGC_GUI_VERSION')}
-        self.assertEqual(values,{'TGC_APP_TITLE':'TGC Designer Tools 2K25 - Beta 8.1','TGC_GUI_VERSION':'v0.5.0-2k25-beta8.1'})
+        self.assertEqual(values,{'TGC_APP_TITLE':'TGC Designer Tools 2K25 - Beta 8.2','TGC_GUI_VERSION':'v0.5.0-2k25-beta8.2'})
     def test_02_neutral_tone(self):self.assertEqual(d.tone_lut(),list(range(256)))
     def test_03_brighter(self):self.assertGreater(d.tone_lut(1.3,1.)[100],100)
     def test_04_darker(self):self.assertLess(d.tone_lut(.6,1.)[100],100)

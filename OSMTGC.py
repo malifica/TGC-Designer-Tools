@@ -697,18 +697,13 @@ def _configured_width(section_name, default_width):
 
 def _print_spline_configuration_summary(course_version, printf=print):
     cart_json = _spline_section("cartpath")
-    road_json = _spline_section("road")
     water_json = _spline_section("water") or _spline_section("placeholder")
     stream_json = _spline_section("stream")
 
     cart_surface = _configured_primary_surface(
         cart_json, "cartpath", course_version
     )
-    road_surface = _configured_primary_surface(
-        road_json,
-        "asphalt" if course_version == 25 else "cartpath",
-        course_version,
-    )
+    road_surface = _traffic_road_surface(course_version)
     water_surface = _configured_primary_surface(
         water_json, "mulch", course_version
     )
@@ -1860,6 +1855,12 @@ def newCartPath(points, area=False, course_version=-1, optimize_points=True):
 
     return cp
 
+def _traffic_road_surface(course_version):
+    """Lots and automobile roads share the material, not their footprint."""
+    return _configured_primary_surface(_spline_section("road"),
+        "asphalt" if course_version == 25 else "cartpath", course_version)
+
+
 def newRoad(points, area=False, course_version=-1, optimize_points=True):
     """Create an automobile-road spline, independently configurable in splines.json."""
     global spline_configuration
@@ -1890,12 +1891,7 @@ def newRoad(points, area=False, course_version=-1, optimize_points=True):
 
     # Automobile roads use the asphalt custom surface by default in 2K25.
     # This remains independently configurable through road.primarySurface.
-    default_road_surface = "asphalt" if course_version == 25 else "cartpath"
-    road["surface"] = _configured_primary_surface(
-        spline_json,
-        default_road_surface,
-        course_version,
-    )
+    road["surface"] = _traffic_road_surface(course_version)
 
     if area:
         road["state"] = 3
@@ -1978,8 +1974,40 @@ def _dry_area_enabled(kind, options):
     return bool(options.get("wood", False)) if kind else False
 
 
-def _dry_polygon_splines(outers, inners, course_version, ul_tgc, lr_tgc):
-    """Validate full rings, preserve holes, and emit DRY native splines only."""
+def _ground_level_parking(tags):
+    """Reject non-surface parking types and evidence of a structure."""
+    def tag(key):
+        return str(tags.get(key, "") or "").strip().lower()
+    return (
+        tag("parking") in ("", "surface")
+        and tag("location") in ("", "surface", "outdoor", "outdoors")
+        and tag("level") in ("", "0") and tag("layer") in ("", "0")
+        and tag("parking:levels") in ("", "1")
+        and all(tag(k) in ("", "no") for k in
+                ("building", "building:part", "indoor", "covered", "tunnel", "bridge"))
+        and not tag("building:levels")
+    )
+
+
+def _surface_parking_area(tags):
+    """An outdoor parking lot, not an entrance, stall or aisle."""
+    return (tags.get("amenity") == "parking" and tags.get("area") != "no"
+            and tags.get("service") != "parking_aisle"
+            and not any(tags.get(k) for k in ("highway", "golf", "natural", "waterway"))
+            and _ground_level_parking(tags))
+
+
+def _parking_spline(points, course_version):
+    # Area geometry already has the first coordinate repeated at the end;
+    # TGC closes the spline itself. Preserve sharp corners and island seams.
+    spline = newSpline(points[:-1], pathWidth=0.01, shrink_distance=0.,
+                       handleLength=0., tightSplines=False, course_version=course_version)
+    spline["surface"] = _traffic_road_surface(course_version)
+    return spline
+
+
+def _area_polygon_splines(outers, inners, course_version, ul_tgc, lr_tgc, make_spline):
+    """Validate full rings, preserve holes, then apply the native area material."""
     from shapely.geometry import Polygon, LineString
     from shapely.ops import split, unary_union
     def polygon(ring):
@@ -2016,7 +2044,7 @@ def _dry_polygon_splines(outers, inners, course_version, ul_tgc, lr_tgc):
                 continue
             attempts += 1
             if attempts > 5000:
-                raise ValueError("woodland inner-ring partition limit")
+                raise ValueError("area inner-ring partition limit")
             x0,z0,x1,z1 = part.interiors[0].bounds
             bx = part.bounds
             cuts = [LineString([(bx[0]-10,(z0+z1)/2),(bx[2]+10,(z0+z1)/2)]),
@@ -2027,12 +2055,12 @@ def _dry_polygon_splines(outers, inners, course_version, ul_tgc, lr_tgc):
                     pending.extend(parts)
                     break
             else:
-                raise ValueError("cannot partition woodland without filling inner ring")
+                raise ValueError("cannot partition area without filling inner ring")
         if unary_union(pieces).symmetric_difference(p).area > 1e-4:
-            raise ValueError("woodland partition changed area")
+            raise ValueError("polygon partition changed area")
         for part in pieces:
             pts = [(x,0.0,z) for x,z in part.exterior.coords]
-            spline = newMulch(pts,course_version=course_version)
+            spline = make_spline(pts, course_version=course_version)
             if assigned[i]:
                 # Partition seams must stay straight; no curved handles may
                 # balloon across the deliberately excluded inner island.
@@ -2046,7 +2074,16 @@ def _dry_polygon_splines(outers, inners, course_version, ul_tgc, lr_tgc):
     return result
 
 
-def _dry_relation_splines(rel, lookup, pc, ew, ns, resolve, version, ul, lr, printf):
+def _area_way_splines(way, pc, ew, ns, resolve, version, ul, lr, make_spline):
+    nodes = list(way.get_nodes(resolve_missing=resolve))
+    if len(nodes) < 4 or nodes[0].id != nodes[-1].id:
+        raise ValueError("area is not a closed OSM way")
+    ring = _node_ring_to_tgc_points(nodes, pc, ew, ns)
+    return _area_polygon_splines([ring], [], version, ul, lr, make_spline)
+
+
+def _area_relation_splines(rel, lookup, pc, ew, ns, resolve, version, ul, lr,
+                           make_spline, label, printf):
     import copy
     normalized = copy.copy(rel)
     normalized.members = []
@@ -2060,14 +2097,14 @@ def _dry_relation_splines(rel, lookup, pc, ew, ns, resolve, version, ul, lr, pri
         m.role = role or "outer"
         normalized.members.append(m)
     def log(message):
-        printf(str(message).replace("water multipolygon", "natural=wood multipolygon"))
+        printf(str(message).replace("water multipolygon", label + " multipolygon"))
     outer = _stitch_relation_role_node_rings(normalized,"outer",lookup,resolve,printf=log)
     inner = _stitch_relation_role_node_rings(normalized,"inner",lookup,resolve,printf=log)
     if not outer or inner is None:
         raise ValueError("missing or incomplete relation boundaries")
-    return _dry_polygon_splines(
+    return _area_polygon_splines(
         [_node_ring_to_tgc_points(r,pc,ew,ns) for r in outer],
-        [_node_ring_to_tgc_points(r,pc,ew,ns) for r in inner],version,ul,lr)
+        [_node_ring_to_tgc_points(r,pc,ew,ns) for r in inner],version,ul,lr,make_spline)
 
 
 def newMulch(points, course_version=-1):
@@ -2529,12 +2566,50 @@ def addOSMToTGC(course_json, geopointcloud, osm_result, x_offset=0.0, y_offset=0
             if _has_meadow_shell(_outer_way_refs(rel), way_dict, meadow_outer_sets,
                                  meadow_outer_ways, resolve_missing_nodes):
                 raise ValueError("outer boundary also defines a meadow; conflicting area tags")
-            made = _dry_relation_splines(rel, way_dict, geopointcloud,
-                x_offset,y_offset,resolve_missing_nodes,course_version,ul_tgc,lr_tgc,printf)
+            made = _area_relation_splines(rel, way_dict, geopointcloud,
+                x_offset,y_offset,resolve_missing_nodes,course_version,ul_tgc,lr_tgc,
+                newMulch,"natural=wood",printf)
             course_json[spline_tag].extend(made)
             dry_mulch_splines.extend(made)
         except Exception as exc:
             printf("Warning: natural=wood relation %s skipped: %s" % (rel.id,exc))
+
+    parking_enabled = bool(options_dict.get("parking_lot", False))
+    parking_members = set()
+    parking_features = 0
+
+    def append_lot(pieces):
+        nonlocal parking_features
+        first = len(course_json[spline_tag])
+        course_json[spline_tag].extend(pieces)
+        # Even if road.primarySurface is set to cart path, the separate cart
+        # path flatten pass must not stamp terrain along a lot perimeter.
+        last_imported_road_spline_indices.update(range(first, first + len(pieces)))
+        parking_features += bool(pieces)
+
+    if parking_enabled:
+        for rel in osm_result.relations:
+            if rel.tags.get("type") != "multipolygon" or rel.tags.get("amenity") != "parking":
+                continue
+            eligible = _surface_parking_area(rel.tags)
+            outer_refs = _outer_way_refs(rel)
+            # A generic parking tag on a garage's outer way is not a separate
+            # surface lot. A fragmented/incomplete lot must not fall back to
+            # filling a complete tagged outer across its missing inner rings.
+            parking_members.update(outer_refs)
+            if not eligible:
+                continue
+            parking_members.update(m.ref for m in rel.members if isinstance(m, overpy.RelationWay)
+                                   and str(m.role or "").strip().lower() == "inner")
+            try:
+                if any(not _ground_level_parking(way_dict[ref].tags)
+                       for ref in outer_refs if ref in way_dict):
+                    raise ValueError("conflicting parking type or structure on outer boundary")
+                append_lot(_area_relation_splines(rel, way_dict, geopointcloud,
+                    x_offset, y_offset, resolve_missing_nodes, course_version, ul_tgc, lr_tgc,
+                    _parking_spline, "surface parking lot", printf))
+            except Exception as exc:
+                printf("Warning: surface parking lot relation %s skipped: %s" % (rel.id, exc))
 
     for n, way in enumerate(osm_result.ways):
         if (
@@ -2547,6 +2622,15 @@ def addOSMToTGC(course_json, geopointcloud, osm_result, x_offset=0.0, y_offset=0
             last_print_time = time.time()
             printf(str(round(100.0*float(n) / num_ways, 2)) + "% through OpenStreetMap Ways")
 
+        if _surface_parking_area(way.tags):
+            if parking_enabled and way.id not in parking_members:
+                try:
+                    append_lot(_area_way_splines(way, geopointcloud, x_offset, y_offset,
+                        resolve_missing_nodes, course_version, ul_tgc, lr_tgc, _parking_spline))
+                except Exception as exc:
+                    printf("Warning: surface parking lot way %s skipped: %s" % (way.id, exc))
+            continue
+
         dry_kind = classifyDryAreaForTGC(way.tags)
         if dry_kind:
             if not _dry_area_enabled(dry_kind, options_dict):
@@ -2554,11 +2638,8 @@ def addOSMToTGC(course_json, geopointcloud, osm_result, x_offset=0.0, y_offset=0
             try:
                 if way.id in meadow_outer_ways:
                     raise ValueError("outer boundary of a meadow multipolygon")
-                source_nodes = list(way.get_nodes(resolve_missing=resolve_missing_nodes))
-                if len(source_nodes)<4 or source_nodes[0].id!=source_nodes[-1].id:
-                    raise ValueError("area is not a closed OSM way")
-                ring = _node_ring_to_tgc_points(source_nodes,geopointcloud,x_offset,y_offset)
-                made = _dry_polygon_splines([ring],[],course_version,ul_tgc,lr_tgc)
+                made = _area_way_splines(way, geopointcloud, x_offset, y_offset,
+                    resolve_missing_nodes, course_version, ul_tgc, lr_tgc, newMulch)
                 course_json[spline_tag].extend(made)
                 dry_mulch_splines.extend(made)
             except Exception as exc:
@@ -2574,10 +2655,9 @@ def addOSMToTGC(course_json, geopointcloud, osm_result, x_offset=0.0, y_offset=0
         highway_type = way.tags.get("highway", None)
         golf_cart_type = way.tags.get("golf_cart", None)
         foot_type = way.tags.get("foot", None)
-        amenity_type = way.tags.get("amenity", None)
 
         # Double checking types, but things REALLY slow down if we do the necessary bounding box checks without checking if it's a type we even care about
-        if all(v is None for v in [golf_type, waterway_type, building_type, natural_type, highway_type, amenity_type]):
+        if all(v is None for v in [golf_type, waterway_type, building_type, natural_type, highway_type]):
             continue
 
         area = False
@@ -2925,6 +3005,9 @@ def addOSMToTGC(course_json, geopointcloud, osm_result, x_offset=0.0, y_offset=0
         str(highway_import_counts["road"]) + " automobile road(s), " +
         str(highway_import_counts["walkingpath"]) + " walking path(s)."
     )
+
+    if parking_enabled:
+        printf("Imported %d OSM surface parking lot(s) using the traffic-road surface." % parking_features)
 
     # Insert all the found holes
     for key in sorted(hole_dictionary):

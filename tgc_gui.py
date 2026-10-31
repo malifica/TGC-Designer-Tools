@@ -32,8 +32,8 @@ import tgc_image_terrain
 from tgc_visualizer import drawCourseAsImage
 import OSMTGC
 
-TGC_GUI_VERSION = "v0.5.0-2k25-beta8.1"
-TGC_APP_TITLE = "TGC Designer Tools 2K25 - Beta 8.1"
+TGC_GUI_VERSION = "v0.5.0-2k25-beta8.2"
+TGC_APP_TITLE = "TGC Designer Tools 2K25 - Beta 8.2"
 
 AUTO_RED_MASK_BUFFER_MIN_M = 5.0
 AUTO_RED_MASK_BUFFER_MAX_M = 30.0
@@ -4060,6 +4060,8 @@ cartpathCheck.select()
 options_entries_dict["road"] = tk.BooleanVar()
 roadCheck = Checkbutton(osmSubFrame, text="Import Automobile Roads", variable=options_entries_dict["road"], fg=check_fg, bg=check_bg)
 roadCheck.deselect()
+options_entries_dict["parking_lot"] = tk.BooleanVar(value=False)
+parkingLotCheck = Checkbutton(osmSubFrame, text="Import Surface Parking Lots (Road Surface)", variable=options_entries_dict["parking_lot"], fg=check_fg, bg=check_bg)
 options_entries_dict["path"] = tk.BooleanVar()
 pathCheck = Checkbutton(osmSubFrame, text="Import Walking Paths", variable=options_entries_dict["path"], fg=check_fg, bg=check_bg)
 pathCheck.select()
@@ -4101,7 +4103,8 @@ roughCheck.grid(row=7, columnspan=2, sticky=W, padx=5)
 waterCheck.grid(row=8, columnspan=2, sticky=W, padx=5)
 cartpathCheck.grid(row=9, columnspan=2, sticky=W, padx=5)
 roadCheck.grid(row=10, columnspan=2, sticky=W, padx=5)
-pathCheck.grid(row=11, columnspan=2, sticky=W, padx=5)
+parkingLotCheck.grid(row=11, columnspan=2, sticky=W, padx=5)
+pathCheck.grid(row=12, columnspan=2, sticky=W, padx=5)
 holeCheck.grid(row=13, columnspan=2, sticky=W, padx=5)
 Label(osmSubFrame, text="Match Hole Names", fg=check_fg, bg=check_bg).grid(row=14, sticky=W, padx=5)
 osm_hole_filter.grid(row=14, column=1, padx=5)

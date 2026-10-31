@@ -177,7 +177,7 @@ class Tests(unittest.TestCase):
     def test_beta7_identity(self):
         tree=ast.parse((ROOT/'tgc_gui.py').read_text(encoding='utf-8-sig'))
         values={t.id:n.value.value for n in tree.body if isinstance(n,ast.Assign) and isinstance(n.value,ast.Constant) for t in n.targets if isinstance(t,ast.Name)}
-        self.assertEqual(values['TGC_GUI_VERSION'],'v0.5.0-2k25-beta8.1')
-        self.assertEqual(values['TGC_APP_TITLE'],'TGC Designer Tools 2K25 - Beta 8.1')
+        self.assertEqual(values['TGC_GUI_VERSION'],'v0.5.0-2k25-beta8.2')
+        self.assertEqual(values['TGC_APP_TITLE'],'TGC Designer Tools 2K25 - Beta 8.2')
 
 if __name__=='__main__':unittest.main(verbosity=2)

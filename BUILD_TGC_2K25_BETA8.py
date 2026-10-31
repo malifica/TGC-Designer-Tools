@@ -40,8 +40,8 @@ def digest(path):
     return h.hexdigest()
 
 
-def build_arguments(py, root, stage):
-    args=[py,'-m','PyInstaller','--noconfirm','--clean','--onefile','--name',EXE_NAME,
+def build_arguments(py, root, stage, exe_name=EXE_NAME):
+    args=[py,'-m','PyInstaller','--noconfirm','--clean','--onefile','--name',exe_name,
           '--paths',root,'--workpath',stage/'work','--distpath',stage/'dist','--specpath',stage/'spec',
           '--add-binary',str(root/'laszip/laszip-cli.exe')+';laszip',
           '--additional-hooks-dir',root/'PyInstaller/hooks',
@@ -87,11 +87,20 @@ def build_arguments(py, root, stage):
     return args
 
 
-def main():
+def main(*, app_title=APP_TITLE, version=VERSION, exe_name=EXE_NAME, parking_release=False):
     if os.name!='nt':raise RuntimeError('Run the batch on Windows in your existing TGC Python environment.')
     root=Path(sys.argv[1] if len(sys.argv)>1 else Path(__file__).resolve().parent).resolve()
     py=Path(sys.executable)
     os.chdir(root)
+    # Reject an older release launcher before invoking PyInstaller or changing dist.
+    tree = ast.parse((root/'tgc_gui.py').read_text(encoding='utf-8-sig'))
+    gui_identity = {t.id: node.value.value for node in tree.body if isinstance(node, ast.Assign)
+                    and isinstance(node.value, ast.Constant) for t in node.targets if isinstance(t, ast.Name)}
+    if (gui_identity.get('TGC_GUI_VERSION'), gui_identity.get('TGC_APP_TITLE')) != (version, app_title):
+        raise RuntimeError('This launcher does not match the checkout version: '+str(gui_identity.get('TGC_GUI_VERSION')))
+    if parking_release:
+        from COLLECT_BETA8_2_FOR_PUBLICATION import source_snapshot, write_build_receipt
+        initial_source = source_snapshot(root)
     for module in ('overpy','PyInstaller','cv2','pyproj','numpy','PIL','tkinter','scipy','shapely'):
         if importlib.util.find_spec(module) is None:raise RuntimeError('Missing existing dependency: '+module)
     # TGC_UNITY_V3_DEPENDENCIES: retain every existing Beta 7 requirement.
@@ -104,8 +113,8 @@ def main():
         raise RuntimeError('Local alignment requires Shapely 2. Run this environment\'s python -m pip install "shapely>=2.0,<3".') from exc
     for name in ('tgc_gui.py','laszip/laszip-cli.exe','PyInstaller/rthook_rasterio.py','tree_profiles','tgc_beta8_entry.py'):
         if not (root/name).exists():raise RuntimeError('Required existing source/build asset is missing: '+str(root/name))
-    print('=== Build TGC Designer Tools 2K25 - Beta 8.1 ===',flush=True)
-    print('EXE: '+EXE_NAME+'.exe | Window: '+APP_TITLE)
+    print('=== Build '+app_title+' ===',flush=True)
+    print('EXE: '+exe_name+'.exe | Window: '+app_title)
     for name in CORE_VERIFIERS:
         if not (root/name).is_file():raise RuntimeError('Missing previous-hotfix verifier: '+name)
         run(py,root/name)
@@ -132,7 +141,7 @@ def main():
     for name in ('VERIFY_BETA7_FRANCE_CAPABILITIES_FIX.py','VERIFY_BETA7_FRANCE_CRS.py','VERIFY_BETA7_FRANCE_POLAND_SERVICE.py'):
         if (root/name).is_file():run(py,root/name)
     stamp=datetime.datetime.now().strftime('%Y%m%d_%H%M%S_%f')
-    stage=root/'build'/('beta8_1_release_build_'+stamp)
+    stage=root/'build'/(exe_name+'_release_build_'+stamp)
     for sub in ('work','dist','spec'):(stage/sub).mkdir(parents=True,exist_ok=True)
     if (root/'tgc_lidar_fast_native.dll').is_file():print('Bundling existing native LiDAR DLL unchanged.')
     else:print('NOTICE: no existing native LiDAR DLL; retained Python fallback remains in use.')
@@ -141,6 +150,8 @@ def main():
     # TGC_UNITY_V3_SOURCE_CHECKS: existing release checks remain in order.
     run(py, root/'VERIFY_TGC_UNITY_RAW_SVG_V1.py')
     run(py, root/'VERIFY_BETA8_OSM_WOODS_V1.py')
+    if parking_release:
+        run(py, root/'VERIFY_BETA8_2_PARKING.py')
     run(py, root/'VERIFY_TGC_HBCC_MULCH_V1.py')
     run(py, root/'VERIFY_BETA7_UNITY_INTEGRATION_V2.py')
     run(py, root/'VERIFY_BETA7_UNITY_DISPATCH_V4.py')
@@ -149,8 +160,8 @@ def main():
     run(py,root/'VERIFY_BETA7_LOCAL_RELATION_CONSUMERS.py')
     run(py,root/'VERIFY_BETA7_LOCAL_FEATURES_V6.py','--installed')
     run(py,root/'VERIFY_BETA7_LOCAL_UI_V6.py','--source')
-    run(*build_arguments(py,root,stage))
-    built=stage/'dist'/(EXE_NAME+'.exe')
+    run(*build_arguments(py,root,stage,exe_name))
+    built=stage/'dist'/(exe_name+'.exe')
     if not built.is_file():raise RuntimeError('The expected staged Beta 8 EXE was not created.')
     with built.open('rb') as f:
         if f.read(2)!=b'MZ':raise RuntimeError('Invalid Windows EXE header')
@@ -159,8 +170,12 @@ def main():
     run(built,'--verify-unity-import')
     run(built,'--verify-ui-style')
     run(built,'--verify-local-alignment')
-    from PyInstaller.archive.readers import ZlibArchiveReader, CArchiveReader
-    archive=ZlibArchiveReader(str(stage/'work'/EXE_NAME/'PYZ-00.pyz'))
+    from PyInstaller.archive.readers import CArchiveReader
+    frozen_exe = CArchiveReader(str(built))
+    pyz = [n for n in frozen_exe.toc if n.lower().endswith('.pyz')]
+    if len(pyz) != 1:
+        raise RuntimeError('Expected exactly one Python module archive in staged EXE')
+    archive = frozen_exe.open_embedded_archive(pyz[0])
     required={'tgc_cfs_display','osm_alignment_viewer','osm_mask_alignment','GeoPointCloud','tgc_gui',
               'lidar_tree_topology','tgc_tree_filter_controls','tgc_project_paths','osm_preview_relations','osm_water_mulch_lock','tree_profile_manager'}
     required.update({'uk_lidar_ui','uk_lidar_downloader'})
@@ -174,7 +189,7 @@ def main():
     required.update({'tgc_ui_style'})
     required.update({'tgc_local_alignment_topology','tgc_local_feature_filters'})
     if not required.issubset(archive.toc):raise RuntimeError('Missing frozen modules: '+repr(required-set(archive.toc)))
-    bundled_names = [str(name).lower() for name in CArchiveReader(str(built)).toc]
+    bundled_names = [str(name).lower() for name in frozen_exe.toc]
     if not any('geos_c' in name and name.endswith('.dll') for name in bundled_names):
         raise RuntimeError('Frozen local alignment is missing the Shapely GEOS runtime')
     def constants(code):
@@ -192,7 +207,14 @@ def main():
     if 'TGC_BETA7_UNITY_INTEGRATION_V2' not in constants(archive.extract('tgc_unity_build_check')):
         raise RuntimeError('Frozen EXE is missing the integrated Unity importer')
     identity=constants(archive.extract('tgc_gui'))
-    if APP_TITLE not in identity or VERSION not in identity:raise RuntimeError('Frozen Beta 8 identity mismatch')
+    if app_title not in identity or version not in identity:raise RuntimeError('Frozen release identity mismatch')
+    if parking_release:
+        required_ui = {'parking_lot', 'Import Surface Parking Lots (Road Surface)',
+                       'Import Natural Wood as Mulch (natural=wood)'}
+        if not required_ui.issubset(identity) or 'parking_lot' not in constants(archive.extract('OSMTGC')):
+            raise RuntimeError('Frozen executable is missing the parking lot or natural wood feature')
+        if 'native-wood-excluded-v1' not in constants(archive.extract('osm_mask_alignment')):
+            raise RuntimeError('Frozen executable is missing the woodland mask correction')
     option_keys={'filter_lidar_trees_surfaces','exclude_lidar_trees_red_mask','custom_theme_weighted_planting'}
     if not option_keys.issubset(set(identity)):
         raise RuntimeError('Frozen GUI is missing the new tree controls')
@@ -206,25 +228,29 @@ def main():
     checksum=digest(built)
     out=root/'dist';out.mkdir(exist_ok=True);target=out/built.name
     checksum_path=target.with_name(target.name+'.sha256.txt')
-    backup=root/'backups'/('beta8_1_exe_'+stamp);backup.mkdir(parents=True)
-    for path in (target,checksum_path):
-        if path.exists():shutil.copy2(path,backup/path.name)
     temp_checksum=stage/'dist'/(built.name+'.sha256.txt')
     temp_checksum.write_bytes((checksum+'  '+built.name+'\n').encode('ascii'))
-    replaced=False
+    outputs=[(built,target),(temp_checksum,checksum_path)]
+    if parking_release:
+        if source_snapshot(root) != initial_source:
+            raise RuntimeError('Build sources or support changed; no executable was replaced.')
+        receipt = write_build_receipt(stage/'dist',built,checksum,initial_source)
+        outputs.append((receipt,out/receipt.name))
+    backup=root/'backups'/(exe_name+'_'+stamp);backup.mkdir(parents=True)
+    for _,path in outputs:
+        if path.exists():shutil.copy2(path,backup/path.name)
+    replaced=[]
     try:
-        os.replace(built,target)
-        replaced=True
-        os.replace(temp_checksum,checksum_path)
+        for checked,path in outputs:
+            os.replace(checked,path)
+            replaced.append(path)
     except Exception:
-        # Restore any existing Beta 7, not Beta 6. Keep checked build for diagnosis.
-        if replaced:
-            if (backup/target.name).exists():shutil.copy2(backup/target.name,target)
-            elif target.exists():target.unlink()
-            if (backup/checksum_path.name).exists():shutil.copy2(backup/checksum_path.name,checksum_path)
+        for path in reversed(replaced):
+            if (backup/path.name).exists():shutil.copy2(backup/path.name,path)
+            else:path.unlink(missing_ok=True)
         raise
-    print('\nBUILD COMPLETE\nLaunch: '+str(target)+'\nWindow: '+APP_TITLE+'\nSHA-256: '+checksum)
-    print('Beta 6 EXE was not replaced. No GitHub changes.')
+    print('\nBUILD COMPLETE\nLaunch: '+str(target)+'\nWindow: '+app_title+'\nSHA-256: '+checksum)
+    print('Previous-version executables were not replaced.')
     print('CFS: Local Tee/Bunker Alignment previews residual moves; only accepted proposals create a corrected OSM copy. Apply + Rebuild Mask afterward.')
     print('OSM/surface filtering defaults OFF; red-mask and 50 m controls remain independent. Reuse the heightmap and regenerate the course. CFS starts from the current working project.')
     print('Unity RAW + SVG importer and dry-mulch support included; no bundled course preset; frozen import smoke test passed.')

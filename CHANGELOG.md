@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## v0.5.0-2k25-beta8.2 — source ready for a Windows build
+
+- Add **Import Surface Parking Lots (Road Surface)**, off by default. Import closed surface car parks and complete multipolygons as filled areas using the configured automobile-road material, preserving islands. Parking aisles retain their independent road control; parking areas do not affect the automatic mask.
 
 - Limit optional woodland mulch to explicitly tagged `natural=wood` areas. Meadow, forest-only and woodchip-only areas do not create mulch splines.
 - Exclude woodland from the generated terrain mask and Auto Red Mask keep areas and buffers, including CFS rebuilds. The optional woodland spline import and individual OSM tree-point import remain independent.

@@ -25,7 +25,7 @@ def filter_kind(feature):
         return "rough"
     if kind in ("water", "water_hazard", "lateral_water_hazard", "waterway"):
         return "water"
-    if kind in ("path", "cartpath", "road", "walkingpath"):
+    if kind in ("path", "cartpath", "road", "walkingpath", "parking_lot"):
         return "paths"
     return kind if kind in dict(FILTERS) else "other"
 
