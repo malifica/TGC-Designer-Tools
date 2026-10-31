@@ -1,0 +1,590 @@
+{
+  "format": "TGC Beta 8.2 existing-build publication input",
+  "version": 1,
+  "exe": "dist/tgc_gui_2k25_beta8_2.exe",
+  "rebuild_performed": false,
+  "network_requests": false,
+  "source_files_modified": false,
+  "files": {
+    "BUILD_TGC_2K25_BETA7.py": {
+      "bytes": 14035,
+      "sha256": "09af26fa50a4b56defcc17f0001fe4937cec752dbeebd52f9bce7d43298022a9"
+    },
+    "BUILD_TGC_2K25_BETA8.py": {
+      "bytes": 16032,
+      "sha256": "7330c4e491535942dfc91718cabfc0479fb0c5c6862ea8ff3130a2b5dbb1e228"
+    },
+    "BUILD_TGC_2K25_BETA8_2.bat": {
+      "bytes": 385,
+      "sha256": "94d07c296f7d358c5c8acf4cd0fe8508a59f60211fde78c5cad29483775964a8"
+    },
+    "BUILD_TGC_2K25_BETA8_2.py": {
+      "bytes": 505,
+      "sha256": "74c173663f3737939d2bddcaee70d950aa9383e6f46e03e6cb31b39e40b98b31"
+    },
+    "COLLECT_BETA8_2_FOR_PUBLICATION.py": {
+      "bytes": 7005,
+      "sha256": "6009b65e5cb2c64d49aaf0881d9fda51340f93e36ec8aa0f01c0d22bb09f8484"
+    },
+    "GeoPointCloud.py": {
+      "bytes": 12968,
+      "sha256": "75431052f9ebab4b90d120d132b831398eb86ee3589aba10bc4bf6f533c1f8c3"
+    },
+    "LICENSE": {
+      "bytes": 11558,
+      "sha256": "1eb85fc97224598dad1852b5d6483bbcf0aa8608790dcc657a5a2a761ae9c8c6"
+    },
+    "OSMTGC.py": {
+      "bytes": 119315,
+      "sha256": "af7c4dfeed1074c0ccd3553260137050e6dde70fe82e32f790a0e239a78151e9"
+    },
+    "PyInstaller/hooks/hook-pywt.py": {
+      "bytes": 41,
+      "sha256": "570625a5e8ab68dedc4f95ad774890b1c90f412ec77ea7619341a442bdedfed7"
+    },
+    "PyInstaller/hooks/hook-rasterio.py": {
+      "bytes": 488,
+      "sha256": "ab8b799b0da0e63cec3f9bfd20af374619514f553060219a04094d271e6b3477"
+    },
+    "PyInstaller/rthook_rasterio.py": {
+      "bytes": 399,
+      "sha256": "8bd2fbc9c7ff6f1fba422aa2f2293f25a22f01912bc9ac22a1e7d40f2a683227"
+    },
+    "RELEASE_NOTES_v0.5.0-2k25-beta8.2.md": {
+      "bytes": 1494,
+      "sha256": "bc0264b8708bae0608dca97afd07a784cb1482286c0d6901e3f0440f1434eea9"
+    },
+    "VERIFY_BETA3_1_SOURCE.py": {
+      "bytes": 7460,
+      "sha256": "b7c18c4030e34504217aeae8f12fddb54b0a573a5dabdc2365a01e464ff0ec97"
+    },
+    "VERIFY_BETA3_SOURCE.py": {
+      "bytes": 5328,
+      "sha256": "c1c3654c330653885999f9e881c6ed6b123c47a6894b8a0ce03e097ae33d2e19"
+    },
+    "VERIFY_BETA4_SOURCE.py": {
+      "bytes": 7866,
+      "sha256": "41ae75961612da6cc5fff2532862284dbcaea1d8d1a7106453d7520d80aa1536"
+    },
+    "VERIFY_BETA5_DEV_SOURCE.py": {
+      "bytes": 18917,
+      "sha256": "2eb7c14158e92c42ac098a4022ce38383130649595263e6e5dd94031b5a6ba89"
+    },
+    "VERIFY_BETA6_CFS_ASYNC_MASK_REBUILD_V3.py": {
+      "bytes": 6413,
+      "sha256": "a5917fe486f5ab11f40ea1490a66e9b7a1818ae4cb248df8ee0f405bef9aacce"
+    },
+    "VERIFY_BETA6_CFS_MASK_ALIGNMENT_WORKFLOW_V1.py": {
+      "bytes": 9060,
+      "sha256": "77cd5be6fde8123d393d4a2a321416b13779e067e350eb35df96b3fa2e69c97c"
+    },
+    "VERIFY_BETA6_CUSTOM_UNMATCHED_OSM_V5.py": {
+      "bytes": 3935,
+      "sha256": "514903245afbdc4f6268af6fe4db42dd3570422c525e94479e8292999439e7f1"
+    },
+    "VERIFY_BETA6_CUSTOM_UNMATCHED_OSM_V5_1.py": {
+      "bytes": 5595,
+      "sha256": "8f3a19de211b338be4a195bc805b51862033011e0a11f8f341c440aa68b0d56c"
+    },
+    "VERIFY_BETA6_DEM_PREVIEW_FIX.py": {
+      "bytes": 8037,
+      "sha256": "40c9631aea546ba01a60a7f8674612dc0127b142ca5a742582a6dd09b3074c05"
+    },
+    "VERIFY_BETA6_LIDAR_TREE_MASK_MASTER_GRID_FIX_V1.py": {
+      "bytes": 1069,
+      "sha256": "74c5309d3648773dc9c6bed59bfaf181c85c67a4c6d3c71ec81e1ea76ab3d22d"
+    },
+    "VERIFY_BETA6_MULTIPOLYGON_MULCH_V1.py": {
+      "bytes": 21548,
+      "sha256": "ac23a3af498ebad57bd2d51a3962c9b731afa896d439b9213a34ac3917add9ba"
+    },
+    "VERIFY_BETA6_OSM_ROAD_SPLIT_V4.py": {
+      "bytes": 11237,
+      "sha256": "837fca00044381a7e8bdd1423be475ff73e56b5bfbf36469c1b5de33bcb7d9a6"
+    },
+    "VERIFY_BETA6_OUTPUT_PROGRESS.py": {
+      "bytes": 6662,
+      "sha256": "bbb21c6d4ad8c435ff61d22b1beaeec1d7feb060d4dae2824b808252f703139c"
+    },
+    "VERIFY_BETA6_SOURCE.py": {
+      "bytes": 15104,
+      "sha256": "08bfdd8e57993d1ea89a2b38c4b2f19f61b76440045fc8713ac436e3697d72fa"
+    },
+    "VERIFY_BETA6_SPLINE_SURFACE_FIX_V1.py": {
+      "bytes": 9599,
+      "sha256": "8108979e72f5608ac62e7118c95125b3cc71a4767726d99f0e2f7d809a44985f"
+    },
+    "VERIFY_BETA6_TREE_TOPOLOGY.py": {
+      "bytes": 18892,
+      "sha256": "d432b6bd6323572e6bd8fd0af81747ad09c97bbbbc9efb1a921a0880f62a1108"
+    },
+    "VERIFY_BETA6_WORKFLOW_UI_REORDER_V2.py": {
+      "bytes": 4129,
+      "sha256": "55cac30dd49b5d6b69e964b68e212e73f1f3e3e81eca57667e77865f26e77071"
+    },
+    "VERIFY_BETA7_BACKGROUND_GEOREF_V1.py": {
+      "bytes": 13267,
+      "sha256": "fb61165cd1281953a32c817c3946ba62b0a873849ceef6990c5019146ed2d9a4"
+    },
+    "VERIFY_BETA7_CFS.py": {
+      "bytes": 13007,
+      "sha256": "66c5c99a5bee07117fa4946294aaf698def4ce80484a2a4558d4c2fd9f6f30eb"
+    },
+    "VERIFY_BETA7_EXUS_COUNTRIES_5M.py": {
+      "bytes": 21434,
+      "sha256": "3204d5605870ea5e18114b24401fb99cb2ee2b37566f8a5d78f8dc4d5e77934d"
+    },
+    "VERIFY_BETA7_EXUS_DOWNLOAD.py": {
+      "bytes": 25305,
+      "sha256": "e0274b31afe7c53efc13a1cf74988377fa37f1ca8a9c245b5794355b2e970dde"
+    },
+    "VERIFY_BETA7_FRANCE_CAPABILITIES_FIX.py": {
+      "bytes": 14049,
+      "sha256": "4ce1d18072d04f28e922ca2013c857179f2c9ea4feb7666f2733e07f460a8d48"
+    },
+    "VERIFY_BETA7_FRANCE_CRS.py": {
+      "bytes": 14288,
+      "sha256": "0b1d10625dd0f3d2efb19ae6bd354f7ccf75285d139af22203f56706a2322fde"
+    },
+    "VERIFY_BETA7_FRANCE_POLAND_SERVICE.py": {
+      "bytes": 16833,
+      "sha256": "6500b03802a6c29caf2e69fd0a77db85693bad1b9dff840f5133a620eae5ff09"
+    },
+    "VERIFY_BETA7_LARGE_WINDOWS.py": {
+      "bytes": 6414,
+      "sha256": "8ad45255b28e914d991e42caf74e58fae514e5d784c9a757e27afb64cd7d72d0"
+    },
+    "VERIFY_BETA7_LOCAL_ACCEPT_V7.py": {
+      "bytes": 32401,
+      "sha256": "aac2b23f0b5ea3d38e3674bc2d3d933410487c81a8c501719baa26fb3ce5c4e8"
+    },
+    "VERIFY_BETA7_LOCAL_ALIGNMENT.py": {
+      "bytes": 22989,
+      "sha256": "fe55abf9f4d2d640f86565d64b61851ba9abe3e24f81183de65af08d8893fe53"
+    },
+    "VERIFY_BETA7_LOCAL_ALIGNMENT_ENGINE.py": {
+      "bytes": 12113,
+      "sha256": "ffdfdb400acb53291fb4a2af3613dfae5f5ff905758b9d83d63221ca8501bb12"
+    },
+    "VERIFY_BETA7_LOCAL_FEATURES_V6.py": {
+      "bytes": 13579,
+      "sha256": "00e8ad6c9ce9da2fe1dc48f06208349b7582e81700084805ec24caba882ef149"
+    },
+    "VERIFY_BETA7_LOCAL_MANUAL.py": {
+      "bytes": 15195,
+      "sha256": "8bcf2a3163e373b45adb110072b0140a9d9c6ff1c1b616bd5e1ca03f847b0a5b"
+    },
+    "VERIFY_BETA7_LOCAL_MANUAL_UI.py": {
+      "bytes": 47970,
+      "sha256": "5c575fa96dcce8083d1d82835e0e889246c4236c3947bb0dcf144aeb88b3afe1"
+    },
+    "VERIFY_BETA7_LOCAL_RELATIONS.py": {
+      "bytes": 11925,
+      "sha256": "53d3474032fe8f809dfa3669b350e063399912faccd194b5dc2d6f1329edb033"
+    },
+    "VERIFY_BETA7_LOCAL_RELATION_CONSUMERS.py": {
+      "bytes": 14799,
+      "sha256": "faca0883436e9431df0e04abc3678401960938c6b0adad0a124ebe6a6fe2e821"
+    },
+    "VERIFY_BETA7_LOCAL_UI_V6.py": {
+      "bytes": 6564,
+      "sha256": "8b46769a7e9031823a1dd7c47e002fd5b3b0aebb82e5eabc59bdf25d46b1c40d"
+    },
+    "VERIFY_BETA7_RESOLVED_SHAPES.py": {
+      "bytes": 10553,
+      "sha256": "7f18b6b078486966fbd2532447be1bde0becbe7b0fdfb79549b4ddcfdd5a9d64"
+    },
+    "VERIFY_BETA7_TREE_CONTROLS.py": {
+      "bytes": 14159,
+      "sha256": "0fd5ba99b1de87558bfda1f13ded2eac1c5888dfb7cb17e8ac093474a49795a8"
+    },
+    "VERIFY_BETA7_UI_STYLE_V1.py": {
+      "bytes": 5938,
+      "sha256": "d8aa27cacb235f0a222f896430bc53d34ce70d065870b4c5130e69aefbe56862"
+    },
+    "VERIFY_BETA7_UK_DOWNLOAD.py": {
+      "bytes": 21542,
+      "sha256": "6fb97aeb5194dfebfe9e09ec418a81c25b986b5695a26e3fd60e12b3ff6e86f1"
+    },
+    "VERIFY_BETA7_UK_REPORT_FONT_FIX.py": {
+      "bytes": 9491,
+      "sha256": "b0ccb2634508b44cdf4a565cda2d1b1aec48c13ddcefcd1455d15fb0ac9eed93"
+    },
+    "VERIFY_BETA7_UK_REPORT_PANE.py": {
+      "bytes": 10088,
+      "sha256": "3bb3728086eaf52bb28d5c132366b5752b92e7659963e71b1434847c2ba0422a"
+    },
+    "VERIFY_BETA7_UK_UI_FIX.py": {
+      "bytes": 15506,
+      "sha256": "6aba37046c36fe05f961fb3dfe9a48daf4fbfbc64cb6c0a8f12350fa01da6892"
+    },
+    "VERIFY_BETA7_UK_UI_LAYOUT_FIX.py": {
+      "bytes": 11569,
+      "sha256": "612b330ffbae1903c2e713b56f2bc94706e189d3585ed999c5eb0c2c35f9f663"
+    },
+    "VERIFY_BETA7_UNITY_DISPATCH_V4.py": {
+      "bytes": 5911,
+      "sha256": "eebb1ca06c0819780fc35ac37629852875304c1e216603078b32c499b5be1165"
+    },
+    "VERIFY_BETA7_UNITY_INTEGRATION_V2.py": {
+      "bytes": 8006,
+      "sha256": "27d6eb9ab6c0f12529d6bbd51968789670377a22194f70e9762ce3ed61ebd5d7"
+    },
+    "VERIFY_BETA7_UNITY_ROW_DESERT_SW_V1.py": {
+      "bytes": 12101,
+      "sha256": "843151c590ac1a352ed2c8fbcbab2edac160469a03b164fb7b98067764ad6009"
+    },
+    "VERIFY_BETA8_2_PARKING.py": {
+      "bytes": 9704,
+      "sha256": "6ed46ef6061b6e149d88681863e28652977f73ec058fbded78d90673c58a2284"
+    },
+    "VERIFY_BETA8_CFS.py": {
+      "bytes": 13011,
+      "sha256": "2baeddec8912c7f3ec6e15069b96f6066a4c1b5c811e1e6b37469e2afaff141b"
+    },
+    "VERIFY_BETA8_OSM_WOODS_V1.py": {
+      "bytes": 19487,
+      "sha256": "d236de4cc2c0a4359ffe0ab832956f198f47b55bee65ac926f75d4a45af61754"
+    },
+    "VERIFY_BETA8_RESOLVED_SHAPES.py": {
+      "bytes": 10557,
+      "sha256": "74d2b540405461aecd8117acb0c6089c53470ac2f419c0daae02478739417f18"
+    },
+    "VERIFY_BETA8_THEME_PLANTING.py": {
+      "bytes": 4755,
+      "sha256": "121cf1a09fd4bd4e10ce97472f04052b8bd3c2a56c823182dc0ef89f025235ad"
+    },
+    "VERIFY_BETA8_TREE_CONTROLS.py": {
+      "bytes": 14165,
+      "sha256": "0e4493666ca83ff5b280d8c558126d2eb11e193c16a52f337af17436ad7e85b8"
+    },
+    "VERIFY_TGC_HBCC_MULCH_V1.py": {
+      "bytes": 7128,
+      "sha256": "799e9067b42ad84b175124568d767022811d250fbbf2dca60516c284960c97d1"
+    },
+    "VERIFY_TGC_UNITY_RAW_SVG_V1.py": {
+      "bytes": 9734,
+      "sha256": "aeac3e7e0f67371db01ea447170ff4e594da411dc5c435b9d25d7a95c1b84956"
+    },
+    "auto_red_mask.py": {
+      "bytes": 24267,
+      "sha256": "0394dda75f05371c6accdc2033de6412e410f3f006f3a328cedc34b0e2d08a16"
+    },
+    "cfs_georef.py": {
+      "bytes": 8517,
+      "sha256": "c6a4210c18240f15591d3088074cedd3770b782019f57be767e6b5291f6225a6"
+    },
+    "dem_map_api.py": {
+      "bytes": 43015,
+      "sha256": "c7b154401f4915226a5d59543452e3ffafc956b5d410a023cc5cac030bafb3d8"
+    },
+    "extras/splines.json": {
+      "bytes": 2197,
+      "sha256": "fde83258849433ae4718a725e40b7081912050c0cfdb3b42fcdf574a2ae9f291"
+    },
+    "exus_additional_countries.py": {
+      "bytes": 23779,
+      "sha256": "8ce5eec36803da837eeab55cd747320291b7258113ee72643a518c0a59da76bb"
+    },
+    "exus_france_crs.py": {
+      "bytes": 15676,
+      "sha256": "efb2e892afebf9d1526478d8d7a485b2d135edb780d4e1ba2b9f97ea391d6694"
+    },
+    "exus_lidar_sources.py": {
+      "bytes": 20460,
+      "sha256": "96a506e225d828c0ae9ee010786674c12dcac1c2884ae482306ee1edc78f87bb"
+    },
+    "exus_raster.py": {
+      "bytes": 4914,
+      "sha256": "241a6efd28d27a826d6d79d4b17f514bd6197b2b3641aa1b74273124c3935d2d"
+    },
+    "exus_resolution_policy.py": {
+      "bytes": 5765,
+      "sha256": "eebf38eb3b91e8f2d84b11f9fb92e79f38c0188c450ac35f83f5afa677ad13bc"
+    },
+    "exus_service_raster.py": {
+      "bytes": 13616,
+      "sha256": "4d09b7e11fe5ab8fa42ea9bda73fbcc2576c35de19884793d6697430525d625a"
+    },
+    "infill_image.py": {
+      "bytes": 4933,
+      "sha256": "7a3496c9c9978146f88a6a406be865f62003bbfdd5c484b24de2c822c7577380"
+    },
+    "laszip/LICENSE.txt": {
+      "bytes": 1550,
+      "sha256": "81ffbdc4f51eccefef29b4eb26469d14b40fb2ce6cd26e86df69bd1462791883"
+    },
+    "laszip/laszip-cli.exe": {
+      "bytes": 815104,
+      "sha256": "1fa8fb7cf5246dbe8dee8fe6900c6caedcb72213d4c9ce96fbcbaa2af8677423"
+    },
+    "lidar_fast_native.c": {
+      "bytes": 1713,
+      "sha256": "b055e48a856332052f1ab9d9c59812a20aa09d56dc9a03ed18e0d61e8eb97fe7"
+    },
+    "lidar_fast_native.py": {
+      "bytes": 4378,
+      "sha256": "66d8208e6e9828d3a62c0001adff00590852d5458a530273d5f0fd5a769b9a8a"
+    },
+    "lidar_feature_filter.py": {
+      "bytes": 19485,
+      "sha256": "438f375ef7e901552036d754ad06fcfc1ae4c0b3deb4feddacff42d5c9cb5546"
+    },
+    "lidar_map_api.py": {
+      "bytes": 59657,
+      "sha256": "f775866d8d6c3ca1e639b231225569fb4df985d48c73daa34bf65e3cb07f5aa7"
+    },
+    "lidar_tree_topology.py": {
+      "bytes": 17641,
+      "sha256": "22e159615d1c7b8638616228fe2115545560f2c40a7e1541f90b0dbed85b26fe"
+    },
+    "offset_ui_tool.py": {
+      "bytes": 5018,
+      "sha256": "78eb1d86f28e8a7e8e3dec398fb3f565fa26ae7b0a04799df7f6990d2c263f5d"
+    },
+    "osm_alignment_viewer.py": {
+      "bytes": 46054,
+      "sha256": "c165c47951083609ec24688e6756b93867fb2d4faeba7d2113df8544b35f81bc"
+    },
+    "osm_custom_layout.py": {
+      "bytes": 9808,
+      "sha256": "7373b88d8c758cebdc0aa721f59a1971ad896915326dbc4a1a923ffde9f6908a"
+    },
+    "osm_mask_alignment.py": {
+      "bytes": 33267,
+      "sha256": "9af3c1db29a5efdb79c5d72666a37d08624ec5d781119518aef8dee269077a62"
+    },
+    "osm_preview_relations.py": {
+      "bytes": 6631,
+      "sha256": "995b01c4e673a1e67258878b1703ad935c5efc6011958fab3aabff5ddcafeffb"
+    },
+    "osm_water_mulch_lock.py": {
+      "bytes": 4235,
+      "sha256": "955ca414de2e6524bca117b651182f4fabc081d71414856a3c979c653a35392a"
+    },
+    "requirements.txt": {
+      "bytes": 267,
+      "sha256": "ba0bdfbdfc206441aaf4a299f12a370040fe700190f0478de7f238d683481497"
+    },
+    "scotland_s3.py": {
+      "bytes": 13956,
+      "sha256": "9be8164bca25958540f46ab5a245af50e384c87ea34980c0a5ffa6c35627d4c2"
+    },
+    "tgc_beta8_entry.py": {
+      "bytes": 293,
+      "sha256": "de701a365f882add4f0fe1798864c6d8c5ebab263c49e2ff8b5e038acd1d9027"
+    },
+    "tgc_cfs_display.py": {
+      "bytes": 6720,
+      "sha256": "cba2d479bcd6a850db60381b298b88e73dc654822a46851f26518ff2597a166a"
+    },
+    "tgc_cfs_widgets.py": {
+      "bytes": 2540,
+      "sha256": "2ab8781191fbbc2f5b3482a02d3b4136a992d91d0743d841b15745bb514d0e40"
+    },
+    "tgc_definitions.py": {
+      "bytes": 23158,
+      "sha256": "de43430eeaf97ace01099874908df5c412ec4ff19c2f7c9cc5a437386eab306f"
+    },
+    "tgc_dem_preview.py": {
+      "bytes": 5791,
+      "sha256": "2546b9d8f0b85acf9bbeec3f60737244099132ea1bc14d0fe5bac8247b6d6c9b"
+    },
+    "tgc_gui.py": {
+      "bytes": 157877,
+      "sha256": "e71d2e2e9b81a60f675b3f2e2486dd5274a97002e47fd72b64a158d09117ad94"
+    },
+    "tgc_image_terrain.py": {
+      "bytes": 60485,
+      "sha256": "cde708a9e1300a86d98914dfbdf90842bf6a4e5b871be6ee45e68d13851ff6f0"
+    },
+    "tgc_kd_terrain.py": {
+      "bytes": 10435,
+      "sha256": "575d4cd7adb92646e1e675f3070864f71cdf00551abde93b107c06f6bdc5df8f"
+    },
+    "tgc_lidar_fast_native.dll": {
+      "bytes": 9216,
+      "sha256": "2443a6dd1f375db74985b1fe88e5e6d11997ba10341e87d89eb6fe778f267007"
+    },
+    "tgc_local_alignment.py": {
+      "bytes": 32111,
+      "sha256": "782a2b60417468abb41ea009762fb4c46f70a7b97b4ecef8d1adc61c8c4a88f8"
+    },
+    "tgc_local_alignment_detector.py": {
+      "bytes": 13426,
+      "sha256": "d7fd0f9e0ca1899e21e43374d1c6bdf991bc8d42849e57336cc3f42a164634cb"
+    },
+    "tgc_local_alignment_export.py": {
+      "bytes": 16645,
+      "sha256": "7b54f2aaff7f4e67fbf2efd8ca2369953cb108f34caab951047649d20953e0fc"
+    },
+    "tgc_local_alignment_topology.py": {
+      "bytes": 33550,
+      "sha256": "01a72a884b354f202f08f09f0f5fa5889ba5284b7e566fdc773289a94cc30c07"
+    },
+    "tgc_local_alignment_ui.py": {
+      "bytes": 79692,
+      "sha256": "91ba48e459b73643699323a54c7afc0acd106575e87f67acc53b346ea5d24812"
+    },
+    "tgc_local_feature_filters.py": {
+      "bytes": 5650,
+      "sha256": "aa0e2d277be7c0a1d87c5d3daa75509855d4d6651b62b814bb995190037246ee"
+    },
+    "tgc_output_progress.py": {
+      "bytes": 9448,
+      "sha256": "6787e7dbabbfb14695643d9fede3a107e5a72c568e4629038ab72a6a815d6ac3"
+    },
+    "tgc_project_paths.py": {
+      "bytes": 1630,
+      "sha256": "0def11080fb2729040e0d17a38d5cbd1aca78ae223c9e3e1d9b1b7e464c2d161"
+    },
+    "tgc_projection_cache.py": {
+      "bytes": 1490,
+      "sha256": "e026e2cf83c392541874203c597c48f2013485eaa2c3bb671934cac05fd58daf"
+    },
+    "tgc_terrain_replay.py": {
+      "bytes": 26564,
+      "sha256": "3bb02e047ab98bf0aef5fd96b6f85151f5243980f4565225bcd83b30e8265f4a"
+    },
+    "tgc_tools.py": {
+      "bytes": 60608,
+      "sha256": "95cf5dc3c522c68077caeaa6ca024c5a95d4b84871d79a9b7fc8a8921ca76f0f"
+    },
+    "tgc_tree_filter_controls.py": {
+      "bytes": 2795,
+      "sha256": "6ad390fcafc831eda680533c823e7a4326a9065631f8928fb74e29f9d589c3af"
+    },
+    "tgc_tree_size_test1_entry.py": {
+      "bytes": 3746,
+      "sha256": "2b5e33aa34d6dd455dde21783acadbead9c9165388d007c7103773efd41af4f4"
+    },
+    "tgc_ui_style.py": {
+      "bytes": 30555,
+      "sha256": "604c31adc59602c54eb90f445ea23a86b0dc440a0835223cd93bbf5892c1725e"
+    },
+    "tgc_unity_build_check.py": {
+      "bytes": 3598,
+      "sha256": "d3edae4b04b900507bd310c282bc75c086ee33697d3fb407ec36ea41bd6bbcd6"
+    },
+    "tgc_unity_import_ui.py": {
+      "bytes": 13968,
+      "sha256": "22a8a66b903c0a6ae4cf9db2cbf93a799d6033fb082e3f57ca653f949cb4f3d2"
+    },
+    "tgc_unity_presets.py": {
+      "bytes": 277,
+      "sha256": "c48795dbeefd700403e0f1f9ca554bd9d4f01ec203ea1d8d85384c3bc5f3b4d5"
+    },
+    "tgc_unity_raw_svg.py": {
+      "bytes": 24292,
+      "sha256": "d50e38e71921b9ca87b188c4f76a02ac123f598064d50bdff7aac454c5960454"
+    },
+    "tgc_unity_svg_paths.py": {
+      "bytes": 7112,
+      "sha256": "215069e437627b6984de5bba27a0df0b1bb40777bc3cf35bb5b98da50ec07f94"
+    },
+    "tgc_visualizer.py": {
+      "bytes": 19589,
+      "sha256": "0ac91157018bed4510958fde54b91e5558fa312fcc002e2206659a2fcc541769"
+    },
+    "tgc_window_layout.py": {
+      "bytes": 3090,
+      "sha256": "77e2aa38e5b7c2ed978ae19a30607b776a587ea9434cf14fee259b0337e4fd92"
+    },
+    "tree_mapper.py": {
+      "bytes": 5958,
+      "sha256": "50b65c6181086a907f8e8ad044fd519ba7e79f5f08c8cdca909d5add0fdfa496"
+    },
+    "tree_profile_analyzer.py": {
+      "bytes": 21441,
+      "sha256": "35cc82c273ebd789b59120b36e94c76f6c7f293cd79bb847376448d9dc039225"
+    },
+    "tree_profile_manager.py": {
+      "bytes": 12116,
+      "sha256": "6b06516e4d96fd3c56c4441c195ffa6d157b81ebebe0d85908644c4ba363463b"
+    },
+    "tree_profiles/_template.json": {
+      "bytes": 1080,
+      "sha256": "b45b1b06d46999cde9597c900e2a0cf826723627224277a534e68a54716660c5"
+    },
+    "tree_profiles/bass_strait_coastal_links.json": {
+      "bytes": 2871,
+      "sha256": "6ff237586c71885d338fbd1da2b64e2980251b6d0f76f5cb43b2b9c3c00467ab"
+    },
+    "tree_profiles/carolina_piedmont_autumn.json": {
+      "bytes": 11110,
+      "sha256": "7e90ab2fa02d337d92c38e3ab9a5dc80ce517076adda8f9431895324d2fee028"
+    },
+    "tree_profiles/desert_southwest.json": {
+      "bytes": 12153,
+      "sha256": "a42f8a42a4065696d3e5c7fa881fcadf5119d472927b7d655772eb1ea6ee1b08"
+    },
+    "tree_profiles/georgia_piedmont.json": {
+      "bytes": 11120,
+      "sha256": "4ecd730460bf63bae75bec099eb5011365d54d153c7ff45afec502dd5c322581"
+    },
+    "tree_profiles/hudson_valley_mixed_forest.json": {
+      "bytes": 11419,
+      "sha256": "503a640aeba422a2dc16ba48f94428033b5017399b1cd8fe6821b2ce5488c9ad"
+    },
+    "tree_profiles/monterey_bay_coast.json": {
+      "bytes": 12174,
+      "sha256": "f82a8e7b7213ab787e0ada34bf77535119ad6a51cdcbf4370df1b0205ab8f587"
+    },
+    "tree_profiles/niagara_escarpment.json": {
+      "bytes": 11890,
+      "sha256": "60ca71d60a9520283a132a6a54ea5b9ba90adb78c28e17c67ef19efcae7211c7"
+    },
+    "tree_profiles/northern_rockies.json": {
+      "bytes": 6438,
+      "sha256": "2ec8001b78f98f51fd757c8c30eb9efb4db14d6f19ad02970ad0e2a63e33ffb4"
+    },
+    "tree_profiles/pacific_northwest.json": {
+      "bytes": 6423,
+      "sha256": "a93c5b25be2e5086ec96c5ec51f37ce2826bcbb1c888ec2c43e4d98653e5aab9"
+    },
+    "tree_profiles/san_francisco_peninsula.json": {
+      "bytes": 11174,
+      "sha256": "f30b8facac640f15f6b4d25d398f98cf9bd756d1b4457a6c091667811091c23f"
+    },
+    "tree_profiles/south_carolina_lowcountry.json": {
+      "bytes": 9857,
+      "sha256": "f29e8f0e3403c6d23a0de4ce855d2e1c2a65b96147fb44fe7c642e44223e9c60"
+    },
+    "tree_profiles/texas_hill_country.json": {
+      "bytes": 12087,
+      "sha256": "db5d540a7386ff4a40229bf63e4067a1758c08f5c53313eb397af71b22dbee53"
+    },
+    "tree_profiles/virginia_coastal_plain.json": {
+      "bytes": 9547,
+      "sha256": "f6a8b41dca504331a2de83e5a64bd061adc31ca2a08f31bc6eb4680a9df75364"
+    },
+    "uk_lidar_downloader.py": {
+      "bytes": 35319,
+      "sha256": "108379ab647a763f05e7b3b69011ee20cd36246aaf910a676d81aaf361d53f61"
+    },
+    "uk_lidar_ui.py": {
+      "bytes": 35618,
+      "sha256": "64884a2df455e569144cbaf81d961a36ab57511ebd5c4e69ee7b75601d71e7a4"
+    },
+    "usgs_ept_downloader.py": {
+      "bytes": 46109,
+      "sha256": "2cb57a9d8a7264fe889242ca663c390536aab3b7aa78ba8653ca651a979690b7"
+    },
+    "usgs_lidar_parser.py": {
+      "bytes": 22679,
+      "sha256": "204318a68d1ec4460756ebd7e50bb881db5b8a5709430c4adf1799d52321a1ee"
+    },
+    "dist/tgc_gui_2k25_beta8_2.exe": {
+      "bytes": 194213555,
+      "sha256": "895e520f068bd72ecbbd9ecb31516de0eb3e8ade37c7ed43be8e47c9c245ad7b"
+    },
+    "dist/tgc_gui_2k25_beta8_2.exe.build.json": {
+      "bytes": 21893,
+      "sha256": "9d0bf63b24620c6168019e4ec3e1cefd11366fef092067d4f2fd50a230f5e032"
+    },
+    "dist/tgc_gui_2k25_beta8_2.exe.sha256.txt": {
+      "bytes": 91,
+      "sha256": "63f470d4152df8cf72321fd76e64a8d2831e0999abc3a8b826ec2eecb5ca7ed1"
+    }
+  }
+}
