@@ -2,11 +2,11 @@
 
 Build PGA TOUR 2K25 courses from **LiDAR, GeoTIFF DEMs, OpenStreetMap, and Unity RAW/SVG data**. Import real-world terrain and course features, align the layout visually, choose regional vegetation, and export a `.course` file for Designer.
 
-**Latest published release: v0.5.0-2k25-beta8.1** · **Windows x64** · Maintained by **malifica**
+**Latest published release: v0.5.0-2k25-beta8.2** · **Windows x64** · Maintained by **malifica**
 
-[Download Beta 8.1](https://github.com/malifica/TGC-Designer-Tools/releases/tag/v0.5.0-2k25-beta8.1) · [Release notes](RELEASE_NOTES_v0.5.0-2k25-beta8.1.md) · [Change history](CHANGELOG.md)
+[Download Beta 8.2](https://github.com/malifica/TGC-Designer-Tools/releases/tag/v0.5.0-2k25-beta8.2) · [Release notes](RELEASE_NOTES_v0.5.0-2k25-beta8.2.md) · [Change history](CHANGELOG.md)
 
-## Beta 8.2: source ready for a Windows build
+## Beta 8.2 highlights
 
 **Import Surface Parking Lots (Road Surface)** is a new, separate checkbox under OpenStreetMap options. It starts off. Enable it to fill a mapped ground-level car park with the same primary surface as automobile roads (asphalt by default in 2K25). Valid closed `amenity=parking` areas and complete multipolygons qualify when `parking=surface` is explicit, or when the parking type is omitted and no tags indicate a structure. Islands stay open. Garages, underground and rooftop parking, individual spaces and entrances are excluded. Parking aisles mapped as service roads still follow **Import Automobile Roads**.
 
@@ -16,14 +16,14 @@ The parking-lot control does not change the automatic terrain mask. Lot outlines
 
 Woodland does not paint `mask.png`, expand Auto Red Mask's keep area or change its buffer. This applies both during initial terrain processing and when rebuilding the aligned mask in CFS. Individual OSM tree points still have their own control.
 
-This correction is in source; the published Beta 8.1 EXE still has the earlier behavior. To refresh an existing project with the corrected source, back up any hand-painted mask, use **Apply + Rebuild Mask** at the intended alignment, reapply any wanted manual edits, and regenerate the course. An existing `.course` export does not change automatically.
+To refresh a project created with an earlier release, back up any hand-painted mask, use **Apply + Rebuild Mask** at the intended alignment, reapply any wanted manual edits, and regenerate the course. An existing `.course` export does not change automatically.
 
-## Published Beta 8.1 highlights
+## Previous release: Beta 8.1
 
-The supplied Beta 8.1 Windows executable is published unchanged, with matching [release source](https://github.com/malifica/TGC-Designer-Tools/commit/67980485fd0639e3458382487ed1fee831de078d) and a [build/source manifest](BETA8_1_BUILD_SOURCE_MANIFEST.json).
+The [Beta 8.1 prerelease](https://github.com/malifica/TGC-Designer-Tools/releases/tag/v0.5.0-2k25-beta8.1) remains available with its matching [release source](https://github.com/malifica/TGC-Designer-Tools/commit/67980485fd0639e3458382487ed1fee831de078d) and a [build/source manifest](BETA8_1_BUILD_SOURCE_MANIFEST.json).
 
 - Separate **Import Woods / Woodchip Areas (Mulch)** and **Import Individual OSM Tree Points** controls. Both default OFF; woodland surfaces no longer enable tree-point planting.
-- Standard `natural=wood`, `landuse=forest`, and closed `surface=woodchips` areas generate dry native mulch, separate from water.
+- Beta 8.1 accepted `natural=wood`, `landuse=forest`, and closed `surface=woodchips` areas as dry native mulch. Beta 8.2 only accepts explicit `natural=wood` areas and excludes woodland from automatic masks.
 - Complete woodland multipolygons preserve inner cutouts; incomplete or invalid geometry is reported rather than filled across missing members.
 - Unity/SVG export writes standard woodland or woodchip classifications. Multipolygon member ways retain `tgc:svg_id` bookkeeping metadata.
 - Obsolete `golf=mulch` areas warn and are skipped instead of being silently reclassified.
@@ -31,7 +31,7 @@ The supplied Beta 8.1 Windows executable is published unchanged, with matching [
 
 [Beta 8.1 release notes](RELEASE_NOTES_v0.5.0-2k25-beta8.1.md) · [Build and collect](BUILD_WINDOWS.md) · [Publication handoff](BETA8_1_PUBLICATION_HANDOFF.md)
 
-## Beta 8 highlights
+## Earlier release: Beta 8 highlights
 
 - **Unity RAW + Course SVG import.** Terrain size/height, byte-order and orientation controls, SVG feature mapping, preview, and paired DEM/local-OSM output integrated into the existing import workflow.
 - **Bunker and tee alignment audit.** Review terrain-based local offset suggestions and confidence indicators before approving corrections.
@@ -134,7 +134,9 @@ Regional profiles provide weighted tree palettes and coordinated playing-surface
 
 ## Windows downloads and source build
 
-The Windows release contains `tgc_gui_2k25_beta8_1.exe`. Its title is **TGC Designer Tools 2K25 - Beta 8.1**. Download the Windows ZIP for the executable, editable profiles, spline configuration, and documentation. SHA-256 files accompany both the standalone EXE and ZIP.
+The [Beta 8.2 Windows x64 ZIP](https://github.com/malifica/TGC-Designer-Tools/releases/download/v0.5.0-2k25-beta8.2/TGC-Designer-Tools-2K25-v0.5.0-2k25-beta8.2-Windows-x64.zip) contains the executable, editable profiles, spline configuration, and documentation. The [standalone EXE](https://github.com/malifica/TGC-Designer-Tools/releases/download/v0.5.0-2k25-beta8.2/tgc_gui_2k25_beta8_2.exe) is the same executable and displays **TGC Designer Tools 2K25 - Beta 8.2**. Checksums: [Windows ZIP](https://github.com/malifica/TGC-Designer-Tools/releases/download/v0.5.0-2k25-beta8.2/TGC-Designer-Tools-2K25-v0.5.0-2k25-beta8.2-Windows-x64.zip.sha256.txt) · [EXE](https://github.com/malifica/TGC-Designer-Tools/releases/download/v0.5.0-2k25-beta8.2/tgc_gui_2k25_beta8_2.exe.sha256.txt).
+
+See the [build/source manifest](BETA8_2_BUILD_SOURCE_MANIFEST.json) for the supplied build and the [publication verification](BETA8_2_PUBLICATION_VERIFICATION.json) for the measured public downloads.
 
 For a Beta 8.2 source checkout with its dependencies installed, run:
 
@@ -142,7 +144,7 @@ For a Beta 8.2 source checkout with its dependencies installed, run:
 BUILD_TGC_2K25_BETA8_2.bat
 ```
 
-The Beta 8.2 build writes `dist\tgc_gui_2k25_beta8_2.exe` and keeps the Beta 8.1 executable. For the single-file Downloads updater, Windows CMD commands, and collection steps, see [BUILD_WINDOWS.md](BUILD_WINDOWS.md).
+The Beta 8.2 build writes `dist\tgc_gui_2k25_beta8_2.exe` and keeps the Beta 8.1 executable. For the source-update ZIP, Windows CMD commands, and collection steps, see [BUILD_WINDOWS.md](BUILD_WINDOWS.md).
 
 ## Credits and license
 

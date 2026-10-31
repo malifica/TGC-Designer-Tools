@@ -1,14 +1,16 @@
 # Windows Build Guide
 
-## Current source: Beta 8.2
+## Beta 8.2 Windows build
 
-For the existing checkout at `C:\TGC-Designer-Tools`, save `UPDATE_TGC_BETA8_2.cmd` directly in Downloads. From Windows Command Prompt, run the following from any folder to apply the update and build once:
+The [published Beta 8.2 Windows prerelease](https://github.com/malifica/TGC-Designer-Tools/releases/tag/v0.5.0-2k25-beta8.2) includes a ready-to-run executable. See its [build/source manifest](BETA8_2_BUILD_SOURCE_MANIFEST.json) and [download verification](BETA8_2_PUBLICATION_VERIFICATION.json).
+
+To build from the separately supplied source-update ZIP, leave `TGC_BETA8_2_UPDATE.zip` in Downloads. For an existing checkout at `C:\TGC-Designer-Tools`, paste this into Windows Command Prompt from any folder:
 
 ```cmd
-"%USERPROFILE%\Downloads\UPDATE_TGC_BETA8_2.cmd" --build
+"C:\TGC-Designer-Tools\.venv_local_osm\Scripts\python.exe" "%USERPROFILE%\Downloads\TGC_BETA8_2_UPDATE.zip" --build
 ```
 
-To apply just the source update, omit `--build`. No ZIP extraction is needed. If the checkout already contains the correct Beta 8.2 source, you can instead call its builder directly:
+The project Python runs the ZIP directly. With `--build`, it applies the checked source update and starts one build. Omit `--build` to apply the source only. If the checkout already contains the correct Beta 8.2 source, call its builder directly:
 
 ```cmd
 call "C:\TGC-Designer-Tools\BUILD_TGC_2K25_BETA8_2.bat"

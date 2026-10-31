@@ -1,0 +1,152 @@
+{
+  "release_url": "https://github.com/malifica/TGC-Designer-Tools/releases/tag/v0.5.0-2k25-beta8.2",
+  "release_id": 430094924,
+  "tag": "v0.5.0-2k25-beta8.2",
+  "source_sha": "fb37693701ccaada95ac3cdef831fbe694324a2e",
+  "source_tree_sha": "41afe22b60589b5776dea6b1789087abd40edeaa",
+  "publication_workflow": "https://github.com/malifica/TGC-Designer-Tools/actions/runs/41226925286",
+  "actual_public_downloads_verified_without_authentication": true,
+  "zip_executable_matches_supplied_build": true,
+  "all_package_support_files_verified": true,
+  "source_archives_match_release_commit": true,
+  "executable_rebuilt_or_modified": false,
+  "windows_application_or_game_testing_performed_by_publication_workflow": false,
+  "assets": {
+    "TGC-Designer-Tools-2K25-v0.5.0-2k25-beta8.2-Windows-x64.zip": {
+      "bytes": 192896513,
+      "sha256": "2655d910856ad1595b053ff198cbca1d6aff574e2abd1e19dbb938279f5a8e56",
+      "id": 696076103,
+      "url": "https://github.com/malifica/TGC-Designer-Tools/releases/download/v0.5.0-2k25-beta8.2/TGC-Designer-Tools-2K25-v0.5.0-2k25-beta8.2-Windows-x64.zip"
+    },
+    "TGC-Designer-Tools-2K25-v0.5.0-2k25-beta8.2-Windows-x64.zip.sha256.txt": {
+      "bytes": 126,
+      "sha256": "eb10ba9da08063b87bd1c8d817eaa2a75f0d6738fe95d33c29f5169413134fc3",
+      "id": 696076351,
+      "url": "https://github.com/malifica/TGC-Designer-Tools/releases/download/v0.5.0-2k25-beta8.2/TGC-Designer-Tools-2K25-v0.5.0-2k25-beta8.2-Windows-x64.zip.sha256.txt"
+    },
+    "tgc_gui_2k25_beta8_2.exe": {
+      "bytes": 194213555,
+      "sha256": "895e520f068bd72ecbbd9ecb31516de0eb3e8ade37c7ed43be8e47c9c245ad7b",
+      "id": 696076366,
+      "url": "https://github.com/malifica/TGC-Designer-Tools/releases/download/v0.5.0-2k25-beta8.2/tgc_gui_2k25_beta8_2.exe"
+    },
+    "tgc_gui_2k25_beta8_2.exe.sha256.txt": {
+      "bytes": 91,
+      "sha256": "63f470d4152df8cf72321fd76e64a8d2831e0999abc3a8b826ec2eecb5ca7ed1",
+      "id": 696076571,
+      "url": "https://github.com/malifica/TGC-Designer-Tools/releases/download/v0.5.0-2k25-beta8.2/tgc_gui_2k25_beta8_2.exe.sha256.txt"
+    }
+  },
+  "automatic_source_archives": {
+    "zip": {
+      "bytes": 1634640,
+      "sha256": "6a713a9bdbb563ceb2531351afdc43511e878bc2c1c0fdb71298e67324775c1b",
+      "url": "https://github.com/malifica/TGC-Designer-Tools/archive/refs/tags/v0.5.0-2k25-beta8.2.zip",
+      "verified_committed_files": 197
+    },
+    "tar": {
+      "bytes": 1465456,
+      "sha256": "24c022e7a25f220862807b03a38aee3ac5e5524698b0e1dd4047acf3a2382cbe",
+      "url": "https://github.com/malifica/TGC-Designer-Tools/archive/refs/tags/v0.5.0-2k25-beta8.2.tar.gz",
+      "verified_committed_files": 197
+    }
+  },
+  "package_members": {
+    "BETA8_2_BUILD_SOURCE_MANIFEST.json": {
+      "bytes": 28183,
+      "sha256": "fdc837ba6542c72274aedf5105221d1177a77e30a9c9d7082a3e3e14d79d6fa0"
+    },
+    "BETA8_2_BUILD_VALIDATION.json": {
+      "bytes": 36183,
+      "sha256": "66f1ed7f99e8ba58ef3656bf068d362537bdbc802e97d41152b3eb7932e958b6"
+    },
+    "BETA8_2_UPLOAD_MANIFEST.json": {
+      "bytes": 21744,
+      "sha256": "d61244e2d5b867edc943224f57bdbdf82432ebc0a851be82aecae05b71e0133b"
+    },
+    "BETA8_2_WINDOWS_BUILD_RECEIPT.json": {
+      "bytes": 21893,
+      "sha256": "9d0bf63b24620c6168019e4ec3e1cefd11366fef092067d4f2fd50a230f5e032"
+    },
+    "LICENSE": {
+      "bytes": 11558,
+      "sha256": "1eb85fc97224598dad1852b5d6483bbcf0aa8608790dcc657a5a2a761ae9c8c6"
+    },
+    "RELEASE_NOTES_v0.5.0-2k25-beta8.2.md": {
+      "bytes": 1494,
+      "sha256": "bc0264b8708bae0608dca97afd07a784cb1482286c0d6901e3f0440f1434eea9"
+    },
+    "RELEASE_SOURCE.json": {
+      "bytes": 1026,
+      "sha256": "870e2296755e4e9654310eb264ba35cee9d240df90c6ff8f0acbfdc4077f125a"
+    },
+    "laszip/LICENSE.txt": {
+      "bytes": 1550,
+      "sha256": "81ffbdc4f51eccefef29b4eb26469d14b40fb2ce6cd26e86df69bd1462791883"
+    },
+    "splines.json": {
+      "bytes": 2197,
+      "sha256": "fde83258849433ae4718a725e40b7081912050c0cfdb3b42fcdf574a2ae9f291"
+    },
+    "tgc_gui_2k25_beta8_2.exe": {
+      "bytes": 194213555,
+      "sha256": "895e520f068bd72ecbbd9ecb31516de0eb3e8ade37c7ed43be8e47c9c245ad7b"
+    },
+    "tree_profiles/_template.json": {
+      "bytes": 1080,
+      "sha256": "b45b1b06d46999cde9597c900e2a0cf826723627224277a534e68a54716660c5"
+    },
+    "tree_profiles/bass_strait_coastal_links.json": {
+      "bytes": 2871,
+      "sha256": "6ff237586c71885d338fbd1da2b64e2980251b6d0f76f5cb43b2b9c3c00467ab"
+    },
+    "tree_profiles/carolina_piedmont_autumn.json": {
+      "bytes": 11110,
+      "sha256": "7e90ab2fa02d337d92c38e3ab9a5dc80ce517076adda8f9431895324d2fee028"
+    },
+    "tree_profiles/desert_southwest.json": {
+      "bytes": 12153,
+      "sha256": "a42f8a42a4065696d3e5c7fa881fcadf5119d472927b7d655772eb1ea6ee1b08"
+    },
+    "tree_profiles/georgia_piedmont.json": {
+      "bytes": 11120,
+      "sha256": "4ecd730460bf63bae75bec099eb5011365d54d153c7ff45afec502dd5c322581"
+    },
+    "tree_profiles/hudson_valley_mixed_forest.json": {
+      "bytes": 11419,
+      "sha256": "503a640aeba422a2dc16ba48f94428033b5017399b1cd8fe6821b2ce5488c9ad"
+    },
+    "tree_profiles/monterey_bay_coast.json": {
+      "bytes": 12174,
+      "sha256": "f82a8e7b7213ab787e0ada34bf77535119ad6a51cdcbf4370df1b0205ab8f587"
+    },
+    "tree_profiles/niagara_escarpment.json": {
+      "bytes": 11890,
+      "sha256": "60ca71d60a9520283a132a6a54ea5b9ba90adb78c28e17c67ef19efcae7211c7"
+    },
+    "tree_profiles/northern_rockies.json": {
+      "bytes": 6438,
+      "sha256": "2ec8001b78f98f51fd757c8c30eb9efb4db14d6f19ad02970ad0e2a63e33ffb4"
+    },
+    "tree_profiles/pacific_northwest.json": {
+      "bytes": 6423,
+      "sha256": "a93c5b25be2e5086ec96c5ec51f37ce2826bcbb1c888ec2c43e4d98653e5aab9"
+    },
+    "tree_profiles/san_francisco_peninsula.json": {
+      "bytes": 11174,
+      "sha256": "f30b8facac640f15f6b4d25d398f98cf9bd756d1b4457a6c091667811091c23f"
+    },
+    "tree_profiles/south_carolina_lowcountry.json": {
+      "bytes": 9857,
+      "sha256": "f29e8f0e3403c6d23a0de4ce855d2e1c2a65b96147fb44fe7c642e44223e9c60"
+    },
+    "tree_profiles/texas_hill_country.json": {
+      "bytes": 12087,
+      "sha256": "db5d540a7386ff4a40229bf63e4067a1758c08f5c53313eb397af71b22dbee53"
+    },
+    "tree_profiles/virginia_coastal_plain.json": {
+      "bytes": 9547,
+      "sha256": "f6a8b41dca504331a2de83e5a64bd061adc31ca2a08f31bc6eb4680a9df75364"
+    }
+  }
+}

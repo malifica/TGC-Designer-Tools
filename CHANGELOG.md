@@ -1,16 +1,15 @@
 # Changelog
 
-## v0.5.0-2k25-beta8.2 — source ready for a Windows build
+## [v0.5.0-2k25-beta8.2](https://github.com/malifica/TGC-Designer-Tools/releases/tag/v0.5.0-2k25-beta8.2)
 
 - Add **Import Surface Parking Lots (Road Surface)**, off by default. Import closed surface car parks and complete multipolygons as filled areas using the configured automobile-road material, preserving islands. Parking aisles retain their independent road control; parking areas do not affect the automatic mask.
-
 - Limit optional woodland mulch to explicitly tagged `natural=wood` areas. Meadow, forest-only and woodchip-only areas do not create mulch splines.
 - Exclude woodland from the generated terrain mask and Auto Red Mask keep areas and buffers, including CFS rebuilds. The optional woodland spline import and individual OSM tree-point import remain independent.
 
 ## v0.5.0-2k25-beta8.1
 
 - Separate **Import Woods / Woodchip Areas (Mulch)** and **Import Individual OSM Tree Points** controls. Both default OFF; woodland surfaces no longer enable tree-point planting.
-- Standard `natural=wood`, `landuse=forest`, and closed `surface=woodchips` areas generate dry native mulch, separate from water.
+- Beta 8.1 accepted `natural=wood`, `landuse=forest`, and closed `surface=woodchips` areas as dry native mulch. Beta 8.2 supersedes this rule.
 - Complete woodland multipolygons preserve inner cutouts; incomplete or invalid geometry is reported rather than filled across missing members.
 - Unity/SVG export writes standard woodland or woodchip classifications. Multipolygon member ways retain `tgc:svg_id` bookkeeping metadata.
 - Obsolete `golf=mulch` areas warn and are skipped instead of being silently reclassified.
