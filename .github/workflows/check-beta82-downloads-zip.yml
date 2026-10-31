@@ -1,0 +1,30 @@
+name: Check Beta 8.2 ZIP directly from Downloads
+on:
+  push:
+    branches: ['checks/beta82-downloads-zip']
+    paths: ['.github/workflows/check-beta82-downloads-zip.yml']
+permissions:
+  contents: read
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+  PYTHONUTF8: '1'
+jobs:
+  check:
+    if: github.repository == 'malifica/TGC-Designer-Tools' && github.ref == 'refs/heads/checks/beta82-downloads-zip'
+    runs-on: windows-2022
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+          architecture: 'x64'
+      - name: Stage exact Downloads file and disposable Beta 8.1 checkout
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python .github/verification/check_beta82_downloads_zip.py stage
+      - name: Run the exact copy/paste command through Windows CMD
+        run: python .github/verification/check_beta82_downloads_zip.py exercise
