@@ -1,0 +1,59 @@
+name: Publish existing TGC Designer Tools Beta 8.2
+
+on:
+  push:
+    branches: ['release/beta8.2-publication']
+    paths:
+      - '.github/workflows/publish-existing-beta82.yml'
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: tgc-beta82-publication
+  cancel-in-progress: false
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+  PYTHONUTF8: '1'
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Check out the publication control branch
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Verify the supplied build and prepare its package
+        run: python3 .github/publication/publish_beta82.py prepare
+
+      - name: Retain exact assets and matching source for recovery
+        uses: actions/upload-artifact@v6
+        with:
+          name: TGC-Beta82-Existing-Build-${{ github.run_id }}-${{ github.run_attempt }}
+          path: publication/
+          include-hidden-files: true
+          compression-level: 0
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: Verify the draft assets and publish the supplied build
+        run: python3 .github/publication/publish_beta82.py publish
+
+      - name: Verify all public assets and automatic source archives without authentication
+        run: python3 .github/publication/publish_beta82.py verify-downloads
+
+      - name: Retain the public download verification receipt
+        uses: actions/upload-artifact@v6
+        with:
+          name: TGC-Beta82-Verified-Release-${{ github.run_id }}-${{ github.run_attempt }}
+          path: publication/verified-release.json
+          retention-days: 30
+          if-no-files-found: error
