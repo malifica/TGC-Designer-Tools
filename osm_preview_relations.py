@@ -16,9 +16,6 @@ def _tags(obj):
 def _style(obj):
     t = _tags(obj)
     golf = t.get('golf')
-    from OSMTGC import classifyDryAreaForTGC
-    if classifyDryAreaForTGC(t):
-        return 'mulch', (.75, .45, .30)
     if golf in ('water_hazard', 'lateral_water_hazard') or t.get('natural') == 'water' or t.get('waterway') is not None:
         return 'water', (0., 0., 1.)
     return {
@@ -136,7 +133,7 @@ def render(osm_result, im, pc, image_scale, x_offset=0., y_offset=0.,
                 mask = _rasterize_multipolygon(outers, inners, image.shape[:2])
                 image[mask != 0, :3] = color
 
-    paint(('rough', 'mulch', 'fairway'))
+    paint(('rough', 'fairway'))
     image = way_renderer(independent, image, pc, scale, x_offset=x_offset,
                          y_offset=y_offset, printf=printf)
     paint(('tee', 'green', 'bunker'))

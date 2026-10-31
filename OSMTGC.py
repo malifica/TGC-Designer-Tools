@@ -1936,28 +1936,40 @@ def newWalkingPath(points, area=False, course_version=-1, optimize_points=True):
     return wp
 
 # TGC_BETA8_STANDARD_OSM_WOODS_V1
-# These are OSM feature meanings; "mulch" is only an internal game surface.
-def classifyDryAreaForTGC(tags):
-    """Standard OSM woodland/woodchip areas, never tree points or water.
+def _is_meadow(tags):
+    return str(tags.get("landuse", "")).strip().lower() == "meadow"
 
-    natural=wood / landuse=forest describe tree-covered land, NOT bare mulch.
-    A genuinely woodchip-covered area can instead use surface=woodchips.
-    Linear roads/paths keep their own established importer, even with woodchips.
-    """
+
+def classifyDryAreaForTGC(tags):
+    """Only an explicit natural=wood area can become optional dry mulch."""
     tags = tags or {}
-    natural = str(tags.get("natural", "") or "").strip().lower()
-    golf = str(tags.get("golf", "") or "").strip().lower()
-    if (natural in ("water", "tree") or tags.get("waterway") or
-            golf in ("water_hazard", "lateral_water_hazard") or
-            str(tags.get("area", "")).lower() == "no"):
+    if tags.get("natural") != "wood":
         return None
-    if golf or tags.get("highway") or tags.get("building"):
+    # Do not guess when a mapped feature has conflicting classifications.
+    if (_is_meadow(tags) or
+            str(tags.get("area", "")).strip().lower() == "no" or
+            any(tags.get(key) for key in ("golf", "waterway", "highway", "building"))):
         return None
-    if natural == "wood" or str(tags.get("landuse", "")).lower() == "forest":
-        return "wood"
-    if str(tags.get("surface", "")).lower() == "woodchips":
-        return "mulch"
-    return None
+    return "wood"
+
+
+def _outer_way_refs(rel):
+    return frozenset(m.ref for m in rel.members if isinstance(m, overpy.RelationWay)
+                     and str(m.role or "").strip().lower() in ("", "outer"))
+
+
+def _has_meadow_shell(refs, lookup, meadow_outer_sets, meadow_outer_ways, resolve):
+    # A shared edge between neighboring wood and meadow is not a shared area.
+    if refs and refs in meadow_outer_sets:
+        return True
+    for ref in refs:
+        way = lookup.get(ref)
+        if way is None or (ref not in meadow_outer_ways and not _is_meadow(way.tags)):
+            continue
+        nodes = way.get_nodes(resolve_missing=resolve)
+        if len(nodes) >= 4 and nodes[0].id == nodes[-1].id:
+            return True
+    return False
 
 
 def _dry_area_enabled(kind, options):
@@ -2048,7 +2060,7 @@ def _dry_relation_splines(rel, lookup, pc, ew, ns, resolve, version, ul, lr, pri
         m.role = role or "outer"
         normalized.members.append(m)
     def log(message):
-        printf(str(message).replace("water multipolygon", "woodland/woodchip multipolygon"))
+        printf(str(message).replace("water multipolygon", "natural=wood multipolygon"))
     outer = _stitch_relation_role_node_rings(normalized,"outer",lookup,resolve,printf=log)
     inner = _stitch_relation_role_node_rings(normalized,"inner",lookup,resolve,printf=log)
     if not outer or inner is None:
@@ -2488,9 +2500,12 @@ def addOSMToTGC(course_json, geopointcloud, osm_result, x_offset=0.0, y_offset=0
                 " bunker multipolygon relation(s) with rough inner islands."
             )
 
-    # Woodland/woodchip relations use standard tags and never emit tree points.
+    # Only multipolygons explicitly tagged natural=wood own woodland geometry.
     dry_relation_ids = set()
     dry_consumed_ids = set()
+    meadow_outer_sets = {_outer_way_refs(rel) for rel in osm_result.relations
+                         if rel.tags.get("type") == "multipolygon" and _is_meadow(rel.tags)}
+    meadow_outer_ways = {ref for group in meadow_outer_sets for ref in group}
     for rel in osm_result.relations:
         kind = classifyDryAreaForTGC(rel.tags)
         if rel.tags.get("type") != "multipolygon" or not kind:
@@ -2504,21 +2519,22 @@ def addOSMToTGC(course_json, geopointcloud, osm_result, x_offset=0.0, y_offset=0
             way = way_dict.get(member.ref)
             if way is None:
                 continue
-            own_kind = classifyDryAreaForTGC(way.tags)
-            # Suppress inherited fragments, but retain separately tagged inner
-            # greens, water, etc. with their existing import controls.
-            if own_kind == kind or not any(way.tags.get(k) for k in
-                    ("golf", "natural", "landuse", "surface", "highway", "building")):
+            # Suppress duplicate woodland/empty fragments only. Independently
+            # tagged greens and waterways still use their own import controls.
+            if not way.tags or classifyDryAreaForTGC(way.tags) == kind:
                 dry_consumed_ids.add(member.ref)
         if not _dry_area_enabled(kind, options_dict):
             continue
         try:
+            if _has_meadow_shell(_outer_way_refs(rel), way_dict, meadow_outer_sets,
+                                 meadow_outer_ways, resolve_missing_nodes):
+                raise ValueError("outer boundary also defines a meadow; conflicting area tags")
             made = _dry_relation_splines(rel, way_dict, geopointcloud,
                 x_offset,y_offset,resolve_missing_nodes,course_version,ul_tgc,lr_tgc,printf)
             course_json[spline_tag].extend(made)
             dry_mulch_splines.extend(made)
         except Exception as exc:
-            printf("Warning: woodland/woodchip relation %s skipped: %s" % (rel.id,exc))
+            printf("Warning: natural=wood relation %s skipped: %s" % (rel.id,exc))
 
     for n, way in enumerate(osm_result.ways):
         if (
@@ -2536,6 +2552,8 @@ def addOSMToTGC(course_json, geopointcloud, osm_result, x_offset=0.0, y_offset=0
             if not _dry_area_enabled(dry_kind, options_dict):
                 continue
             try:
+                if way.id in meadow_outer_ways:
+                    raise ValueError("outer boundary of a meadow multipolygon")
                 source_nodes = list(way.get_nodes(resolve_missing=resolve_missing_nodes))
                 if len(source_nodes)<4 or source_nodes[0].id!=source_nodes[-1].id:
                     raise ValueError("area is not a closed OSM way")
@@ -2544,10 +2562,10 @@ def addOSMToTGC(course_json, geopointcloud, osm_result, x_offset=0.0, y_offset=0
                 course_json[spline_tag].extend(made)
                 dry_mulch_splines.extend(made)
             except Exception as exc:
-                printf("Warning: woodland/woodchip way %s skipped: %s" % (way.id,exc))
+                printf("Warning: natural=wood way %s skipped: %s" % (way.id,exc))
             continue
         if way.tags.get("golf") == "mulch":
-            printf("Warning: obsolete private golf=mulch way %s skipped. Use natural=wood for woodland or surface=woodchips for an actual woodchip area." % way.id)
+            printf("Warning: obsolete private golf=mulch way %s skipped. Only mapped natural=wood areas qualify for woodland mulch." % way.id)
             continue
         golf_type = way.tags.get("golf", None)
         waterway_type = way.tags.get("waterway", None)
@@ -3020,9 +3038,9 @@ def addOSMToImage(ways, im, pc, image_scale, x_offset=0.0, y_offset=0.0, printf=
     water_feature_count = 0
     waterway_feature_count = 0
 
-    # Ground-cover areas are a base layer, below playing surfaces. Preserve
-    # the input order of all other ways and never mutate the OSM result.
-    ways = sorted(ways, key=lambda w: 0 if classifyDryAreaForTGC(w.tags) else 1)
+    # This raster is also saved as mask.png. Woodland belongs only in the
+    # optional native spline import, never in the raster or its keep buffer.
+    ways = list(ways)
     for way in ways:
         golf_type = way.tags.get("golf", None)
         natural_type = way.tags.get("natural", None)
@@ -3049,11 +3067,6 @@ def addOSMToImage(ways, im, pc, image_scale, x_offset=0.0, y_offset=0.0, printf=
             else:
                 color = None
 
-        if classifyDryAreaForTGC(way.tags):
-            nodes = list(way.get_nodes(resolve_missing=False))
-            if len(nodes)<4 or nodes[0].id!=nodes[-1].id:
-                continue
-            color = (0.75, 0.45, 0.30)
         # Also paint standard OSM water features into the same bright-blue mask.
         if color is None:
             if natural_type == "water":

@@ -43,25 +43,19 @@ class NativeTests(unittest.TestCase):
         s=o.newWaterHazard(self.pts(),True,25);self.assertEqual(s['surface'],10);self.assertEqual(o.last_imported_water_splines,[s])
     def test_forest_native_mulch(self):self.assertEqual(o.newForest(self.pts(),25)['surface'],10)
     def test_dry_import_independent_of_water_trees(self):
-        c=run_import(Way({'surface':'woodchips','area':'yes'}))
+        c=run_import(Way({'natural':'wood'}))
         self.assertEqual(len(c['surfaceSplines2']),1);self.assertEqual(c['surfaceSplines2'][0]['surface'],10)
         self.assertEqual(c[lock.DRY_LOCK_KEY]['importedCount'],1);self.assertNotIn(lock.LOCK_KEY,c)
         self.assertEqual(c['surfaces2'][2]['name'],'Mulch05');self.assertEqual(c['height'],source()['height'])
         self.assertEqual(c['placedObjects4'],source()['placedObjects4'])
-    def test_open_rejected(self):self.assertEqual(run_import(Way({'surface':'woodchips'},[(10,10),(30,10),(30,30)]))['surfaceSplines2'],[])
+    def test_open_rejected(self):self.assertEqual(run_import(Way({'natural':'wood'},[(10,10),(30,10),(30,30)]))['surfaceSplines2'],[])
     def test_optional_disabled(self):
-        self.assertEqual(run_import(Way({'surface':'woodchips'}),{'wood':False,'tree':False})['surfaceSplines2'],[])
-    def test_area_recognition(self):self.assertEqual(masks._feature_mode_and_width_m(Way({'surface':'woodchips'})),('area',0.))
-    def test_not_water(self):self.assertFalse(masks._is_water_feature(Way({'surface':'woodchips'})))
-    def test_preview_not_blue(self):
-        im=o.addOSMToImage([Way({'surface':'woodchips'})],np.zeros((100,100,3),dtype=np.float32),PC(),1,printf=lambda *_:None)
-        self.assertTrue(np.allclose(im[20,20],[.75,.45,.30]));self.assertFalse(np.allclose(im[20,20],[0,0,1]))
-    def test_mask_keeps_mulch(self):
-        im=np.ones((100,100,3),dtype=np.float32)*.5
-        out=masks.apply_auto_red_mask([Way({'surface':'woodchips'})],im,PC(),1,buffer_m=0,printf=lambda *_:None)
-        self.assertFalse(np.allclose(out[20,20],[1,0,0]));self.assertTrue(np.allclose(out[90,90],[1,0,0]))
+        self.assertEqual(run_import(Way({'natural':'wood'}),{'wood':False,'tree':False})['surfaceSplines2'],[])
+    def test_woodchips_are_not_substituted_for_wood(self):
+        self.assertEqual(run_import(Way({'surface':'woodchips','area':'yes'}))['surfaceSplines2'],[])
+    def test_dry_wood_is_not_water(self):self.assertFalse(masks._is_water_feature(Way({'natural':'wood'})))
     def test_dry_material_serialized_gate(self):
-        c=run_import(Way({'surface':'woodchips'}));c['surfaces2'][2]['name']='ChangedByTheme'
+        c=run_import(Way({'natural':'wood'}));c['surfaces2'][2]['name']='ChangedByTheme'
         meta={'surfaces2':copy.deepcopy(source()['surfaces2'])}
         a,b=lock.finalize_serialized(json.dumps(c),json.dumps(meta),25);aa,bb=json.loads(a),json.loads(b)
         self.assertEqual(aa['surfaces2'][2]['name'],'Mulch05');self.assertEqual(bb['surfaces2'][2]['name'],'Mulch05')

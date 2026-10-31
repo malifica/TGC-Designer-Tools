@@ -126,7 +126,8 @@ SURFACE_NAMES = {
     "tee": "Tee", "bunker": "Bunker", "green": "Green", "fairway": "Fairway",
     "rough": "Rough", "heavyrough": "Heavy rough", "water": "Water", "mulch": "Mulch",
     "cartpath": "Cart path", "path": "Path", "road": "Road", "range": "Driving range",
-    "wood": "Woodland", "building": "Building", "hole": "Hole route",
+    "wood": "Natural wood", "building": "Building", "hole": "Hole route",
+    "forest": "Forest (outline only)", "woodchips": "Woodchips (outline only)",
 }
 LINE_KINDS = {"cartpath", "path", "road", "hole"}
 
@@ -137,7 +138,7 @@ def surface_kind(tags):
     aliases = {"water_hazard": "water", "lateral_water_hazard": "water",
                "driving_range": "range", "heavy_rough": "heavyrough"}
     kind = aliases.get(golf, golf)
-    if kind in SURFACE_NAMES and kind != "mulch":
+    if kind in SURFACE_NAMES and kind not in ("mulch", "wood", "forest", "woodchips"):
         return kind
     from OSMTGC import classifyDryAreaForTGC
     dry_kind = classifyDryAreaForTGC(tags)
@@ -145,14 +146,18 @@ def surface_kind(tags):
         return dry_kind
     if tags.get("natural") == "water" or tags.get("waterway"):
         return "water"
-    if tags.get("natural") == "wood" or tags.get("landuse") == "forest":
-        return "wood"
     if tags.get("building") not in (None, "", "no"):
         return "building"
     if tags.get("highway") in ("path", "footway", "cycleway", "steps", "bridleway", "pedestrian"):
         return "path"
     if tags.get("highway"):
         return "road"
+    # Retain these editable outlines without labeling them as native mulch.
+    if not golf and tags.get("natural") not in ("tree", "meadow", "grassland") and tags.get("area") != "no":
+        if tags.get("landuse") == "forest":
+            return "forest"
+        if tags.get("surface") == "woodchips":
+            return "woodchips"
     return None
 
 

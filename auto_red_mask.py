@@ -46,8 +46,8 @@ def _feature_mode_and_width_m(
     highway_type = tags.get("highway")
     area_tag = str(tags.get("area", "") or "").lower()
 
-    if OSMTGC.classifyDryAreaForTGC(tags):
-        return "area", 0.0
+    # Ground cover is not a mask feature. Only independent golf, water and
+    # road/path semantics below can contribute a footprint or edge buffer.
     if golf_type == "hole":
         return None, 0.0
     if golf_type in _AREA_GOLF_TYPES:
@@ -78,13 +78,11 @@ def _feature_signature(obj):
     # Only fields that define the semantic feature handled by this mask.
     return (
         tags.get("golf"),
-        tags.get("natural"),
+        "water" if tags.get("natural") == "water" else None,
         tags.get("waterway"),
         tags.get("highway"),
         tags.get("golf_cart"),
         tags.get("amenity"),
-        tags.get("landuse"),
-        tags.get("surface"),
     )
 
 

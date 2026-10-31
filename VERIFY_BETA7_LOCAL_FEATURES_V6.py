@@ -78,9 +78,12 @@ class GeometryTests(unittest.TestCase):
     def targets(self,raw,grid,p):return topology.augment_inventory(raw,grid,p,[])
     def test_all_direct_surface_types(self):
         raw,g,p,_=fixture();root=ET.fromstring(raw);way=root.find("way[@id='202']")
-        for kind in topology.SURFACE_NAMES:
+        # 'mulch' is a legacy view key, not an OSM golf classification.
+        land_cover = {'wood': {'natural':'wood'}, 'forest': {'landuse':'forest'},
+                      'woodchips': {'surface':'woodchips'}}
+        for kind in topology.SURFACE_NAMES.keys() - {'mulch'}:
             for t in list(way.findall('tag')):way.remove(t)
-            tags = {'surface':'woodchips'} if kind=='mulch' else {'golf':kind}
+            tags = land_cover.get(kind, {'golf':kind})
             for k,v in tags.items():ET.SubElement(way,'tag',k=k,v=v)
             rr=ET.tostring(root)
             feature=next(f for f in self.targets(rr,g,p) if f.get('owned_way_ids')==[202])
@@ -158,7 +161,8 @@ class GeometryTests(unittest.TestCase):
         self.assertTrue({'101','rough-ring:303:outer:0','rough-ring:303:inner:0','rough-way:200'}<=ids)
     def test_aliases(self):
         for tags,expected in [({'natural':'water'},'water'),({'golf':'water_hazard'},'water'),
-                              ({'surface':'woodchips'},'mulch'),({'natural':'wood'},'wood'),
+                              ({'surface':'woodchips'},'woodchips'),({'landuse':'forest'},'forest'),
+                              ({'natural':'wood'},'wood'),({'golf':'mulch'},None),
                               ({'highway':'footway'},'path'),({'building':'yes'},'building')]:
             self.assertEqual(topology.surface_kind(tags),expected)
     def test_original_tags_and_relation_roles_survive(self):

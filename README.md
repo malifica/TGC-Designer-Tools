@@ -6,7 +6,15 @@ Build PGA TOUR 2K25 courses from **LiDAR, GeoTIFF DEMs, OpenStreetMap, and Unity
 
 [Download Beta 8.1](https://github.com/malifica/TGC-Designer-Tools/releases/tag/v0.5.0-2k25-beta8.1) · [Release notes](RELEASE_NOTES_v0.5.0-2k25-beta8.1.md) · [Change history](CHANGELOG.md)
 
-## Beta 8.1 highlights
+## Source update after Beta 8.1: Natural Wood only
+
+**Import Natural Wood as Mulch (natural=wood)** is off by default. When enabled, it creates dry course splines only from valid closed ways or complete multipolygons explicitly tagged `natural=wood`. Meadow, forest-only and woodchip-only areas do not qualify. A separately mapped wood island inside a meadow can qualify on its own; the meadow around it does not.
+
+Woodland does not paint `mask.png`, expand Auto Red Mask's keep area or change its buffer. This applies both during initial terrain processing and when rebuilding the aligned mask in CFS. Individual OSM tree points still have their own control.
+
+This correction is in source; the published Beta 8.1 EXE still has the earlier behavior. To refresh an existing project with the corrected source, back up any hand-painted mask, use **Apply + Rebuild Mask** at the intended alignment, reapply any wanted manual edits, and regenerate the course. An existing `.course` export does not change automatically.
+
+## Published Beta 8.1 highlights
 
 The supplied Beta 8.1 Windows executable is published unchanged, with matching [release source](https://github.com/malifica/TGC-Designer-Tools/commit/67980485fd0639e3458382487ed1fee831de078d) and a [build/source manifest](BETA8_1_BUILD_SOURCE_MANIFEST.json).
 

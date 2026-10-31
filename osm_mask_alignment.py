@@ -15,12 +15,14 @@ file hash, so subsequent hand painting does not make a current mask stale.
 from __future__ import annotations
 
 import datetime as _dt
+from functools import lru_cache
 import hashlib
 import json
 import math
 import os
 from pathlib import Path
 import shutil
+import xml.etree.ElementTree as ET
 from typing import Any, Dict, Optional, Tuple
 
 import cv2
@@ -43,6 +45,7 @@ ASYNC_PATCH_ID = "TGC_BETA6_CFS_ASYNC_MASK_REBUILD_V3"
 SIDECAR_NAME = "osm_mask_alignment.json"
 SCHEMA_VERSION = 1
 ALIGNMENT_TOLERANCE_M = 0.0051
+MASK_FEATURE_POLICY = "native-wood-excluded-v1"
 
 
 
@@ -120,6 +123,27 @@ def _sha256_file(path: Path) -> str:
         for chunk in iter(lambda: stream.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+@lru_cache(maxsize=16)
+def _may_have_legacy_ground_cover(osm_file: str, osm_sha256: str) -> bool:
+    """Check an older mask once per map content hash, without loading its geometry."""
+    with Path(osm_file).open("rb") as stream:
+        events = ET.iterparse(stream, events=("start", "end"))
+        _, root = next(events)
+        for event, obj in events:
+            if event != "end" or obj.tag not in ("node", "way", "relation"):
+                continue
+            if obj.tag != "node":
+                tags = {tag.get("k"): (tag.get("v") or "").strip().lower()
+                        for tag in obj.findall("tag")}
+                # These were the original candidates, not current import rules.
+                if ((obj.tag == "way" or tags.get("type") == "multipolygon") and
+                        (tags.get("natural") == "wood" or tags.get("landuse") == "forest" or
+                         tags.get("surface") == "woodchips")):
+                    return True
+            root.clear()
+    return False
 
 
 def _json_hash(value: Any) -> str:
@@ -259,6 +283,7 @@ def _signature(
     from tgc_cfs_display import ALIGNMENT_GEOMETRY_VERSION
     return {
         "alignment_geometry_version": ALIGNMENT_GEOMETRY_VERSION,
+        "mask_feature_policy": MASK_FEATURE_POLICY,
         "schema_version": SCHEMA_VERSION,
         "patch_id": PATCH_ID,
         "heightmap_directory": str(folder.resolve()),
@@ -352,6 +377,14 @@ def _signatures_match(recorded: Dict[str, Any], expected: Dict[str, Any]) -> Tup
     if expected_custom:
         if recorded.get("custom_layout_patch_id", "") != expected.get("custom_layout_patch_id", ""):
             return False, "The Custom / Unmatched OSM placement logic changed; rebuild the aligned mask."
+    if (expected.get("mask_feature_policy") == MASK_FEATURE_POLICY and
+            recorded.get("mask_feature_policy") != MASK_FEATURE_POLICY):
+        try:
+            if _may_have_legacy_ground_cover(expected["osm_file"], expected["osm_sha256"]):
+                return False, ("This mask predates the removal of woodland from automatic masks. "
+                               "Back up manual edits and use Apply + Rebuild Mask once.")
+        except (OSError, ET.ParseError, StopIteration):
+            return False, "Could not check the older mask against the selected OSM file."
     return True, "The mask matches the current OSM alignment and settings."
 
 

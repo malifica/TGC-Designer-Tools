@@ -634,7 +634,7 @@ class AlignmentViewer:
             ("Tee", FEATURE_COLORS["tee"]),
             ("Fairway", FEATURE_COLORS["fairway"]),
             ("Rough", FEATURE_COLORS["rough"]),
-            ("Mulch", FEATURE_COLORS["mulch"]),
+            ("Natural wood", FEATURE_COLORS["mulch"]),
             ("Water", FEATURE_COLORS["water_hazard"]),
             ("Cart Path", FEATURE_COLORS["cartpath"]),
             ("Road", FEATURE_COLORS["road"]),

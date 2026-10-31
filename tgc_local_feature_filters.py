@@ -11,7 +11,7 @@ from tgc_cfs_widgets import action_button
 
 FILTERS = (("tee", "Tees"), ("bunker", "Bunkers"), ("green", "Greens"),
            ("fairway", "Fairways"), ("rough", "Rough"), ("water", "Water"),
-           ("mulch", "Woods / mulch"), ("paths", "Paths / roads"), ("other", "Other"))
+           ("mulch", "Natural wood"), ("paths", "Paths / roads"), ("other", "Other"))
 COLORS = {"tee": "#40c8ff", "bunker": "#f2d675", "green": "#53f0a0",
           "fairway": "#9be45d", "rough": "#c49cff", "water": "#63aaff",
           "mulch": "#eda788", "paths": "#e3e3e3", "other": "#abb8cc"}

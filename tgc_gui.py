@@ -4073,7 +4073,7 @@ buildingCheck = Checkbutton(osmSubFrame, text="Import Buildings", variable=optio
 buildingCheck.select()
 # TGC_BETA8_STANDARD_OSM_WOODS_V1: independent standard area and point imports.
 options_entries_dict["wood"] = tk.BooleanVar(value=False)
-woodCheck = Checkbutton(osmSubFrame, text="Import Woods / Woodchip Areas (Mulch)", variable=options_entries_dict["wood"], fg=check_fg, bg=check_bg)
+woodCheck = Checkbutton(osmSubFrame, text="Import Natural Wood as Mulch (natural=wood)", variable=options_entries_dict["wood"], fg=check_fg, bg=check_bg)
 options_entries_dict["tree"] = tk.BooleanVar(value=False)
 treeCheck = Checkbutton(osmSubFrame, text="Import Individual OSM Tree Points", variable=options_entries_dict["tree"], fg=check_fg, bg=check_bg)
 treeCheck.deselect()

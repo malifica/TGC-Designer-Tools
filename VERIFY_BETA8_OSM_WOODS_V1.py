@@ -1,4 +1,4 @@
-"""Standard OSM woodland/woodchip areas vs individual trees. Offline temporary fixtures."""
+"""Optional natural=wood course splines, independent of tree points and terrain masks."""
 from pathlib import Path
 import ast,copy,os,sys,tempfile,types,unittest,xml.etree.ElementTree as ET
 import numpy as np
@@ -48,8 +48,14 @@ class NativeTests(unittest.TestCase):
         c=source();o.addOSMToTGC(c,PC(),self.woods(),options_dict={},course_version=25,resolve_missing_nodes=False,printf=lambda *_:None);self.assertEqual(c['surfaceSplines2'],[])
     def test_lidar_nodes_avoid_duplicates_but_keeps_woods(self):
         c,t,_=run(self.woods(),tree=True,lidar_trees=True);self.assertEqual(len(c['surfaceSplines2']),1);self.assertEqual(t,[])
-    def test_forest_standard_alias(self):self.assertEqual(len(run(self.woods({'landuse':'forest'}))[0]['surfaceSplines2']),1)
-    def test_woodchips_standard(self):self.assertEqual(len(run(self.woods({'surface':'woodchips','area':'yes'}))[0]['surfaceSplines2']),1)
+    def test_other_land_cover_is_not_native_mulch(self):
+        for tags in ({'landuse':'meadow'}, {'landuse':'forest'}, {'natural':'grassland'},
+                     {'surface':'woodchips','area':'yes'}, {'landcover':'trees'},
+                     {'natural':'wood','landuse':'meadow'}, {'natural':'wood','area':'no'}):
+            with self.subTest(tags=tags):
+                course, _, _ = run(self.woods(tags))
+                self.assertEqual(course['surfaceSplines2'], [])
+                self.assertNotIn(lock.DRY_LOCK_KEY, course)
     def test_no_private_tag_fallback(self):
         c,_,log=run(self.woods({'golf':'mulch','surface':'mulch'}));self.assertEqual(c['surfaceSplines2'],[]);self.assertTrue(any('obsolete' in x for x in log))
     def test_no_woodchip_tree_points(self):self.assertIsNone(o.classifyDryAreaForTGC({'natural':'tree','surface':'woodchips'}))
@@ -69,6 +75,53 @@ class NativeTests(unittest.TestCase):
     def test_newforest_native25_only(self):
         pts=[(x,0.,z) for x,z in rect()];self.assertEqual(o.newForest(pts,25)['surface'],10);self.assertEqual(o.newForest(pts,23)['surface'],7)
 class RelationTests(unittest.TestCase):
+    @staticmethod
+    def surface_geometry(course):
+        return unary_union([Polygon([(p['waypoint']['x'],p['waypoint']['z'])
+            for p in s['waypoints']]) for s in course['surfaceSplines2']])
+
+    def test_meadow_shell_never_imported_but_wood_inner_is(self):
+        for outer_tags in ({}, {'natural':'wood'}):
+            with self.subTest(outer_tags=outer_tags):
+                woods=Way(2,{'natural':'wood'},rect(30,30,50,50))
+                r=result([Way(1,outer_tags,rect()),woods],
+                         [relation(9,{'landuse':'meadow'},[member(1,'outer'),member(2,'inner')])])
+                course,_,_=run(r)
+                self.assertEqual(len(course['surfaceSplines2']),1)
+                # Compare the complete native spline, including curved handles,
+                # to an import of the wood island on its own.
+                self.assertEqual(course['surfaceSplines2'],run(result([woods]))[0]['surfaceSplines2'])
+
+    def test_wood_relation_preserves_meadow_cutout(self):
+        r=self.fixture();r.ways[1].tags={'landuse':'meadow'}
+        course,_,_=run(r)
+        self.assertLess(self.surface_geometry(course).symmetric_difference(
+            Polygon(rect(),[rect(30,30,50,50)])).area,.01)
+
+    def test_wood_relation_cannot_claim_closed_meadow_shell(self):
+        r=self.fixture();r.ways[0].tags={'landuse':'meadow'}
+        course,_,_=run(r)
+        self.assertEqual(course['surfaceSplines2'],[])
+
+    def test_meadow_shared_edge_is_not_a_shared_shell(self):
+        edge=Way(1,{},[(10,50),(90,50)],[1,2])
+        north=Way(2,{},[(90,50),(90,90),(10,90),(10,50)],[2,3,4,1])
+        south=Way(3,{},[(90,50),(90,10),(10,10),(10,50)],[2,5,6,1])
+        wood=relation(10,{'natural':'wood'},[member(1,'outer'),member(2,'outer')])
+        meadow=relation(11,{'landuse':'meadow'},[member(1,'outer'),member(3,'outer')])
+        r=result([edge,north,south],[wood,meadow])
+        course,_,_=run(r)
+        self.assertEqual(len(course['surfaceSplines2']),1)
+        self.assertEqual(course['surfaceSplines2'],run(result([edge,north],[wood]))[0]['surfaceSplines2'])
+        meadow.members=[member(2,'outer'),member(1,'outer')]
+        self.assertEqual(run(r)[0]['surfaceSplines2'],[])
+
+    def test_wood_relation_leaves_explicit_waterway_inner_independent(self):
+        r=self.fixture();r.ways[1].tags={'waterway':'river','area':'yes'}
+        course,_,_=run(r,water=True)
+        self.assertEqual(course[lock.LOCK_KEY]['importedCount'],1)
+        self.assertGreater(course[lock.DRY_LOCK_KEY]['importedCount'],0)
+
     def fixture(self,fragment=False):
         outer=Way(1,{'natural':'wood'},rect());inner=Way(2,{},rect(30,30,50,50));ways=[outer,inner]
         members=[member(1,'outer'),member(2,'inner')]
@@ -95,24 +148,100 @@ class RelationTests(unittest.TestCase):
     def test_disabled_relation_does_not_fall_back_to_tagged_outer(self):self.assertEqual(run(self.fixture(),wood=False)[0]['surfaceSplines2'],[])
     def test_no_water_tracking(self):self.assertNotIn(lock.LOCK_KEY,run(self.fixture())[0])
 class DisplayTests(unittest.TestCase):
-    def test_mask_standard_wood(self):self.assertEqual(masks._feature_mode_and_width_m(Way(1,{'natural':'wood'},rect())),('area',0.))
-    def test_mask_forest(self):self.assertEqual(masks._feature_mode_and_width_m(Way(1,{'landuse':'forest'},rect())),('area',0.))
-    def test_mask_woodchips(self):self.assertEqual(masks._feature_mode_and_width_m(Way(1,{'surface':'woodchips'},rect())),('area',0.))
-    def test_dry_never_blue_water(self):self.assertFalse(masks._is_water_feature(Way(1,{'natural':'wood'},rect())))
-    def test_preview_woods_not_blue(self):
-        out=o.addOSMToImage([Way(1,{'natural':'wood'},rect())],np.zeros((100,100,3),np.float32),PC(),1.,printf=lambda *_:None);np.testing.assert_allclose(out[50,50],[.75,.45,.3])
-    def test_relation_preview_hole(self):
-        r=RelationTests().fixture();out=o.addOSMToImage(r,np.zeros((100,100,3),np.float32),PC(),1.,printf=lambda *_:None);np.testing.assert_allclose(out[20,20],[.75,.45,.3]);np.testing.assert_allclose(out[40,40],[0,0,0])
-    def test_mask_preserves_area_and_hole(self):
-        r=RelationTests().fixture();out=masks.apply_auto_red_mask(r,np.ones((100,100,3),np.float32)*.5,PC(),1.,buffer_m=0,printf=lambda *_:None);self.assertFalse(np.allclose(out[20,20],[1,0,0]));np.testing.assert_allclose(out[40,40],[1,0,0])
+    def test_ground_cover_is_not_a_mask_feature(self):
+        for tags in ({'natural':'wood'}, {'landuse':'meadow'}, {'landuse':'forest'},
+                     {'surface':'woodchips'}, {'golf':'mulch'}):
+            with self.subTest(tags=tags):
+                w = Way(1, tags, rect())
+                self.assertEqual(masks._feature_mode_and_width_m(w), (None, 0.))
+                self.assertFalse(masks._is_water_feature(w))
+
+    @staticmethod
+    def layout(projection, with_ground_cover):
+        # A real green inside a meadow, a water polygon, and a fairway with
+        # a hole must render identically with and without the ground cover.
+        root = ET.Element('osm', version='0.6'); coords = {}
+        def way(wid, points, tags):
+            refs = []
+            for x, y in points:
+                if (x,y) not in coords:
+                    nid = len(coords) + 1; coords[x,y] = nid
+                    lon,lat = projection(400000.25+x, 3280000.25+y, inverse=True)
+                    ET.SubElement(root,'node',id=str(nid),lon=str(lon),lat=str(lat))
+                refs.append(coords[x,y])
+            w = ET.SubElement(root,'way',id=str(wid))
+            for ref in refs: ET.SubElement(w,'nd',ref=str(ref))
+            for k,v in tags.items(): ET.SubElement(w,'tag',k=k,v=v)
+        def rel(rid,tags,outer,inner):
+            r = ET.SubElement(root,'relation',id=str(rid))
+            for wid,role in ((outer,'outer'),(inner,'inner')):
+                ET.SubElement(r,'member',type='way',ref=str(wid),role=role)
+            for k,v in dict(type='multipolygon',**tags).items(): ET.SubElement(r,'tag',k=k,v=v)
+        way(1,rect(4,4,14,14),{'natural':'water'})
+        way(2,rect(70,8,80,18),{'golf':'green'})
+        extra = {'landuse':'forest','surface':'woodchips','natural':'wood'} if with_ground_cover else {}
+        way(3,rect(20,55,65,95),{'golf':'fairway',**extra})
+        way(4,rect(36,68,51,83),{}); rel(30,{'golf':'fairway'},3,4)
+        if with_ground_cover:
+            way(5,rect(64,3,92,44),{}); rel(31,{'landuse':'meadow'},5,2)
+            way(6,rect(21,5,58,50),{'natural':'wood'}); way(7,rect(30,12,40,26),{})
+            rel(32,{'natural':'wood'},6,7)
+            way(8,rect(70,50,80,60),{'natural':'wood'})
+            way(9,rect(5,48,15,64),{'landuse':'forest'})
+            way(10,rect(65,75,85,87),{'area':'yes','surface':'woodchips'})
+        return ET.tostring(root)
+
+    def test_initial_and_shifted_saved_masks_are_ground_cover_invariant(self):
+        import cv2, pyproj
+        import lidar_map_api, osm_mask_alignment as aligned
+        p = pyproj.Proj('epsg:32614')
+        terrain = {'heightmap':np.arange(10000,dtype=np.float32).reshape(100,100),
+                   'projection':p,'image_scale':1.,'master_grid':{'rows':100,'cols':100,
+                   'lower_left_latlon':list(reversed(p(400000.,3280000.,inverse=True))),
+                   'min_x':400000.,'min_y':3280000.,'max_x':400100.,'max_y':3280100.,
+                   'resolution':1.,'row_order':'south_up_internal','origin_semantics':'southwest_cell_edge'}}
+        with tempfile.TemporaryDirectory() as tmp:
+            folder = Path(tmp); source = folder/'layout.osm'; hp = folder/'heightmap.npy'
+            np.save(hp, terrain); baselines = {}; quiet = lambda *_: None
+            for enriched in (False,True):
+                source.write_bytes(self.layout(p,enriched))
+                for auto in (False,True):
+                    for shifted in (False,True):
+                        with self.subTest(enriched=enriched,auto=auto,shifted=shifted):
+                            if shifted:
+                                status = aligned.rebuild_aligned_mask(folder,source,2.,-1.,auto,3.,
+                                                                      backup_existing=False,printf=quiet)
+                                expected = status['record']; older = dict(expected)
+                                del older['mask_feature_policy']
+                                # Old, otherwise current sidecars need attention only on affected maps.
+                                self.assertEqual(aligned._signatures_match(older,expected)[0], not enriched)
+                            else:
+                                lidar_map_api._write_osm_master_mask(terrain,hp,source,auto,3.,printf=quiet)
+                            pixels = cv2.imread(str(folder/'mask.png'))
+                            self.assertTrue(np.any(np.all(pixels==[255,0,0],axis=2)))  # water (BGR)
+                            self.assertTrue(np.any(np.all(pixels==[51,255,0],axis=2)))  # green
+                            self.assertEqual(bool(np.any(np.all(pixels==[0,0,255],axis=2))),auto)
+                            key = auto,shifted
+                            if enriched: np.testing.assert_array_equal(pixels,baselines[key])
+                            else: baselines[key] = pixels
+            self.assertFalse(np.array_equal(baselines[True,False],baselines[True,True]))
+
     def test_local_editor_and_filter(self):
         from tgc_local_alignment_topology import surface_kind
         from tgc_local_feature_filters import filter_kind
-        self.assertEqual(surface_kind({'natural':'wood'}),'wood');self.assertEqual(surface_kind({'surface':'woodchips'}),'mulch');self.assertEqual(filter_kind({'kind':'wood'}),'mulch')
-    def test_cfs_uses_same_standard_semantics(self):
-        s=(ROOT/'osm_alignment_viewer.py').read_text();n=next(n for n in ast.parse(s).body if isinstance(n,ast.FunctionDef) and n.name=='_feature_style')
-        ns={'OSMTGC':o,'FEATURE_COLORS':{'mulch':'test'}};exec(compile(ast.Module(body=[n],type_ignores=[]),'actual_cfs_method','exec'),ns)
-        self.assertEqual(ns['_feature_style']({'natural':'wood'}),('mulch','test'));self.assertEqual(ns['_feature_style']({'surface':'woodchips'}),('mulch','test'))
+        self.assertEqual(surface_kind({'natural':'wood'}),'wood')
+        self.assertEqual(filter_kind({'kind':'wood'}),'mulch')
+        for tags,kind in (({'landuse':'forest'},'forest'),({'surface':'woodchips'},'woodchips')):
+            self.assertEqual(surface_kind(tags),kind)
+            self.assertEqual(filter_kind({'kind':kind}),'other')
+        self.assertIsNone(surface_kind({'landuse':'meadow'}))
+
+    def test_cfs_vector_overlay_can_show_natural_wood(self):
+        from osm_alignment_viewer import _feature_style
+        self.assertEqual(_feature_style({'natural':'wood'})[0],'mulch')
+        for tags in ({'landuse':'forest'},{'landuse':'meadow'},{'surface':'woodchips'}):
+            self.assertNotEqual(_feature_style(tags)[0],'mulch')
+
 class ExportTests(unittest.TestCase):
     def test_standard_svg_tags(self):
         import tgc_unity_raw_svg as core

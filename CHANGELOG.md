@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Limit optional woodland mulch to explicitly tagged `natural=wood` areas. Meadow, forest-only and woodchip-only areas do not create mulch splines.
+- Exclude woodland from the generated terrain mask and Auto Red Mask keep areas and buffers, including CFS rebuilds. The optional woodland spline import and individual OSM tree-point import remain independent.
+
 ## v0.5.0-2k25-beta8.1
 
 - Separate **Import Woods / Woodchip Areas (Mulch)** and **Import Individual OSM Tree Points** controls. Both default OFF; woodland surfaces no longer enable tree-point planting.

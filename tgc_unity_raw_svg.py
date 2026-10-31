@@ -319,9 +319,9 @@ def create_pair(raw_path,svg_path,out_dir,settings,printf=print):
     if osm_info['unclassified_svg_ids']:report['limitations'].append('Unclassified SVG elements retained as non-golf OSM geometry and in metric reference JSON. TGC does not import them as playing surfaces until assigned.')
     report['limitations'].append('Synthetic UTM frame, not real-world georeferencing. Local OSM only. Custom / Unmatched OFF: independent recentering breaks alignment. Do not upload OSM to OpenStreetMap.')
     if any(f['kind']=='wood' for f in features):
-        report['limitations'].append('Trees are SVG woodland areas, not measured tree points or LiDAR vegetation.')
+        report['limitations'].append('Woodland exports as natural=wood. Enable Import Natural Wood as Mulch for course splines; woodland never changes the automatic terrain mask or creates individual trees.')
     if any(f['kind']=='mulch' for f in features):
-        report['limitations'].append('Woodchip areas use surface=woodchips; woodland uses natural=wood. Enable Import Woods / Woodchip Areas (Mulch). Neither creates OSM tree points.')
+        report['limitations'].append('Woodchip areas keep their surface=woodchips tag. They do not import as woodland mulch or affect the automatic terrain mask.')
     if osm_info['ignored_sub_cm2_parts']:report['limitations'].append('Ignored '+str(len(osm_info['ignored_sub_cm2_parts']))+' topology slivers smaller than one square centimetre in OSM; original filled geometry is retained in the metric reference JSON.')
     (out/(prefix+'_ImportSettings.json')).write_text(json.dumps(s,indent=2),encoding='utf-8')
     (out/(prefix+'_ConversionReport.json')).write_text(json.dumps(report,indent=2),encoding='utf-8')
