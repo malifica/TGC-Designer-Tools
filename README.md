@@ -6,6 +6,12 @@ Build PGA TOUR 2K25 courses from **LiDAR, GeoTIFF DEMs, OpenStreetMap, and Unity
 
 [Download Beta 8.2](https://github.com/malifica/TGC-Designer-Tools/releases/tag/v0.5.0-2k25-beta8.2) · [Release notes](RELEASE_NOTES_v0.5.0-2k25-beta8.2.md) · [Change history](CHANGELOG.md)
 
+## Beta 8.4 release candidate
+
+Turn on **Graduated Background** beside **Background Scale** to use three Brush 10 sizes in the red mask. From the outside toward the detailed-terrain seam, the sizes are **64 m**, **32 m**, then **four times the main brush scale**. A 72/1 main brush gets a 10/4 seam; a 10/3 main brush gets a 10/12 seam. This confines the finest background brushwork to a narrow strip. Turn it off to use the manual Background Scale again.
+
+Beta 8.4 also includes open islands for rough and water multipolygons: mapped inner rings leave the underlying terrain exposed. The current public Windows download is Beta 8.2; the Beta 8.4 Windows release is awaiting its verified build. See the [Beta 8.4 release notes](RELEASE_NOTES_v0.5.0-2k25-beta8.4.md).
+
 ## Beta 8.2 highlights
 
 **Import Surface Parking Lots (Road Surface)** is a new, separate checkbox under OpenStreetMap options. It starts off. Enable it to fill a mapped ground-level car park with the same primary surface as automobile roads (asphalt by default in 2K25). Valid closed `amenity=parking` areas and complete multipolygons qualify when `parking=surface` is explicit, or when the parking type is omitted and no tags indicate a structure. Islands stay open. Garages, underground and rooftop parking, individual spaces and entrances are excluded. Parking aisles mapped as service roads still follow **Import Automobile Roads**.

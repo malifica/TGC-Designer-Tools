@@ -1,5 +1,17 @@
 # Windows Build Guide
 
+## Beta 8.4 Windows release candidate
+
+The Beta 8.4 executable is `dist\tgc_gui_2k25_beta8_4.exe`. If it is already built and tested, collect that executable and the exact source recorded in its build receipt. From any Windows Command Prompt:
+
+```cmd
+"C:\TGC-Designer-Tools\.venv_local_osm\Scripts\python.exe" "C:\TGC-Designer-Tools\COLLECT_BETA8_4_FOR_PUBLICATION.py" --root "C:\TGC-Designer-Tools"
+```
+
+The collector writes `_release_upload\TGC_BETA8_4_EXISTING_BUILD_AND_SOURCE_*.zip`. It checks the EXE, checksum and matching source. Collection does not rebuild the executable.
+
+For a fresh local build from the Beta 8.4 source checkout, run `BUILD_TGC_2K25_BETA8_4.bat`. It creates a separately named executable, tests the graduated terrain feature in the staged binary, and leaves earlier versioned EXEs in place.
+
 ## Beta 8.2 Windows build
 
 The [published Beta 8.2 Windows prerelease](https://github.com/malifica/TGC-Designer-Tools/releases/tag/v0.5.0-2k25-beta8.2) includes a ready-to-run executable. See its [build/source manifest](BETA8_2_BUILD_SOURCE_MANIFEST.json) and [download verification](BETA8_2_PUBLICATION_VERIFICATION.json).

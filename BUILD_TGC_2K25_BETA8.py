@@ -87,7 +87,7 @@ def build_arguments(py, root, stage, exe_name=EXE_NAME):
     return args
 
 
-def main(*, app_title=APP_TITLE, version=VERSION, exe_name=EXE_NAME, parking_release=False):
+def main(*, app_title=APP_TITLE, version=VERSION, exe_name=EXE_NAME, parking_release=False, open_island_release=False, graduated_release=False):
     if os.name!='nt':raise RuntimeError('Run the batch on Windows in your existing TGC Python environment.')
     root=Path(sys.argv[1] if len(sys.argv)>1 else Path(__file__).resolve().parent).resolve()
     py=Path(sys.executable)
@@ -98,8 +98,15 @@ def main(*, app_title=APP_TITLE, version=VERSION, exe_name=EXE_NAME, parking_rel
                     and isinstance(node.value, ast.Constant) for t in node.targets if isinstance(t, ast.Name)}
     if (gui_identity.get('TGC_GUI_VERSION'), gui_identity.get('TGC_APP_TITLE')) != (version, app_title):
         raise RuntimeError('This launcher does not match the checkout version: '+str(gui_identity.get('TGC_GUI_VERSION')))
+    if graduated_release and not (open_island_release and parking_release):
+        raise RuntimeError('Beta 8.4 requires the previous parking and open-island checks.')
     if parking_release:
-        from COLLECT_BETA8_2_FOR_PUBLICATION import source_snapshot, write_build_receipt
+        if graduated_release:
+            from COLLECT_BETA8_4_FOR_PUBLICATION import source_snapshot, write_build_receipt
+        elif open_island_release:
+            from COLLECT_BETA8_3_FOR_PUBLICATION import source_snapshot, write_build_receipt
+        else:
+            from COLLECT_BETA8_2_FOR_PUBLICATION import source_snapshot, write_build_receipt
         initial_source = source_snapshot(root)
     for module in ('overpy','PyInstaller','cv2','pyproj','numpy','PIL','tkinter','scipy','shapely'):
         if importlib.util.find_spec(module) is None:raise RuntimeError('Missing existing dependency: '+module)
@@ -152,6 +159,9 @@ def main(*, app_title=APP_TITLE, version=VERSION, exe_name=EXE_NAME, parking_rel
     run(py, root/'VERIFY_BETA8_OSM_WOODS_V1.py')
     if parking_release:
         run(py, root/'VERIFY_BETA8_2_PARKING.py')
+    if open_island_release:
+        run(py, root/'VERIFY_OPEN_SURFACE_ISLANDS.py')
+        run(py, root/'VERIFY_OPEN_ISLAND_MASK.py')
     run(py, root/'VERIFY_TGC_HBCC_MULCH_V1.py')
     run(py, root/'VERIFY_BETA7_UNITY_INTEGRATION_V2.py')
     run(py, root/'VERIFY_BETA7_UNITY_DISPATCH_V4.py')
@@ -160,9 +170,18 @@ def main(*, app_title=APP_TITLE, version=VERSION, exe_name=EXE_NAME, parking_rel
     run(py,root/'VERIFY_BETA7_LOCAL_RELATION_CONSUMERS.py')
     run(py,root/'VERIFY_BETA7_LOCAL_FEATURES_V6.py','--installed')
     run(py,root/'VERIFY_BETA7_LOCAL_UI_V6.py','--source')
-    run(*build_arguments(py,root,stage,exe_name))
+    if graduated_release:
+        run(py,root/'VERIFY_BETA8_4_GRADUATED_BACKGROUND.py')
+        run(py,root/'VERIFY_BETA7_BACKGROUND_GEOREF_V1.py')
+    args = build_arguments(py,root,stage,exe_name)
+    if open_island_release:
+        args[-1:-1] = ['--hidden-import', 'osm_open_surface_islands']
+    if graduated_release:
+        args[-1:-1] = ['--hidden-import', 'tgc_transitional_background',
+                       '--hidden-import', 'VERIFY_BETA8_4_GRADUATED_BACKGROUND']
+    run(*args)
     built=stage/'dist'/(exe_name+'.exe')
-    if not built.is_file():raise RuntimeError('The expected staged Beta 8 EXE was not created.')
+    if not built.is_file():raise RuntimeError('The expected staged Windows executable was not created: '+built.name)
     with built.open('rb') as f:
         if f.read(2)!=b'MZ':raise RuntimeError('Invalid Windows EXE header')
     run(built,'--verify-lidar-trees')
@@ -170,6 +189,8 @@ def main(*, app_title=APP_TITLE, version=VERSION, exe_name=EXE_NAME, parking_rel
     run(built,'--verify-unity-import')
     run(built,'--verify-ui-style')
     run(built,'--verify-local-alignment')
+    if graduated_release:
+        run(built,'--verify-graduated-background')
     from PyInstaller.archive.readers import CArchiveReader
     frozen_exe = CArchiveReader(str(built))
     pyz = [n for n in frozen_exe.toc if n.lower().endswith('.pyz')]
@@ -188,6 +209,10 @@ def main(*, app_title=APP_TITLE, version=VERSION, exe_name=EXE_NAME, parking_rel
     required.update({'tgc_unity_raw_svg', 'tgc_unity_svg_paths', 'tgc_unity_import_ui', 'tgc_unity_presets', 'tgc_unity_build_check'})
     required.update({'tgc_ui_style'})
     required.update({'tgc_local_alignment_topology','tgc_local_feature_filters'})
+    if open_island_release:
+        required.update({'OSMTGC', 'auto_red_mask', 'osm_open_surface_islands'})
+    if graduated_release:
+        required.update({'tgc_transitional_background', 'VERIFY_BETA8_4_GRADUATED_BACKGROUND'})
     if not required.issubset(archive.toc):raise RuntimeError('Missing frozen modules: '+repr(required-set(archive.toc)))
     bundled_names = [str(name).lower() for name in frozen_exe.toc]
     if not any('geos_c' in name and name.endswith('.dll') for name in bundled_names):
@@ -215,6 +240,44 @@ def main(*, app_title=APP_TITLE, version=VERSION, exe_name=EXE_NAME, parking_rel
             raise RuntimeError('Frozen executable is missing the parking lot or natural wood feature')
         if 'native-wood-excluded-v1' not in constants(archive.extract('osm_mask_alignment')):
             raise RuntimeError('Frozen executable is missing the woodland mask correction')
+    if open_island_release:
+        def referenced_names(code):
+            names = set(code.co_names)
+            for child in code.co_consts:
+                if hasattr(child, 'co_names'):
+                    names.update(referenced_names(child))
+            return names
+        for module, names in {
+            'OSMTGC': {'plan_open_surfaces','lollipop_paths'},
+            'auto_red_mask': {'plan_open_surfaces'},
+            'osm_preview_relations': {'plan_open_surfaces'},
+        }.items():
+            if not names.issubset(referenced_names(archive.extract(module))):
+                raise RuntimeError('Frozen executable has stale open-island handling in '+module)
+    if graduated_release:
+        import types
+        # Compare exact executable instructions (including nested helper functions)
+        # with the installer-reviewed module, ignoring the staging file path and
+        # debugger-only source location tables that PyInstaller can rewrite.
+        def code_signature(c):
+            if not isinstance(c, types.CodeType):
+                return c
+            return (c.co_name,c.co_argcount,c.co_posonlyargcount,c.co_kwonlyargcount,
+                    c.co_flags,c.co_stacksize,c.co_nlocals,c.co_code,getattr(c,'co_exceptiontable',b''),
+                    c.co_names,c.co_varnames,c.co_freevars,c.co_cellvars,
+                    tuple(code_signature(k) for k in c.co_consts))
+        for name in ('tgc_gui','tgc_image_terrain','tgc_transitional_background',
+                     'VERIFY_BETA8_4_GRADUATED_BACKGROUND'):
+            code = archive.extract(name)
+            source=(root/(name+'.py')).read_bytes()
+            if not isinstance(code,types.CodeType) or not any(
+                    code_signature(code)==code_signature(compile(source,name+'.py','exec',dont_inherit=True,optimize=n))
+                    for n in (0,1,2)):
+                raise RuntimeError('Frozen Beta 8.4 code differs from installed source: '+name)
+        if not {'Graduated Background','graduated_background'}.issubset(set(identity)):
+            raise RuntimeError('Frozen executable is missing the Graduated Background control.')
+        if 'graduated_background' not in constants(archive.extract('tgc_image_terrain')):
+            raise RuntimeError('Frozen terrain importer is missing the Graduated Background option.')
     option_keys={'filter_lidar_trees_surfaces','exclude_lidar_trees_red_mask','custom_theme_weighted_planting'}
     if not option_keys.issubset(set(identity)):
         raise RuntimeError('Frozen GUI is missing the new tree controls')

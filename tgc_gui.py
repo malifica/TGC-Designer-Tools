@@ -32,8 +32,8 @@ import tgc_image_terrain
 from tgc_visualizer import drawCourseAsImage
 import OSMTGC
 
-TGC_GUI_VERSION = "v0.5.0-2k25-beta8.2"
-TGC_APP_TITLE = "TGC Designer Tools 2K25 - Beta 8.2"
+TGC_GUI_VERSION = "v0.5.0-2k25-beta8.4"
+TGC_APP_TITLE = "TGC Designer Tools 2K25 - Beta 8.4"
 
 AUTO_RED_MASK_BUFFER_MIN_M = 5.0
 AUTO_RED_MASK_BUFFER_MAX_M = 30.0
@@ -4192,10 +4192,25 @@ Label(courseOptionsFrame, text='Course Options', fg=text_fg, bg=tool_bg).pack(pa
 options_entries_dict["add_background"] = tk.BooleanVar()
 backgroundCheck = Checkbutton(courseSubFrame, text="Add Background Terrain/Remove Cliffs", variable=options_entries_dict["add_background"], fg=check_fg, bg=check_bg)
 backgroundCheck.select()
-bgentry = tk.Entry(courseSubFrame, width=10, justify='center')
+backgroundScaleFrame = Frame(courseSubFrame, bg=check_bg)
+bgentry = tk.Entry(backgroundScaleFrame, width=10, justify='center')
 bgentry.insert(END, '16.0')
 options_entries_dict["background_scale"] = bgentry
-backgroundCheck['command'] = partial(disableAllChildren, options_entries_dict["add_background"], bgentry)
+options_entries_dict["graduated_background"] = tk.BooleanVar(value=False)
+graduatedBackgroundCheck = Checkbutton(
+    backgroundScaleFrame, text="Graduated Background",
+    variable=options_entries_dict["graduated_background"], fg=check_fg, bg=check_bg,
+)
+
+def _syncBackgroundScaleControls(*_):
+    enabled = options_entries_dict["add_background"].get()
+    transition = options_entries_dict["graduated_background"].get()
+    graduatedBackgroundCheck.configure(state=tk.NORMAL if enabled else tk.DISABLED)
+    bgentry.configure(state=tk.NORMAL if enabled and not transition else tk.DISABLED)
+
+options_entries_dict["add_background"].trace_add("write", _syncBackgroundScaleControls)
+options_entries_dict["graduated_background"].trace_add("write", _syncBackgroundScaleControls)
+_syncBackgroundScaleControls()
 options_entries_dict["auto_background_landscape"] = tk.BooleanVar()
 outsideLevelCheck = Checkbutton(
     courseSubFrame,
@@ -4341,7 +4356,9 @@ brush_scale_combo = ttk.Combobox(courseSubFrame, width=8, justify='center',
 courseSubFrame.pack(padx=5, pady=5, fill=X, expand=True)
 backgroundCheck.grid(row=0, columnspan=2, sticky=W, padx=5)
 Label(courseSubFrame, text="Background Scale", fg=check_fg, bg=check_bg).grid(row=1, column=0, sticky=W, padx=5)
-bgentry.grid(row=1, column=1, sticky=W, padx=5)
+backgroundScaleFrame.grid(row=1, column=1, sticky=W, padx=5)
+bgentry.pack(side=LEFT)
+graduatedBackgroundCheck.pack(side=LEFT, padx=(5, 0))
 outsideLevelCheck.grid(row=2, columnspan=2, sticky=W, padx=5, pady=(5,0))
 Label(courseSubFrame, text="Purple Background Detail Spacing (m)", fg=check_fg, bg=check_bg).grid(row=3, column=0, sticky=W, padx=5)
 outside_bg_resolution_entry.grid(row=3, column=1, sticky=W, padx=5)

@@ -1,5 +1,11 @@
 # Changelog
 
+## Beta 8.4 release candidate
+
+- Add **Graduated Background**, an optional three-band red-mask background. Brush 10 uses 64 m in the outer area, 32 m in the middle, and four times the main brush scale at the detailed-terrain seam.
+- Disable the manual Background Scale field while Graduated Background is on, and restore its saved value when it is switched off.
+- Preserve mapped inner cutouts in rough and water surfaces, including automatic masks and previews.
+
 ## [v0.5.0-2k25-beta8.2](https://github.com/malifica/TGC-Designer-Tools/releases/tag/v0.5.0-2k25-beta8.2)
 
 - Add **Import Surface Parking Lots (Road Surface)**, off by default. Import closed surface car parks and complete multipolygons as filled areas using the configured automobile-road material, preserving islands. Parking aisles retain their independent road control; parking areas do not affect the automatic mask.

@@ -1128,47 +1128,21 @@ def _way_to_tgc_points(way, geopointcloud, x_offset, y_offset, resolve_missing_n
 
 
 def _osm_tags_describe_water(tags):
-    if not isinstance(tags, dict):
-        return False
-
-    if tags.get("natural", None) == "water":
-        return True
-
-    water_value = tags.get("water", None)
-    if water_value not in (None, "", "no"):
-        return True
-
-    return tags.get("landuse", None) == "reservoir"
+    from osm_open_surface_islands import surface_kind
+    return surface_kind(tags) == "water"
 
 
 def _relation_is_water_multipolygon(rel, way_lookup):
-    if str(rel.tags.get("type", "")).lower() != "multipolygon":
+    """Explicit golf water hazards and older outer-tagged water relations."""
+    if rel.tags.get("type") != "multipolygon":
         return False
-
-    outer_members = [
-        member
-        for member in rel.members
-        if (
-            isinstance(member, overpy.RelationWay) and
-            str(member.role or "").lower() == "outer"
-        )
-    ]
-
-    if not outer_members:
-        return False
-
     if _osm_tags_describe_water(rel.tags):
         return True
-
-    # Some older/less-normalized OSM data leaves the semantic area tag on an
-    # outer member rather than the relation.  Accept that without treating
-    # arbitrary untagged multipolygons as water.
-    for member in outer_members:
-        way = way_lookup.get(member.ref)
-        if way is not None and _osm_tags_describe_water(way.tags):
-            return True
-
-    return False
+    if any(k in rel.tags for k in ("golf", "natural", "landuse", "amenity", "waterway", "building")):
+        return False
+    return any(_osm_tags_describe_water(way_lookup[m.ref].tags)
+               for m in rel.members if isinstance(m, overpy.RelationWay)
+               and str(m.role or "outer").strip().lower() == "outer" and m.ref in way_lookup)
 
 
 def _stitch_relation_role_node_rings(
@@ -1323,139 +1297,53 @@ def _ring_inside_tgc_bounds(points, ul_tgc, lr_tgc):
     )
 
 
-def _build_water_multipolygon_splines(
-    rel,
-    way_lookup,
-    geopointcloud,
-    x_offset,
-    y_offset,
-    resolve_missing_nodes,
-    course_version,
-    ul_tgc,
-    lr_tgc,
-    printf=print,
-):
-    outer_node_rings = _stitch_relation_role_node_rings(
-        rel,
-        "outer",
-        way_lookup,
-        resolve_missing_nodes,
-        printf=printf,
-    )
-    if outer_node_rings is None or not outer_node_rings:
-        return []
-
-    inner_node_rings = _stitch_relation_role_node_rings(
-        rel,
-        "inner",
-        way_lookup,
-        resolve_missing_nodes,
-        printf=printf,
-    )
-    if inner_node_rings is None:
-        return []
-
-    outer_rings = [
-        _node_ring_to_tgc_points(
-            ring,
-            geopointcloud,
-            x_offset,
-            y_offset,
-        )
-        for ring in outer_node_rings
-    ]
-    inner_rings = [
-        _node_ring_to_tgc_points(
-            ring,
-            geopointcloud,
-            x_offset,
-            y_offset,
-        )
-        for ring in inner_node_rings
-    ]
-
-    assigned = [[] for _ in outer_rings]
-
-    for inner_ring in inner_rings:
-        center = _ring_centroid_average(inner_ring)
-        containing_outer = None
-
-        for index, outer_ring in enumerate(outer_rings):
-            if _point_in_ring_xz(center, outer_ring):
-                containing_outer = index
-                break
-
-        if containing_outer is None:
-            printf(
-                "Warning: OSM water multipolygon relation " +
-                str(rel.id) +
-                " has an inner ring not contained by an outer ring; " +
-                "relation skipped."
-            )
-            return []
-
-        assigned[containing_outer].append(inner_ring)
-
-    water_splines = []
-
-    for index, outer_ring in enumerate(outer_rings):
-        # Keep the historical OSM-to-course safety rule: do not emit a filled
-        # spline whose source polygon extends outside the selected terrain.
-        if not _ring_inside_tgc_bounds(
-            outer_ring,
-            ul_tgc,
-            lr_tgc,
-        ):
-            printf(
-                "Skipping OSM water multipolygon relation " +
-                str(rel.id) +
-                " outer ring because it extends outside terrain bounds."
-            )
+def _build_open_surface_splines(plan, omitted, pc, ew, ns, version, ul, lr, optimize):
+    from osm_open_surface_islands import lollipop_paths
+    def project(ring):
+        return [(pt[0],pt[2]) for pt in _node_ring_to_tgc_points(ring.nodes,pc,ew,ns)]
+    outers = [project(r) for r in plan.outers]
+    holes = [project(r) for r in plan.holes]
+    # Validate the entire relation first, before creating/registering splines.
+    paths = lollipop_paths(outers, holes)
+    result = []
+    for outer, raw, path in zip(plan.outers, outers, paths):
+        if outer.refs.issubset(omitted):
             continue
-
-        inner_for_outer = assigned[index]
-
-        if inner_for_outer:
-            merged_ring, bridge_indices = _build_lollipop_bunker_ring(
-                outer_ring,
-                inner_for_outer,
-                bridge_width=0.18,
-            )
-
-            water = newWaterHazard(
-                merged_ring,
-                area=True,
-                course_version=course_version,
-            )
-
-            # Surface-3 water uses tight 0.2 m handles. Clamp the narrow neck
-            # points so spline curvature cannot balloon across an island.
-            _clamp_spline_handles(
-                water,
-                bridge_indices,
-                course_version,
-            )
-
-            water_splines.append(water)
-
-            printf(
-                "2K25 water-hole conversion: relation " +
-                str(rel.id) +
-                ", inner islands=" +
-                str(len(inner_for_outer)) +
-                ", water waypoints=" +
-                str(len(merged_ring))
-            )
+        points = [(x,0.0,z) for x,z in path]
+        if not _ring_inside_tgc_bounds(points,ul,lr):
+            continue
+        cut = path != raw
+        if plan.kind == "water":
+            spline = newWaterHazard(points,area=True,course_version=version)
         else:
-            water_splines.append(
-                newWaterHazard(
-                    outer_ring,
-                    area=True,
-                    course_version=course_version,
-                )
-            )
+            spline = newRough(points,version,optimize_points=optimize and not cut)
+        if cut:
+            # Native fills have no interior-ring array. Keep the two banks of
+            # the slit distinct, including under wide user spline settings.
+            # A control at its own vertex yields an exactly straight segment.
+            spline["waypoints"] = [getwaypoint(*pt,version) for pt in points]
+            for wp in spline["waypoints"]:
+                wp["pointOne"] = dict(wp["waypoint"])
+                wp["pointTwo"] = dict(wp["waypoint"])
+            spline["width"] = 0.01
+            spline["secondaryWidth"] = 0.0
+        result.append(spline)
+    return result
 
-    return water_splines
+
+def _build_water_multipolygon_splines(rel, way_lookup, geopointcloud, x_offset, y_offset,
+                                      resolve_missing_nodes, course_version, ul_tgc, lr_tgc,
+                                      printf=print, ownership=None):
+    from types import SimpleNamespace
+    from osm_open_surface_islands import plan_open_surfaces
+    if ownership is None:
+        ownership = plan_open_surfaces(SimpleNamespace(ways=list(way_lookup.values()),relations=[rel]),
+                                       resolve_missing=resolve_missing_nodes)
+    plan = ownership.plans.get(rel.id)
+    if plan is None:
+        return []
+    return _build_open_surface_splines(plan, ownership.omit_outer.get(rel.id, set()),
+                                       geopointcloud,x_offset,y_offset,course_version,ul_tgc,lr_tgc,False)
 
 
 def _relation_is_bunker_with_rough_inner(rel, way_lookup):
@@ -2444,37 +2332,13 @@ def addOSMToTGC(course_json, geopointcloud, osm_result, x_offset=0.0, y_offset=0
         way.id: way for way in osm_result.ways
     }
 
-    # Pre-detect OSM water multipolygons. Their member ways must be consumed
-    # so open relation fragments are never independently closed/fill-drawn by
-    # the normal way importer.
-    water_multipolygon_relation_ids = set()
-    water_multipolygon_consumed_way_ids = set()
-
-    if options_dict.get('water', True):
-        for rel in osm_result.relations:
-            if not _relation_is_water_multipolygon(
-                rel,
-                bunker_hole_way_lookup,
-            ):
-                continue
-
-            water_multipolygon_relation_ids.add(rel.id)
-
-            for member in rel.members:
-                if not isinstance(member, overpy.RelationWay):
-                    continue
-                role = str(member.role or "").lower()
-                if role in ("outer", "inner"):
-                    water_multipolygon_consumed_way_ids.add(
-                        member.ref
-                    )
-
-        if water_multipolygon_relation_ids:
-            printf(
-                "Detected " +
-                str(len(water_multipolygon_relation_ids)) +
-                " OSM water multipolygon relation(s)."
-            )
+    # Same-surface inner boundaries are holes, never a second filled area.
+    # Resolve exact way/relation ownership before processing either pass.
+    from osm_open_surface_islands import plan_open_surfaces
+    open_surfaces = plan_open_surfaces(osm_result, resolve_missing=resolve_missing_nodes,
+        enabled_kinds={kind for kind in ("rough", "water") if options_dict.get(kind, True)})
+    for rid, why in open_surfaces.errors.items():
+        printf("Warning: OSM open-island relation %s skipped: %s" % (rid, why))
 
     # Pre-detect fairway multipolygons whose inner ring represents rough.
     # Rough identity may be direct (golf=rough on the way) or indirect
@@ -2615,7 +2479,7 @@ def addOSMToTGC(course_json, geopointcloud, osm_result, x_offset=0.0, y_offset=0
         if (
             way.id in dry_consumed_ids or
             way.id in bunker_hole_consumed_way_ids or
-            way.id in water_multipolygon_consumed_way_ids
+            way.id in open_surfaces.blocked_ways
         ):
             continue
         if time.time() > last_print_time + status_print_duration:
@@ -2807,52 +2671,26 @@ def addOSMToTGC(course_json, geopointcloud, osm_result, x_offset=0.0, y_offset=0
             continue
         golf_type = rel.tags.get("golf", None)
 
-        if rel.id in water_multipolygon_relation_ids:
-            try:
-                water_splines = _build_water_multipolygon_splines(
-                    rel,
-                    bunker_hole_way_lookup,
-                    geopointcloud,
-                    x_offset,
-                    y_offset,
-                    resolve_missing_nodes,
-                    course_version,
-                    ul_tgc,
-                    lr_tgc,
-                    printf=printf,
-                )
-            except overpy.exception.OverPyException:
-                printf(
-                    "Warning: OSM water multipolygon relation " +
-                    str(rel.id) +
-                    " references unavailable geometry; relation skipped."
-                )
-                water_splines = []
-            except Exception as exc:
-                printf(
-                    "Warning: OSM water multipolygon conversion failed for " +
-                    "relation " + str(rel.id) + ": " + str(exc)
-                )
-                water_splines = []
-
-            if water_splines:
-                for spline in water_splines:
-                    course_json[spline_tag].append(spline)
-
-                printf(
-                    "Imported OSM water multipolygon relation " +
-                    str(rel.id) + " as " +
-                    str(len(water_splines)) +
-                    " TGC water placeholder spline(s)."
-                )
-            else:
-                printf(
-                    "Skipped OSM water multipolygon relation " +
-                    str(rel.id) +
-                    " because complete in-bounds polygon topology " +
-                    "was not available."
-                )
-
+        if rel.id in open_surfaces.drop_relations:
+            continue
+        if rel.id in open_surfaces.plans:
+            plan = open_surfaces.plans[rel.id]
+            if options_dict.get(plan.kind, True):
+                try:
+                    if plan.kind == 'water':
+                        splines = _build_water_multipolygon_splines(
+                            rel,way_dict,geopointcloud,x_offset,y_offset,resolve_missing_nodes,
+                            course_version,ul_tgc,lr_tgc,printf,ownership=open_surfaces)
+                    else:
+                        splines = _build_open_surface_splines(
+                            plan,open_surfaces.omit_outer.get(rel.id,set()),geopointcloud,x_offset,
+                            y_offset,course_version,ul_tgc,lr_tgc,spline_optimization_enabled)
+                    course_json[spline_tag].extend(splines)
+                    if splines and plan.holes:
+                        printf("Imported %s relation %s with %d open island(s)." %
+                               (plan.kind,rel.id,len(plan.holes)))
+                except (ValueError, overpy.exception.OverPyException) as exc:
+                    printf("Warning: %s relation %s skipped: %s" % (plan.kind,rel.id,exc))
             continue
 
         if rel.id in fairway_rough_hole_relation_ids:

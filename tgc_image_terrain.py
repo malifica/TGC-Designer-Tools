@@ -1005,7 +1005,13 @@ def generate_course(course_json, heightmap_dir_path, options_dict={}, printf=pri
         image_scale = read_dictionary['image_scale']
         printf("Map scale is: " + str(image_scale) + " meters")
         background_ratio = None
-        if options_dict.get('add_background', False):
+        use_graduated_background = bool(options_dict.get('add_background', False)
+                                           and options_dict.get('graduated_background',
+                                                                options_dict.get('transitional_background', False)))
+        if use_graduated_background:
+            from tgc_transitional_background import validate_transition_input
+            validate_transition_input(im, mask, options_dict.get('purge_water', False))
+        elif options_dict.get('add_background', False):
             background_scale = float(options_dict.get('background_scale', 16.0))
             background_ratio = background_scale/image_scale
             printf("Background requested with scale: " + str(background_scale) + " meters")
@@ -1161,6 +1167,14 @@ def generate_course(course_json, heightmap_dir_path, options_dict={}, printf=pri
         or requested_brush_scale + 1e-6 < image_scale
     ):
         requested_brush_scale = valid_sizes[0]
+
+    if use_graduated_background:
+        from tgc_transitional_background import append_transitional_background
+        source_frame = _outside_landscape_raster_frame(
+            _normalize_background_heightmap(heightmap), pc, image_scale, master_grid)
+        append_transitional_background(
+            layer_json["height"], im, heightmap, mask, source_frame, pc,
+            requested_brush_scale, get_pixel, printf=printf)
 
     for n, point in enumerate(
         pc.points()

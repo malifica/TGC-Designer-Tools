@@ -47,6 +47,27 @@ def _fragment(way, pc, scale, x_offset, y_offset):
     return {'keys': keys, 'pts': pts}
 
 
+def mask_members(rel, ownership, relations_by_id):
+    """Resolve the same inner-relation boundaries used by native geometry."""
+    from overpy import RelationWay
+    omit = ownership.omit_outer.get(rel.id, ())
+    plan = ownership.plans.get(rel.id)
+    holes = {ref for boundary in plan.holes for ref in boundary.refs} if plan else set()
+    for member in getattr(rel, 'members', ()):
+        role = str(getattr(member, 'role', '') or '').strip().lower()
+        ref = getattr(member, 'ref', None)
+        if role in ('', 'outer') and ref in omit:
+            continue
+        if member.__class__.__name__ == 'RelationRelation' and role == 'inner' and plan:
+            child = relations_by_id.get(ref)
+            for boundary in getattr(child, 'members', ()):
+                if (isinstance(boundary, RelationWay) and boundary.ref in holes and
+                        str(boundary.role or '').strip().lower() in ('', 'outer')):
+                    yield RelationWay(ref=boundary.ref, role='inner')
+        else:
+            yield member
+
+
 def render(osm_result, im, pc, image_scale, x_offset=0., y_offset=0.,
            printf=print, way_renderer=None):
     """Paint complete relation areas with true inner holes, then normal ways.
@@ -68,17 +89,23 @@ def render(osm_result, im, pc, image_scale, x_offset=0., y_offset=0.,
     image = im.astype(np.float32) / 255. if is_byte else im
     ways = list(getattr(osm_result, 'ways', ()) or ())
     relations = list(getattr(osm_result, 'relations', ()) or ())
+    from osm_open_surface_islands import plan_open_surfaces
+    ownership = plan_open_surfaces(osm_result, resolve_missing=False)
+    by_id = {rel.id: rel for rel in relations}
     lookup = {w.id: w for w in ways}
     contexts, areas = {}, []
     skipped = 0
     for rel in relations:
-        if _tags(rel).get('type') != 'multipolygon':
+        if _tags(rel).get('type') != 'multipolygon' or rel.id in ownership.drop_relations:
             continue
         kind, color = _style(rel)
+        resolved = ownership.kinds.get(rel.id)
+        if kind is None and resolved in ('rough', 'water'):
+            kind, color = resolved, ((0., .55, .15) if resolved == 'rough' else (0., 0., 1.))
         if kind is None:
             continue
         outer, inner, errors = [], [], []
-        for member in getattr(rel, 'members', ()):
+        for member in mask_members(rel, ownership, by_id):
             role = str(getattr(member, 'role', '') or '').strip().lower()
             if role not in ('', 'outer', 'inner'):
                 continue
@@ -109,6 +136,8 @@ def render(osm_result, im, pc, image_scale, x_offset=0., y_offset=0.,
     # features (e.g. a green/rough island inside a fairway).
     independent = []
     for way in ways:
+        if way.id in ownership.blocked_ways:
+            continue
         ctx = contexts.get(way.id)
         if not ctx:
             independent.append(way)
