@@ -1,6 +1,6 @@
 # Changelog
 
-## Beta 8.4 release candidate
+## [v0.5.0-2k25-beta8.4](https://github.com/malifica/TGC-Designer-Tools/releases/tag/v0.5.0-2k25-beta8.4)
 
 - Add **Graduated Background**, an optional three-band red-mask background. Brush 10 uses 64 m in the outer area, 32 m in the middle, and four times the main brush scale at the detailed-terrain seam.
 - Disable the manual Background Scale field while Graduated Background is on, and restore its saved value when it is switched off.

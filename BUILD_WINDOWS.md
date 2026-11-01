@@ -1,6 +1,8 @@
 # Windows Build Guide
 
-## Beta 8.4 Windows release candidate
+## Beta 8.4 Windows build
+
+[Download Beta 8.4 for Windows x64](https://github.com/malifica/TGC-Designer-Tools/releases/tag/v0.5.0-2k25-beta8.4) as a standalone EXE or a portable ZIP. Each has a SHA-256 checksum file. See the [build and source manifest](BETA8_4_BUILD_SOURCE_MANIFEST.json) for the existing executable and matching source.
 
 The Beta 8.4 executable is `dist\tgc_gui_2k25_beta8_4.exe`. If it is already built and tested, collect that executable and the exact source recorded in its build receipt. From any Windows Command Prompt:
 

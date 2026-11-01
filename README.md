@@ -2,15 +2,15 @@
 
 Build PGA TOUR 2K25 courses from **LiDAR, GeoTIFF DEMs, OpenStreetMap, and Unity RAW/SVG data**. Import real-world terrain and course features, align the layout visually, choose regional vegetation, and export a `.course` file for Designer.
 
-**Latest published release: v0.5.0-2k25-beta8.2** · **Windows x64** · Maintained by **malifica**
+**Latest published release: v0.5.0-2k25-beta8.4** · **Windows x64** · Maintained by **malifica**
 
-[Download Beta 8.2](https://github.com/malifica/TGC-Designer-Tools/releases/tag/v0.5.0-2k25-beta8.2) · [Release notes](RELEASE_NOTES_v0.5.0-2k25-beta8.2.md) · [Change history](CHANGELOG.md)
+[Download Beta 8.4](https://github.com/malifica/TGC-Designer-Tools/releases/tag/v0.5.0-2k25-beta8.4) · [Release notes](RELEASE_NOTES_v0.5.0-2k25-beta8.4.md) · [Change history](CHANGELOG.md)
 
-## Beta 8.4 release candidate
+## Beta 8.4 highlights
 
 Turn on **Graduated Background** beside **Background Scale** to use three Brush 10 sizes in the red mask. From the outside toward the detailed-terrain seam, the sizes are **64 m**, **32 m**, then **four times the main brush scale**. A 72/1 main brush gets a 10/4 seam; a 10/3 main brush gets a 10/12 seam. This confines the finest background brushwork to a narrow strip. Turn it off to use the manual Background Scale again.
 
-Beta 8.4 also includes open islands for rough and water multipolygons: mapped inner rings leave the underlying terrain exposed. The current public Windows download is Beta 8.2; the Beta 8.4 Windows release is awaiting its verified build. See the [Beta 8.4 release notes](RELEASE_NOTES_v0.5.0-2k25-beta8.4.md).
+Beta 8.4 also includes open islands for rough and water multipolygons: mapped inner rings leave the underlying terrain exposed. See the [Beta 8.4 release notes](RELEASE_NOTES_v0.5.0-2k25-beta8.4.md).
 
 ## Beta 8.2 highlights
 

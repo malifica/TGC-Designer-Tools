@@ -1,0 +1,1059 @@
+{
+  "schema": "tgc-beta84-read-only-build-source-validation-v1",
+  "status": "pass",
+  "archive": {
+    "name": "TGC_BETA8_4_EXISTING_BUILD_AND_SOURCE_20261101T192117_309879Z.zip",
+    "bytes": 193992067,
+    "sha256": "f74355fd82ee51da0e82df91861a102753a5a94513947df333aa02d6b8f204e3"
+  },
+  "manifest_entries_verified": 150,
+  "upload_manifest": {
+    "path": "UPLOAD_MANIFEST.json",
+    "bytes": 22500,
+    "sha256": "c8c272a0904df86683f35899bf6f022a5dbf4fbb23ba7540f93e56d0081f408c"
+  },
+  "build_receipt": {
+    "path": "dist/tgc_gui_2k25_beta8_4.exe.build.json",
+    "bytes": 22669,
+    "sha256": "9ddb8558edc38f8ad983cee30d9889fa2e650f9cbdf0f4ca160290d9be087ac9"
+  },
+  "local_checksum": {
+    "path": "dist/tgc_gui_2k25_beta8_4.exe.sha256.txt",
+    "bytes": 91,
+    "sha256": "e32485d94a4dae018efc8b3e4bbaa85b3de2237c2fe0bf01d01ae6fbe18db0f4"
+  },
+  "exe": {
+    "bytes": 194243060,
+    "path": "dist/tgc_gui_2k25_beta8_4.exe",
+    "sha256": "ba2df447a3a4355e32a26bc9af7ece1a09256fd2f851fa5a4f8357643535b0fd",
+    "pe_machine": "0x8664",
+    "optional_header_magic": "0x20b",
+    "pyinstaller_python_version": 311,
+    "python_library": "python311.dll"
+  },
+  "source_and_support_count": 147,
+  "input_matches_build_receipt": true,
+  "reviewed_git_commit": "e37e7090a9bdc56b98a0efa4b709338bb0c6cc88",
+  "source_and_support_git_differences": [],
+  "no_exe_modification_or_rebuild": true,
+  "validation_python": "3.11.17",
+  "frozen_python_bytecode_version": "3.11",
+  "pyz_magic": "a70d0d0a",
+  "carchive_entry_count": 2032,
+  "pyz_module_count": 1670,
+  "comparison_method": "Compile original sources in memory under CPython 3.11 with matching frozen magic. Compare recursive executable bytecode, exception and line mappings, typed constants, flags, stack, arguments, names and closure metadata; ignore machine-specific source filenames and debugger column table differences.",
+  "compared_source_count": 59,
+  "frozen_source_comparisons": [
+    {
+      "module": "GeoPointCloud",
+      "source": "GeoPointCloud.py",
+      "source_sha256": "75431052f9ebab4b90d120d132b831398eb86ee3589aba10bc4bf6f533c1f8c3",
+      "source_bytes": 12968,
+      "matching_optimization_levels": [
+        0,
+        1,
+        2
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1,
+        2
+      ]
+    },
+    {
+      "module": "OSMTGC",
+      "source": "OSMTGC.py",
+      "source_sha256": "70840dfed838ea064d8dbe2a95c1ebb32e5e185540e39014e94e815b25f66ca1",
+      "source_bytes": 116609,
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "VERIFY_BETA8_4_GRADUATED_BACKGROUND",
+      "source": "VERIFY_BETA8_4_GRADUATED_BACKGROUND.py",
+      "source_sha256": "0ad4552f9a5c4b3dc538981e432854bf2a6557e4d6fa8a6c436cddf12c63b416",
+      "source_bytes": 2469,
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "VERIFY_BETA8_THEME_PLANTING",
+      "source": "VERIFY_BETA8_THEME_PLANTING.py",
+      "source_sha256": "121cf1a09fd4bd4e10ce97472f04052b8bd3c2a56c823182dc0ef89f025235ad",
+      "source_bytes": 4755,
+      "matching_optimization_levels": [
+        0
+      ],
+      "raw_debug_line_table_matching_optimization_levels": []
+    },
+    {
+      "module": "auto_red_mask",
+      "source": "auto_red_mask.py",
+      "source_sha256": "01596a2424291e07cc3d53d81646834b4adb3c555efd7c831695adebb239ee86",
+      "source_bytes": 25567,
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "cfs_georef",
+      "source": "cfs_georef.py",
+      "source_sha256": "c6a4210c18240f15591d3088074cedd3770b782019f57be767e6b5291f6225a6",
+      "source_bytes": 8517,
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "dem_map_api",
+      "source": "dem_map_api.py",
+      "source_sha256": "c7b154401f4915226a5d59543452e3ffafc956b5d410a023cc5cac030bafb3d8",
+      "source_bytes": 43015,
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "exus_additional_countries",
+      "source": "exus_additional_countries.py",
+      "source_sha256": "8ce5eec36803da837eeab55cd747320291b7258113ee72643a518c0a59da76bb",
+      "source_bytes": 23779,
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "exus_france_crs",
+      "source": "exus_france_crs.py",
+      "source_sha256": "efb2e892afebf9d1526478d8d7a485b2d135edb780d4e1ba2b9f97ea391d6694",
+      "source_bytes": 15676,
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "exus_lidar_sources",
+      "source": "exus_lidar_sources.py",
+      "source_sha256": "96a506e225d828c0ae9ee010786674c12dcac1c2884ae482306ee1edc78f87bb",
+      "source_bytes": 20460,
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "exus_raster",
+      "source": "exus_raster.py",
+      "source_sha256": "241a6efd28d27a826d6d79d4b17f514bd6197b2b3641aa1b74273124c3935d2d",
+      "source_bytes": 4914,
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "exus_resolution_policy",
+      "source": "exus_resolution_policy.py",
+      "source_sha256": "eebf38eb3b91e8f2d84b11f9fb92e79f38c0188c450ac35f83f5afa677ad13bc",
+      "source_bytes": 5765,
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "exus_service_raster",
+      "source": "exus_service_raster.py",
+      "source_sha256": "4d09b7e11fe5ab8fa42ea9bda73fbcc2576c35de19884793d6697430525d625a",
+      "source_bytes": 13616,
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "infill_image",
+      "source": "infill_image.py",
+      "source_sha256": "7a3496c9c9978146f88a6a406be865f62003bbfdd5c484b24de2c822c7577380",
+      "source_bytes": 4933,
+      "matching_optimization_levels": [
+        0,
+        1,
+        2
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1,
+        2
+      ]
+    },
+    {
+      "module": "lidar_fast_native",
+      "source": "lidar_fast_native.py",
+      "source_sha256": "66d8208e6e9828d3a62c0001adff00590852d5458a530273d5f0fd5a769b9a8a",
+      "source_bytes": 4378,
+      "matching_optimization_levels": [
+        0,
+        1,
+        2
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1,
+        2
+      ]
+    },
+    {
+      "module": "lidar_feature_filter",
+      "source": "lidar_feature_filter.py",
+      "source_sha256": "438f375ef7e901552036d754ad06fcfc1ae4c0b3deb4feddacff42d5c9cb5546",
+      "source_bytes": 19485,
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "lidar_map_api",
+      "source": "lidar_map_api.py",
+      "source_sha256": "f775866d8d6c3ca1e639b231225569fb4df985d48c73daa34bf65e3cb07f5aa7",
+      "source_bytes": 59657,
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "lidar_tree_topology",
+      "source": "lidar_tree_topology.py",
+      "source_sha256": "22e159615d1c7b8638616228fe2115545560f2c40a7e1541f90b0dbed85b26fe",
+      "source_bytes": 17641,
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "osm_alignment_viewer",
+      "source": "osm_alignment_viewer.py",
+      "source_sha256": "c165c47951083609ec24688e6756b93867fb2d4faeba7d2113df8544b35f81bc",
+      "source_bytes": 46054,
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "osm_custom_layout",
+      "source": "osm_custom_layout.py",
+      "source_sha256": "7373b88d8c758cebdc0aa721f59a1971ad896915326dbc4a1a923ffde9f6908a",
+      "source_bytes": 9808,
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "osm_mask_alignment",
+      "source": "osm_mask_alignment.py",
+      "source_sha256": "b8e20c917be634bf776db0b081ac3c813c058f2544a2fa96f9d4db7f33173caa",
+      "source_bytes": 34518,
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "osm_open_surface_islands",
+      "source": "osm_open_surface_islands.py",
+      "source_sha256": "0eebd0cc6ce0448eb56388d766b71c6670db22ae5d37efbdc39fecee98c03e7d",
+      "source_bytes": 10678,
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "osm_preview_relations",
+      "source": "osm_preview_relations.py",
+      "source_sha256": "b7d91a5ad585e3c5ddcbadb7c78054350742c84efb9ed74573430ca8210f901c",
+      "source_bytes": 8164,
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "osm_water_mulch_lock",
+      "source": "osm_water_mulch_lock.py",
+      "source_sha256": "955ca414de2e6524bca117b651182f4fabc081d71414856a3c979c653a35392a",
+      "source_bytes": 4235,
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "scotland_s3",
+      "source": "scotland_s3.py",
+      "source_sha256": "9be8164bca25958540f46ab5a245af50e384c87ea34980c0a5ffa6c35627d4c2",
+      "source_bytes": 13956,
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "tgc_beta8_entry",
+      "source": "tgc_beta8_entry.py",
+      "source_sha256": "e157bfdd846fce6382a4179aa2048cd67755a03547229d06b5e74f02156754e3",
+      "source_bytes": 415,
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "tgc_cfs_display",
+      "source": "tgc_cfs_display.py",
+      "source_sha256": "cba2d479bcd6a850db60381b298b88e73dc654822a46851f26518ff2597a166a",
+      "source_bytes": 6720,
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "tgc_cfs_widgets",
+      "source": "tgc_cfs_widgets.py",
+      "source_sha256": "2ab8781191fbbc2f5b3482a02d3b4136a992d91d0743d841b15745bb514d0e40",
+      "source_bytes": 2540,
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "tgc_definitions",
+      "source": "tgc_definitions.py",
+      "source_sha256": "de43430eeaf97ace01099874908df5c412ec4ff19c2f7c9cc5a437386eab306f",
+      "source_bytes": 23158,
+      "matching_optimization_levels": [
+        0,
+        1,
+        2
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1,
+        2
+      ]
+    },
+    {
+      "module": "tgc_dem_preview",
+      "source": "tgc_dem_preview.py",
+      "source_sha256": "2546b9d8f0b85acf9bbeec3f60737244099132ea1bc14d0fe5bac8247b6d6c9b",
+      "source_bytes": 5791,
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "tgc_gui",
+      "source": "tgc_gui.py",
+      "source_sha256": "722e889f11b468d9f404fcca3b090029a766ebcd22fdd4608430e95628e65d61",
+      "source_bytes": 158732,
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "tgc_image_terrain",
+      "source": "tgc_image_terrain.py",
+      "source_sha256": "533a85df8d4d5d4a55b0508f7574380c0c9b8972384f788dc93b41bbbc37caa6",
+      "source_bytes": 61406,
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "tgc_local_alignment",
+      "source": "tgc_local_alignment.py",
+      "source_sha256": "782a2b60417468abb41ea009762fb4c46f70a7b97b4ecef8d1adc61c8c4a88f8",
+      "source_bytes": 32111,
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "tgc_local_alignment_detector",
+      "source": "tgc_local_alignment_detector.py",
+      "source_sha256": "d7fd0f9e0ca1899e21e43374d1c6bdf991bc8d42849e57336cc3f42a164634cb",
+      "source_bytes": 13426,
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "tgc_local_alignment_export",
+      "source": "tgc_local_alignment_export.py",
+      "source_sha256": "7b54f2aaff7f4e67fbf2efd8ca2369953cb108f34caab951047649d20953e0fc",
+      "source_bytes": 16645,
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "tgc_local_alignment_topology",
+      "source": "tgc_local_alignment_topology.py",
+      "source_sha256": "01a72a884b354f202f08f09f0f5fa5889ba5284b7e566fdc773289a94cc30c07",
+      "source_bytes": 33550,
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "tgc_local_alignment_ui",
+      "source": "tgc_local_alignment_ui.py",
+      "source_sha256": "91ba48e459b73643699323a54c7afc0acd106575e87f67acc53b346ea5d24812",
+      "source_bytes": 79692,
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "tgc_local_feature_filters",
+      "source": "tgc_local_feature_filters.py",
+      "source_sha256": "aa0e2d277be7c0a1d87c5d3daa75509855d4d6651b62b814bb995190037246ee",
+      "source_bytes": 5650,
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "tgc_output_progress",
+      "source": "tgc_output_progress.py",
+      "source_sha256": "6787e7dbabbfb14695643d9fede3a107e5a72c568e4629038ab72a6a815d6ac3",
+      "source_bytes": 9448,
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "tgc_project_paths",
+      "source": "tgc_project_paths.py",
+      "source_sha256": "0def11080fb2729040e0d17a38d5cbd1aca78ae223c9e3e1d9b1b7e464c2d161",
+      "source_bytes": 1630,
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "tgc_projection_cache",
+      "source": "tgc_projection_cache.py",
+      "source_sha256": "e026e2cf83c392541874203c597c48f2013485eaa2c3bb671934cac05fd58daf",
+      "source_bytes": 1490,
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "tgc_tools",
+      "source": "tgc_tools.py",
+      "source_sha256": "95cf5dc3c522c68077caeaa6ca024c5a95d4b84871d79a9b7fc8a8921ca76f0f",
+      "source_bytes": 60608,
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "tgc_transitional_background",
+      "source": "tgc_transitional_background.py",
+      "source_sha256": "672c76423b2d77981e00ada57fb337b61f93e090b419a3148b26f0d6d9d6571d",
+      "source_bytes": 8303,
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "tgc_tree_filter_controls",
+      "source": "tgc_tree_filter_controls.py",
+      "source_sha256": "6ad390fcafc831eda680533c823e7a4326a9065631f8928fb74e29f9d589c3af",
+      "source_bytes": 2795,
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "tgc_tree_size_test1_entry",
+      "source": "tgc_tree_size_test1_entry.py",
+      "source_sha256": "2b5e33aa34d6dd455dde21783acadbead9c9165388d007c7103773efd41af4f4",
+      "source_bytes": 3746,
+      "matching_optimization_levels": [
+        0
+      ],
+      "raw_debug_line_table_matching_optimization_levels": []
+    },
+    {
+      "module": "tgc_ui_style",
+      "source": "tgc_ui_style.py",
+      "source_sha256": "604c31adc59602c54eb90f445ea23a86b0dc440a0835223cd93bbf5892c1725e",
+      "source_bytes": 30555,
+      "matching_optimization_levels": [
+        0
+      ],
+      "raw_debug_line_table_matching_optimization_levels": []
+    },
+    {
+      "module": "tgc_unity_build_check",
+      "source": "tgc_unity_build_check.py",
+      "source_sha256": "d3edae4b04b900507bd310c282bc75c086ee33697d3fb407ec36ea41bd6bbcd6",
+      "source_bytes": 3598,
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "tgc_unity_import_ui",
+      "source": "tgc_unity_import_ui.py",
+      "source_sha256": "22a8a66b903c0a6ae4cf9db2cbf93a799d6033fb082e3f57ca653f949cb4f3d2",
+      "source_bytes": 13968,
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "tgc_unity_presets",
+      "source": "tgc_unity_presets.py",
+      "source_sha256": "c48795dbeefd700403e0f1f9ca554bd9d4f01ec203ea1d8d85384c3bc5f3b4d5",
+      "source_bytes": 277,
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "tgc_unity_raw_svg",
+      "source": "tgc_unity_raw_svg.py",
+      "source_sha256": "d50e38e71921b9ca87b188c4f76a02ac123f598064d50bdff7aac454c5960454",
+      "source_bytes": 24292,
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "tgc_unity_svg_paths",
+      "source": "tgc_unity_svg_paths.py",
+      "source_sha256": "215069e437627b6984de5bba27a0df0b1bb40777bc3cf35bb5b98da50ec07f94",
+      "source_bytes": 7112,
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "tgc_visualizer",
+      "source": "tgc_visualizer.py",
+      "source_sha256": "0ac91157018bed4510958fde54b91e5558fa312fcc002e2206659a2fcc541769",
+      "source_bytes": 19589,
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "tgc_window_layout",
+      "source": "tgc_window_layout.py",
+      "source_sha256": "77e2aa38e5b7c2ed978ae19a30607b776a587ea9434cf14fee259b0337e4fd92",
+      "source_bytes": 3090,
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "tree_mapper",
+      "source": "tree_mapper.py",
+      "source_sha256": "50b65c6181086a907f8e8ad044fd519ba7e79f5f08c8cdca909d5add0fdfa496",
+      "source_bytes": 5958,
+      "matching_optimization_levels": [
+        0,
+        1,
+        2
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1,
+        2
+      ]
+    },
+    {
+      "module": "tree_profile_manager",
+      "source": "tree_profile_manager.py",
+      "source_sha256": "6b06516e4d96fd3c56c4441c195ffa6d157b81ebebe0d85908644c4ba363463b",
+      "source_bytes": 12116,
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "uk_lidar_downloader",
+      "source": "uk_lidar_downloader.py",
+      "source_sha256": "108379ab647a763f05e7b3b69011ee20cd36246aaf910a676d81aaf361d53f61",
+      "source_bytes": 35319,
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "uk_lidar_ui",
+      "source": "uk_lidar_ui.py",
+      "source_sha256": "64884a2df455e569144cbaf81d961a36ab57511ebd5c4e69ee7b75601d71e7a4",
+      "source_bytes": 35618,
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "usgs_ept_downloader",
+      "source": "usgs_ept_downloader.py",
+      "source_sha256": "2cb57a9d8a7264fe889242ca663c390536aab3b7aa78ba8653ca651a979690b7",
+      "source_bytes": 46109,
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    },
+    {
+      "module": "usgs_lidar_parser",
+      "source": "usgs_lidar_parser.py",
+      "source_sha256": "204318a68d1ec4460756ebd7e50bb881db5b8a5709430c4adf1799d52321a1ee",
+      "source_bytes": 22679,
+      "matching_optimization_levels": [
+        0,
+        1
+      ],
+      "raw_debug_line_table_matching_optimization_levels": [
+        0,
+        1
+      ]
+    }
+  ],
+  "mismatch_count": 0,
+  "source_files_not_frozen": [
+    "BUILD_TGC_2K25_BETA7.py",
+    "BUILD_TGC_2K25_BETA8.py",
+    "BUILD_TGC_2K25_BETA8_4.py",
+    "COLLECT_BETA8_4_FOR_PUBLICATION.py",
+    "VERIFY_BETA3_1_SOURCE.py",
+    "VERIFY_BETA3_SOURCE.py",
+    "VERIFY_BETA4_SOURCE.py",
+    "VERIFY_BETA5_DEV_SOURCE.py",
+    "VERIFY_BETA6_CFS_ASYNC_MASK_REBUILD_V3.py",
+    "VERIFY_BETA6_CFS_MASK_ALIGNMENT_WORKFLOW_V1.py",
+    "VERIFY_BETA6_CUSTOM_UNMATCHED_OSM_V5.py",
+    "VERIFY_BETA6_CUSTOM_UNMATCHED_OSM_V5_1.py",
+    "VERIFY_BETA6_DEM_PREVIEW_FIX.py",
+    "VERIFY_BETA6_LIDAR_TREE_MASK_MASTER_GRID_FIX_V1.py",
+    "VERIFY_BETA6_MULTIPOLYGON_MULCH_V1.py",
+    "VERIFY_BETA6_OSM_ROAD_SPLIT_V4.py",
+    "VERIFY_BETA6_OUTPUT_PROGRESS.py",
+    "VERIFY_BETA6_SOURCE.py",
+    "VERIFY_BETA6_SPLINE_SURFACE_FIX_V1.py",
+    "VERIFY_BETA6_TREE_TOPOLOGY.py",
+    "VERIFY_BETA6_WORKFLOW_UI_REORDER_V2.py",
+    "VERIFY_BETA7_BACKGROUND_GEOREF_V1.py",
+    "VERIFY_BETA7_CFS.py",
+    "VERIFY_BETA7_EXUS_COUNTRIES_5M.py",
+    "VERIFY_BETA7_EXUS_DOWNLOAD.py",
+    "VERIFY_BETA7_FRANCE_CAPABILITIES_FIX.py",
+    "VERIFY_BETA7_FRANCE_CRS.py",
+    "VERIFY_BETA7_FRANCE_POLAND_SERVICE.py",
+    "VERIFY_BETA7_LARGE_WINDOWS.py",
+    "VERIFY_BETA7_LOCAL_ACCEPT_V7.py",
+    "VERIFY_BETA7_LOCAL_ALIGNMENT.py",
+    "VERIFY_BETA7_LOCAL_ALIGNMENT_ENGINE.py",
+    "VERIFY_BETA7_LOCAL_FEATURES_V6.py",
+    "VERIFY_BETA7_LOCAL_MANUAL.py",
+    "VERIFY_BETA7_LOCAL_MANUAL_UI.py",
+    "VERIFY_BETA7_LOCAL_RELATIONS.py",
+    "VERIFY_BETA7_LOCAL_RELATION_CONSUMERS.py",
+    "VERIFY_BETA7_LOCAL_UI_V6.py",
+    "VERIFY_BETA7_RESOLVED_SHAPES.py",
+    "VERIFY_BETA7_TREE_CONTROLS.py",
+    "VERIFY_BETA7_UI_STYLE_V1.py",
+    "VERIFY_BETA7_UK_DOWNLOAD.py",
+    "VERIFY_BETA7_UK_REPORT_FONT_FIX.py",
+    "VERIFY_BETA7_UK_REPORT_PANE.py",
+    "VERIFY_BETA7_UK_UI_FIX.py",
+    "VERIFY_BETA7_UK_UI_LAYOUT_FIX.py",
+    "VERIFY_BETA7_UNITY_DISPATCH_V4.py",
+    "VERIFY_BETA7_UNITY_INTEGRATION_V2.py",
+    "VERIFY_BETA7_UNITY_ROW_DESERT_SW_V1.py",
+    "VERIFY_BETA8_2_PARKING.py",
+    "VERIFY_BETA8_CFS.py",
+    "VERIFY_BETA8_OSM_WOODS_V1.py",
+    "VERIFY_BETA8_RESOLVED_SHAPES.py",
+    "VERIFY_BETA8_TREE_CONTROLS.py",
+    "VERIFY_OPEN_ISLAND_MASK.py",
+    "VERIFY_OPEN_SURFACE_ISLANDS.py",
+    "VERIFY_TGC_HBCC_MULCH_V1.py",
+    "VERIFY_TGC_UNITY_RAW_SVG_V1.py",
+    "offset_ui_tool.py",
+    "tgc_kd_terrain.py",
+    "tgc_terrain_replay.py",
+    "tree_profile_analyzer.py"
+  ],
+  "debug_column_only_difference_modules": [
+    "VERIFY_BETA8_THEME_PLANTING",
+    "tgc_tree_size_test1_entry",
+    "tgc_ui_style"
+  ],
+  "embedded_runtime_support": [
+    {
+      "path": "laszip/laszip-cli.exe",
+      "bytes": 815104,
+      "sha256": "1fa8fb7cf5246dbe8dee8fe6900c6caedcb72213d4c9ce96fbcbaa2af8677423",
+      "exact_source_match": true
+    },
+    {
+      "path": "tgc_lidar_fast_native.dll",
+      "bytes": 9216,
+      "sha256": "2443a6dd1f375db74985b1fe88e5e6d11997ba10341e87d89eb6fe778f267007",
+      "exact_source_match": true
+    },
+    {
+      "path": "tree_profiles/_template.json",
+      "bytes": 1080,
+      "sha256": "b45b1b06d46999cde9597c900e2a0cf826723627224277a534e68a54716660c5",
+      "exact_source_match": true
+    },
+    {
+      "path": "tree_profiles/bass_strait_coastal_links.json",
+      "bytes": 2871,
+      "sha256": "6ff237586c71885d338fbd1da2b64e2980251b6d0f76f5cb43b2b9c3c00467ab",
+      "exact_source_match": true
+    },
+    {
+      "path": "tree_profiles/carolina_piedmont_autumn.json",
+      "bytes": 11110,
+      "sha256": "7e90ab2fa02d337d92c38e3ab9a5dc80ce517076adda8f9431895324d2fee028",
+      "exact_source_match": true
+    },
+    {
+      "path": "tree_profiles/desert_southwest.json",
+      "bytes": 12153,
+      "sha256": "a42f8a42a4065696d3e5c7fa881fcadf5119d472927b7d655772eb1ea6ee1b08",
+      "exact_source_match": true
+    },
+    {
+      "path": "tree_profiles/georgia_piedmont.json",
+      "bytes": 11120,
+      "sha256": "4ecd730460bf63bae75bec099eb5011365d54d153c7ff45afec502dd5c322581",
+      "exact_source_match": true
+    },
+    {
+      "path": "tree_profiles/hudson_valley_mixed_forest.json",
+      "bytes": 11419,
+      "sha256": "503a640aeba422a2dc16ba48f94428033b5017399b1cd8fe6821b2ce5488c9ad",
+      "exact_source_match": true
+    },
+    {
+      "path": "tree_profiles/monterey_bay_coast.json",
+      "bytes": 12174,
+      "sha256": "f82a8e7b7213ab787e0ada34bf77535119ad6a51cdcbf4370df1b0205ab8f587",
+      "exact_source_match": true
+    },
+    {
+      "path": "tree_profiles/niagara_escarpment.json",
+      "bytes": 11890,
+      "sha256": "60ca71d60a9520283a132a6a54ea5b9ba90adb78c28e17c67ef19efcae7211c7",
+      "exact_source_match": true
+    },
+    {
+      "path": "tree_profiles/northern_rockies.json",
+      "bytes": 6438,
+      "sha256": "2ec8001b78f98f51fd757c8c30eb9efb4db14d6f19ad02970ad0e2a63e33ffb4",
+      "exact_source_match": true
+    },
+    {
+      "path": "tree_profiles/pacific_northwest.json",
+      "bytes": 6423,
+      "sha256": "a93c5b25be2e5086ec96c5ec51f37ce2826bcbb1c888ec2c43e4d98653e5aab9",
+      "exact_source_match": true
+    },
+    {
+      "path": "tree_profiles/san_francisco_peninsula.json",
+      "bytes": 11174,
+      "sha256": "f30b8facac640f15f6b4d25d398f98cf9bd756d1b4457a6c091667811091c23f",
+      "exact_source_match": true
+    },
+    {
+      "path": "tree_profiles/south_carolina_lowcountry.json",
+      "bytes": 9857,
+      "sha256": "f29e8f0e3403c6d23a0de4ce855d2e1c2a65b96147fb44fe7c642e44223e9c60",
+      "exact_source_match": true
+    },
+    {
+      "path": "tree_profiles/texas_hill_country.json",
+      "bytes": 12087,
+      "sha256": "db5d540a7386ff4a40229bf63e4067a1758c08f5c53313eb397af71b22dbee53",
+      "exact_source_match": true
+    },
+    {
+      "path": "tree_profiles/virginia_coastal_plain.json",
+      "bytes": 9547,
+      "sha256": "f6a8b41dca504331a2de83e5a64bd061adc31ca2a08f31bc6eb4680a9df75364",
+      "exact_source_match": true
+    }
+  ],
+  "runtime_dependencies_present": {
+    "python311.dll": true,
+    "base_library.zip": true,
+    "shapely_geos_c_dll": true
+  },
+  "feature_review": {
+    "graduated_background_type10_three_scales": true,
+    "gui_version_and_control_verified": true,
+    "retains_open_island_handling": true,
+    "frozen_release_smoke_route_present": true,
+    "complete_included_project_module_matches": true
+  },
+  "checks_not_performed": [
+    "Windows EXE execution during publication",
+    "Interactive Windows GUI testing during publication",
+    "In-game import or playtesting during publication"
+  ],
+  "executed_project_code": false,
+  "rebuilt_or_modified_exe": false
+}
