@@ -233,12 +233,13 @@ def _stitch_fragments(fragments):
     return rings, incomplete
 
 
-def _relation_rings(rel, way_lookup, pc, image_scale, x_offset=0.0, y_offset=0.0):
+def _relation_rings(rel, way_lookup, pc, image_scale, x_offset=0.0, y_offset=0.0, members=None):
     outer_fragments = []
     inner_fragments = []
     member_info = []
 
-    for member in getattr(rel, "members", []) or []:
+    boundary_members = (getattr(rel, "members", []) or []) if members is None else members
+    for member in boundary_members:
         ref = getattr(member, "ref", None)
         if ref is None:
             continue
@@ -457,6 +458,10 @@ def apply_auto_red_mask(osm_source, image_rgb, pc, image_scale, buffer_m=5.0,
         buffer_m = 5.0
 
     ways, relations = _source_parts(osm_source)
+    from osm_open_surface_islands import plan_open_surfaces
+    ownership = plan_open_surfaces(osm_source, resolve_missing=False) if relations else None
+    from osm_preview_relations import mask_members
+    by_id = {rel.id: rel for rel in relations}
     way_lookup = {getattr(way, "id", None): way for way in ways}
 
     h, w = image_rgb.shape[:2]
@@ -480,6 +485,8 @@ def apply_auto_red_mask(osm_source, image_rgb, pc, image_scale, buffer_m=5.0,
     # fake polygons with an implicit closing chord.
     for rel in relations:
         tags = _tags(rel)
+        if rel.id in ownership.drop_relations:
+            continue
         if str(tags.get("type", "") or "").lower() != "multipolygon":
             continue
 
@@ -488,7 +495,8 @@ def apply_auto_red_mask(osm_source, image_rgb, pc, image_scale, buffer_m=5.0,
             include_vehicle_roads=include_vehicle_roads,
             vehicle_road_width_m=vehicle_road_width_m,
         )
-        if mode != "area":
+        kind = ownership.kinds.get(rel.id)
+        if mode != "area" and kind not in ("rough", "water"):
             continue
 
         outers, inners, members, outer_bad, inner_bad = _relation_rings(
@@ -498,6 +506,7 @@ def apply_auto_red_mask(osm_source, image_rgb, pc, image_scale, buffer_m=5.0,
             scale,
             x_offset=x_offset,
             y_offset=y_offset,
+            members=mask_members(rel, ownership, by_id),
         )
 
         rel_sig = _feature_signature(rel)
@@ -518,12 +527,22 @@ def apply_auto_red_mask(osm_source, image_rgb, pc, image_scale, buffer_m=5.0,
             continue
 
         cv2.bitwise_or(core, rel_mask, dst=core)
+        # An explicit same-surface opening exposes the original terrain. Keep
+        # its terrain samples, but never color it as rough or carve it as water.
+        open_refs = ownership.open_inner.get(rel.id)
+        if open_refs and rel.id in ownership.plans:
+            for refs, nodes in ownership.plans[rel.id].holes:
+                if refs and refs.issubset(open_refs):
+                    pixels = [pc.latlonToCV2(n.lat, n.lon, scale, x_offset, y_offset)[::-1]
+                              for n in nodes]
+                    if len(pixels) >= 3:
+                        cv2.fillPoly(core, [_poly_i32(pixels)], 255)
         golf_type = tags.get("golf")
         if golf_type == "fairway":
             cv2.bitwise_or(relation_fairway, rel_mask, dst=relation_fairway)
-        elif golf_type == "rough":
+        elif golf_type == "rough" or kind == "rough":
             cv2.bitwise_or(relation_rough, rel_mask, dst=relation_rough)
-        if _is_water_feature(rel):
+        if _is_water_feature(rel) or kind == "water":
             cv2.bitwise_or(relation_water, rel_mask, dst=relation_water)
 
         relation_count += 1
@@ -533,6 +552,8 @@ def apply_auto_red_mask(osm_source, image_rgb, pc, image_scale, buffer_m=5.0,
 
     # Standalone ways and independently tagged inner features.
     for way in ways:
+        if ownership is not None and way.id in ownership.blocked_ways:
+            continue
         if not _standalone_member_allowed(
             way,
             member_context,

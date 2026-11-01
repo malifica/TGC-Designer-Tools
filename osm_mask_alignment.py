@@ -46,6 +46,7 @@ SIDECAR_NAME = "osm_mask_alignment.json"
 SCHEMA_VERSION = 1
 ALIGNMENT_TOLERANCE_M = 0.0051
 MASK_FEATURE_POLICY = "native-wood-excluded-v1"
+OPEN_ISLAND_POLICY = "same-surface-open-islands-v1"
 
 
 
@@ -144,6 +145,17 @@ def _may_have_legacy_ground_cover(osm_file: str, osm_sha256: str) -> bool:
                     return True
             root.clear()
     return False
+
+
+@lru_cache(maxsize=16)
+def _has_open_island_geometry(osm_file: str, osm_sha256: str) -> bool:
+    # Only check previously recorded masks, once per exact OSM content hash.
+    from osm_open_surface_islands import plan_open_surfaces
+    result = OSMTGC.parseOSMData(Path(osm_file).read_text(encoding="utf-8-sig"), printf=lambda _: None)
+    if result is None:
+        raise ValueError("Could not read the selected OSM")
+    own = plan_open_surfaces(result, resolve_missing=False)
+    return any(own.open_inner.values()) or bool(own.omit_outer)
 
 
 def _json_hash(value: Any) -> str:
@@ -284,6 +296,7 @@ def _signature(
     return {
         "alignment_geometry_version": ALIGNMENT_GEOMETRY_VERSION,
         "mask_feature_policy": MASK_FEATURE_POLICY,
+        "open_island_policy": OPEN_ISLAND_POLICY,
         "schema_version": SCHEMA_VERSION,
         "patch_id": PATCH_ID,
         "heightmap_directory": str(folder.resolve()),
@@ -385,6 +398,14 @@ def _signatures_match(recorded: Dict[str, Any], expected: Dict[str, Any]) -> Tup
                                "Back up manual edits and use Apply + Rebuild Mask once.")
         except (OSError, ET.ParseError, StopIteration):
             return False, "Could not check the older mask against the selected OSM file."
+    if (expected.get("open_island_policy") == OPEN_ISLAND_POLICY and
+            recorded.get("open_island_policy") != OPEN_ISLAND_POLICY):
+        try:
+            if _has_open_island_geometry(expected["osm_file"], expected["osm_sha256"]):
+                return False, ("This mask predates open rough/water islands. Back up manual edits "
+                               "and use Apply + Rebuild Mask to retain raw terrain inside them.")
+        except (OSError, ValueError, overpy.exception.OverPyException):
+            return False, "Could not check the older mask for rough/water island boundaries."
     return True, "The mask matches the current OSM alignment and settings."
 
 

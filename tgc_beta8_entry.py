@@ -1,4 +1,4 @@
-"""TGC Designer Tools 2K25 Beta 8.2 entry point."""
+"""TGC Designer Tools 2K25 Beta 8.3 entry point."""
 import sys
 
 if '--verify-theme-planting' in sys.argv:

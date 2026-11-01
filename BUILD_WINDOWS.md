@@ -1,30 +1,32 @@
 # Windows Build Guide
 
-## Beta 8.2 Windows build
+## Beta 8.3 Windows test build
 
-The [published Beta 8.2 Windows prerelease](https://github.com/malifica/TGC-Designer-Tools/releases/tag/v0.5.0-2k25-beta8.2) includes a ready-to-run executable. See its [build/source manifest](BETA8_2_BUILD_SOURCE_MANIFEST.json) and [download verification](BETA8_2_PUBLICATION_VERIFICATION.json).
-
-To build from the separately supplied source-update ZIP, leave `TGC_BETA8_2_UPDATE.zip` in Downloads. For an existing checkout at `C:\TGC-Designer-Tools`, paste this into Windows Command Prompt from any folder:
+For an existing checkout at `C:\TGC-Designer-Tools`, leave the separately supplied `TGC_BETA8_3_UPDATE.zip` in Downloads and paste this command into Windows Command Prompt. It runs from any folder; no manual extraction is needed.
 
 ```cmd
-"C:\TGC-Designer-Tools\.venv_local_osm\Scripts\python.exe" "%USERPROFILE%\Downloads\TGC_BETA8_2_UPDATE.zip" --build
+"C:\TGC-Designer-Tools\.venv_local_osm\Scripts\python.exe" "%USERPROFILE%\Downloads\TGC_BETA8_3_UPDATE.zip" --build
 ```
 
-The project Python runs the ZIP directly. With `--build`, it applies the checked source update and starts one build. Omit `--build` to apply the source only. If the checkout already contains the correct Beta 8.2 source, call its builder directly:
+With `--build`, the checked update starts one Windows build using the existing project Python. Omit `--build` to update the source only. If you already have the matching Beta 8.3 source installed and just want to build it:
 
 ```cmd
-call "C:\TGC-Designer-Tools\BUILD_TGC_2K25_BETA8_2.bat"
+call "C:\TGC-Designer-Tools\BUILD_TGC_2K25_BETA8_3.bat"
 ```
 
-The builder uses the existing `.venv_local_osm` environment, stages one local Windows build, and checks the frozen executable before updating `dist\tgc_gui_2k25_beta8_2.exe`. The window title is **TGC Designer Tools 2K25 - Beta 8.2**. The Beta 8.1 EXE has a different filename and is retained. `tgc_beta8_entry.py` remains the application entry point.
+The staged build retains the real application entry point, `tgc_beta8_entry.py`. It runs the open-island geometry and mask regression checks and existing source/EXE checks before promoting a new `dist\tgc_gui_2k25_beta8_3.exe`. The window title is **TGC Designer Tools 2K25 - Beta 8.3**. No existing Beta 8.2 executable is replaced.
 
-After testing that executable, collect it and its source without rebuilding:
+After Windows and course testing, collect that same executable and matching inputs without rebuilding:
 
 ```cmd
-"C:\TGC-Designer-Tools\.venv_local_osm\Scripts\python.exe" "C:\TGC-Designer-Tools\COLLECT_BETA8_2_FOR_PUBLICATION.py" --root "C:\TGC-Designer-Tools"
+"C:\TGC-Designer-Tools\.venv_local_osm\Scripts\python.exe" "C:\TGC-Designer-Tools\COLLECT_BETA8_3_FOR_PUBLICATION.py" --root "C:\TGC-Designer-Tools"
 ```
 
-The collector checks the EXE, its checksum, and the source/support hashes recorded during the build. It prints the full path of the new `_release_upload\TGC_BETA8_2_EXISTING_BUILD_AND_SOURCE_*.zip`.
+The collector verifies the executable and its checksum against the source/support hashes recorded by the builder. It prints the location of the new `_release_upload\TGC_BETA8_3_EXISTING_BUILD_AND_SOURCE_*.zip`.
+
+## Published Beta 8.2
+
+The [Beta 8.2 Windows prerelease](https://github.com/malifica/TGC-Designer-Tools/releases/tag/v0.5.0-2k25-beta8.2) remains the last published download. Its [build/source manifest](BETA8_2_BUILD_SOURCE_MANIFEST.json) and [download verification](BETA8_2_PUBLICATION_VERIFICATION.json) describe that executable only.
 
 ## Published Beta 8.1
 

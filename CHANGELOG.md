@@ -1,5 +1,10 @@
 # Changelog
 
+## Beta 8.3 — source test build
+
+- Cut explicit same-surface rough and water islands from the parent spline with a narrow lollipop connection. Suppress the matching child fill, preserve independently tagged surfaces, and skip unusable geometry rather than filling across it.
+- Apply the same ownership to the terrain mask. The exposed floor is not painted as rough or water and is retained when Auto Red Mask is enabled.
+
 ## [v0.5.0-2k25-beta8.2](https://github.com/malifica/TGC-Designer-Tools/releases/tag/v0.5.0-2k25-beta8.2)
 
 - Add **Import Surface Parking Lots (Road Surface)**, off by default. Import closed surface car parks and complete multipolygons as filled areas using the configured automobile-road material, preserving islands. Parking aisles retain their independent road control; parking areas do not affect the automatic mask.
