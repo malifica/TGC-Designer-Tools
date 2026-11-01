@@ -140,17 +140,17 @@ Regional profiles provide weighted tree palettes and coordinated playing-surface
 
 ## Windows downloads and source build
 
-The [Beta 8.2 Windows x64 ZIP](https://github.com/malifica/TGC-Designer-Tools/releases/download/v0.5.0-2k25-beta8.2/TGC-Designer-Tools-2K25-v0.5.0-2k25-beta8.2-Windows-x64.zip) contains the executable, editable profiles, spline configuration, and documentation. The [standalone EXE](https://github.com/malifica/TGC-Designer-Tools/releases/download/v0.5.0-2k25-beta8.2/tgc_gui_2k25_beta8_2.exe) is the same executable and displays **TGC Designer Tools 2K25 - Beta 8.2**. Checksums: [Windows ZIP](https://github.com/malifica/TGC-Designer-Tools/releases/download/v0.5.0-2k25-beta8.2/TGC-Designer-Tools-2K25-v0.5.0-2k25-beta8.2-Windows-x64.zip.sha256.txt) · [EXE](https://github.com/malifica/TGC-Designer-Tools/releases/download/v0.5.0-2k25-beta8.2/tgc_gui_2k25_beta8_2.exe.sha256.txt).
+The [Beta 8.4 Windows x64 ZIP](https://github.com/malifica/TGC-Designer-Tools/releases/download/v0.5.0-2k25-beta8.4/TGC-Designer-Tools-2K25-v0.5.0-2k25-beta8.4-Windows-x64.zip) contains the executable, editable profiles, spline configuration, and documentation. The [standalone EXE](https://github.com/malifica/TGC-Designer-Tools/releases/download/v0.5.0-2k25-beta8.4/tgc_gui_2k25_beta8_4.exe) is the same executable and displays **TGC Designer Tools 2K25 - Beta 8.4**. Checksums: [Windows ZIP](https://github.com/malifica/TGC-Designer-Tools/releases/download/v0.5.0-2k25-beta8.4/TGC-Designer-Tools-2K25-v0.5.0-2k25-beta8.4-Windows-x64.zip.sha256.txt) · [EXE](https://github.com/malifica/TGC-Designer-Tools/releases/download/v0.5.0-2k25-beta8.4/tgc_gui_2k25_beta8_4.exe.sha256.txt).
 
-See the [build/source manifest](BETA8_2_BUILD_SOURCE_MANIFEST.json) for the supplied build and the [publication verification](BETA8_2_PUBLICATION_VERIFICATION.json) for the measured public downloads.
+See the [build/source manifest](BETA8_4_BUILD_SOURCE_MANIFEST.json) for the supplied build and the [publication verification](BETA8_4_PUBLICATION_VERIFICATION.json) for the measured public downloads.
 
-For a Beta 8.2 source checkout with its dependencies installed, run:
+For a Beta 8.4 source checkout with its dependencies installed, run:
 
 ```bat
-BUILD_TGC_2K25_BETA8_2.bat
+BUILD_TGC_2K25_BETA8_4.bat
 ```
 
-The Beta 8.2 build writes `dist\tgc_gui_2k25_beta8_2.exe` and keeps the Beta 8.1 executable. For the source-update ZIP, Windows CMD commands, and collection steps, see [BUILD_WINDOWS.md](BUILD_WINDOWS.md).
+The Beta 8.4 build writes `dist\tgc_gui_2k25_beta8_4.exe` and keeps earlier versioned executables. For the source-update ZIP, Windows CMD commands, and collection steps, see [BUILD_WINDOWS.md](BUILD_WINDOWS.md).
 
 ## Credits and license
 
