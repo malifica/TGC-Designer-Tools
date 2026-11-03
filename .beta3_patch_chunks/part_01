@@ -1,0 +1,360 @@
++        removed = max(0, before - after)
++
++        total_before += before
++        total_after += after
++
++        reduction = (
++            100.0 * removed / before
++            if before > 0 else 0.0
++        )
++
++        printf(
++            "  " + feature_type + ": " +
++            str(before) + " -> " + str(after) +
++            " points (" +
++            str(round(reduction, 1)) +
++            "% fewer across " +
++            str(stats["features"]) +
++            " spline(s))"
++        )
++
++    total_removed = max(0, total_before - total_after)
++    total_reduction = (
++        100.0 * total_removed / total_before
++        if total_before > 0 else 0.0
++    )
++
++    printf(
++        "  TOTAL: " +
++        str(total_before) + " -> " +
++        str(total_after) +
++        " points; removed " +
++        str(total_removed) +
++        " (" + str(round(total_reduction, 1)) + "%)"
++    )
++
+ def getwaypoint(easting, vertical, northing, course_version):
+     dim2 = "y"
+     if course_version == 25:
+@@ -185,52 +524,115 @@ def newSpline(points, pathWidth=0.01, shrink_distance=None, handleLength=0.5, ti
+ 
+     return spline
+ 
+-def newBunker(points, course_version):
++def _configured_primary_surface(
++    spline_json,
++    default_surface_name,
++    course_version=-1,
++):
++    """
++    Resolve optional splines.json primarySurface.
++
++    Existing splines.json files remain fully backward compatible. If the key
++    is absent, blank, null, or unknown, the existing Python-coded surface is
++    retained.
++    """
++    default_value = tgc_definitions.featuresToSurfaces.get(
++        default_surface_name,
++        1,
++    )
++
++    if not isinstance(spline_json, dict):
++        return default_value
++
++    configured = spline_json.get("primarySurface", None)
++
++    if configured is None:
++        return default_value
++
++    if isinstance(configured, (int, float)):
++        value = int(configured)
++        if 0 <= value <= 255:
++            return value
++        return default_value
++
++    configured = str(configured).strip().lower()
++
++    if not configured:
++        return default_value
++
++    aliases = {
++        "tee": "green",
++        "teebox": "green",
++        "heavy rough": "heavyrough",
++        "heavy_rough": "heavyrough",
++        "surface 1": "surface1",
++        "surface 2": "surface2",
++        "surface 3": "surface3",
++    }
++
++    configured = aliases.get(configured, configured)
++
++    if configured in tgc_definitions.featuresToSurfaces:
++        return tgc_definitions.featuresToSurfaces[configured]
++
++    return default_value
++
++def newBunker(points, course_version, optimize_points=True):
+     global spline_configuration
+     spline_json = None
+     if spline_configuration is not None:
+         spline_json = spline_configuration.get("bunker", None)
+     # Very tight shaped to make complex curves
++    if optimize_points:
++        points = _optimize_osm_feature_points(points, "bunker", closed=True)
+     bunker = newSpline(points, pathWidth=0.01, handleLength=1.0, tightSplines=True, secondarySurface="heavyrough", secondaryWidth=2.5, spline_json=spline_json, course_version=course_version)
+-    bunker["surface"] = tgc_definitions.featuresToSurfaces["bunker"]
++    bunker["surface"] = _configured_primary_surface(spline_json, "bunker", course_version)
+     return bunker
+ 
+-def newGreen(points, course_version):
++def newGreen(points, course_version, optimize_points=True):
+     global spline_configuration
+     spline_json = None
+     if spline_configuration is not None:
+         spline_json = spline_configuration.get("green", None)
++    if optimize_points:
++        points = _optimize_osm_feature_points(points, "green", closed=True)
+     green = newSpline(points, pathWidth = 1.7, handleLength=0.2, tightSplines=True, secondarySurface="heavyrough", secondaryWidth=2.5, spline_json=spline_json, course_version=course_version)
+-    green["surface"] = tgc_definitions.featuresToSurfaces["green"]
++    green["surface"] = _configured_primary_surface(spline_json, "green", course_version)
+     return green
+ 
+-def newTeeBox(points, course_version):
++def newTeeBox(points, course_version, optimize_points=True):
+     global spline_configuration
+     spline_json = None
+     if spline_configuration is not None:
+         spline_json = spline_configuration.get("teebox", None)
++    if optimize_points:
++        points = _optimize_osm_feature_points(points, "teebox", closed=True)
+     teebox = newSpline(points, pathWidth = 1.7, handleLength=0.2, tightSplines=True, secondarySurface="heavyrough", secondaryWidth=2.5, spline_json=spline_json, course_version=course_version)
+-    teebox["surface"] = tgc_definitions.featuresToSurfaces["green"]
++    teebox["surface"] = _configured_primary_surface(spline_json, "green", course_version)
+     return teebox
+ 
+-def newFairway(points, course_version):
++def newFairway(points, course_version, optimize_points=True):
+     global spline_configuration
+     spline_json = None
+     if spline_configuration is not None:
+         spline_json = spline_configuration.get("fairway", None)
++    if optimize_points:
++        points = _optimize_osm_feature_points(points, "fairway", closed=True)
+     fw = newSpline(points, pathWidth = 3.0, handleLength=3.0, tightSplines=False, secondarySurface="rough", secondaryWidth=5.0, spline_json=spline_json, course_version=course_version)
+-    fw["surface"] = tgc_definitions.featuresToSurfaces["fairway"]
++    fw["surface"] = _configured_primary_surface(spline_json, "fairway", course_version)
+     return fw
+ 
+-def newRough(points, course_version):
++def newRough(points, course_version, optimize_points=True):
+     global spline_configuration
+     spline_json = None
+     if spline_configuration is not None:
+         spline_json = spline_configuration.get("rough", None)
++    if optimize_points:
++        points = _optimize_osm_feature_points(points, "rough", closed=True)
+     rh = newSpline(points, pathWidth = 1.7, handleLength=3.0, tightSplines=False, secondarySurface="", secondaryWidth=0.0, spline_json=spline_json, course_version=course_version)
+     # Game outputs secondary as 1
+     # Remove with 0 width
+-    rh["surface"] = tgc_definitions.featuresToSurfaces["rough"]
++    rh["surface"] = _configured_primary_surface(spline_json, "rough", course_version)
+     return rh
+ 
+ 
+@@ -436,6 +838,94 @@ def _build_lollipop_bunker_ring(outer, inner_rings, bridge_width=0.18):
+     return merged, bridge_indices
+ 
+ 
++def _tighten_and_smooth_fairway_lollipop_neck(
++    spline,
++    bridge_indices,
++    course_version,
++    target_pair_gap=0.02,
++):
++    """
++    Tighten the final fairway lollipop neck AFTER newFairway() has applied
++    its normal spline shrink.
++
++    Each excursion contributes four bridge indices:
++        outer_a, inner_a, inner_b, outer_b
++
++    Matching pairs are moved almost on top of each other:
++        outer_a <-> outer_b
++        inner_a <-> inner_b
++
++    Unlike bunker necks, fairway bridge handles are NOT clamped. After
++    moving the neck points, normal loose/smooth fairway handles are rebuilt.
++    """
++    dim2 = "z" if course_version == 25 else "y"
++    waypoints = spline.get("waypoints", [])
++
++    try:
++        target_pair_gap = max(0.002, float(target_pair_gap))
++    except Exception:
++        target_pair_gap = 0.02
++
++    def move_pair_together(index_a, index_b):
++        if (
++            index_a < 0 or index_b < 0 or
++            index_a >= len(waypoints) or
++            index_b >= len(waypoints)
++        ):
++            return
++
++        a = waypoints[index_a]["waypoint"]
++        b = waypoints[index_b]["waypoint"]
++
++        ax = float(a["x"])
++        ad = float(a[dim2])
++        bx = float(b["x"])
++        bd = float(b[dim2])
++
++        dx = ax - bx
++        dd = ad - bd
++        distance = math.hypot(dx, dd)
++
++        mx = 0.5 * (ax + bx)
++        md = 0.5 * (ad + bd)
++
++        if distance < 1.0e-9:
++            a["x"] = mx + 0.5 * target_pair_gap
++            a[dim2] = md
++            b["x"] = mx - 0.5 * target_pair_gap
++            b[dim2] = md
++            return
++
++        ux = dx / distance
++        ud = dd / distance
++        half = 0.5 * target_pair_gap
++
++        a["x"] = mx + ux * half
++        a[dim2] = md + ud * half
++        b["x"] = mx - ux * half
++        b[dim2] = md - ud * half
++
++    for offset in range(0, len(bridge_indices), 4):
++        group = bridge_indices[offset:offset + 4]
++        if len(group) != 4:
++            continue
++
++        outer_a, inner_a, inner_b, outer_b = group
++        move_pair_together(outer_a, outer_b)
++        move_pair_together(inner_a, inner_b)
++
++    # Rebuild normal fairway handles after moving the bridge points.
++    # Fairways use loose/smooth splines and 3.0 m handles.
++    is_clockwise = splineIsClockWise(spline, course_version)
++    completeSpline(
++        [],
++        spline,
++        handleLength=3.0,
++        is_clockwise=is_clockwise,
++        tightSplines=False,
++        course_version=course_version,
++    )
++
+ def _clamp_spline_handles(spline, waypoint_indices, course_version):
+     dim2 = "z" if course_version == 25 else "y"
+     waypoints = spline.get("waypoints", [])
+@@ -500,6 +990,217 @@ def _relation_is_bunker_with_rough_inner(rel, way_lookup):
+     return relation_is_bunker and outer_members and rough_inner_members
+ 
+ 
++def _rough_relation_outer_way_ids(relations):
++    """Return way IDs that are OUTER members of golf=rough multipolygons."""
++    rough_outer_way_ids = set()
++
++    for rel in relations:
++        if rel.tags.get("golf", None) != "rough":
++            continue
++
++        for member in rel.members:
++            if not isinstance(member, overpy.RelationWay):
++                continue
++            if str(member.role or "").lower() != "outer":
++                continue
++            rough_outer_way_ids.add(member.ref)
++
++    return rough_outer_way_ids
++
++
++def _way_is_semantic_rough(way, rough_outer_way_ids):
++    """
++    A fairway inner ring counts as rough when either:
++      A) the way itself is tagged golf=rough, or
++      B) the way is the OUTER ring of a golf=rough multipolygon.
++    """
++    if way is None:
++        return False
++
++    if way.tags.get("golf", None) == "rough":
++        return True
++
++    return way.id in rough_outer_way_ids
++
++
++def _relation_is_fairway_with_rough_inner(
++    rel,
++    way_lookup,
++    rough_outer_way_ids,
++):
++    outer_members = []
++    rough_inner_members = []
++
++    for member in rel.members:
++        if not isinstance(member, overpy.RelationWay):
++            continue
++
++        way = way_lookup.get(member.ref)
++        if way is None:
++            continue
++
++        role = str(member.role or "").lower()
++
++        if role == "outer":
++            outer_members.append(member)
++        elif (
++            role == "inner" and
++            _way_is_semantic_rough(way, rough_outer_way_ids)
++        ):
++            rough_inner_members.append(member)
++
++    relation_is_fairway = rel.tags.get("golf", None) == "fairway"
++
++    if not relation_is_fairway:
++        for member in outer_members:
++            way = way_lookup.get(member.ref)
++            if (
++                way is not None and
++                way.tags.get("golf", None) == "fairway"
++            ):
++                relation_is_fairway = True
++                break
++
++    return (
++        relation_is_fairway and
++        bool(outer_members) and
++        bool(rough_inner_members)
++    )
++
++
++def _build_fairway_rough_multipolygon_splines(
++    rel,
++    way_lookup,
++    rough_outer_way_ids,
++    geopointcloud,
++    x_offset,
++    y_offset,
++    resolve_missing_nodes,
++    course_version,
++    printf=print,
++):
++    """
++    Build fairway splines where rough inner rings become physical holes
++    using the same narrow-neck/lollipop topology used by the bunker fix.
++
++    The rough inner member is NOT consumed here. It still imports normally
++    either as a direct golf=rough way or through its own golf=rough relation.
++    """
++

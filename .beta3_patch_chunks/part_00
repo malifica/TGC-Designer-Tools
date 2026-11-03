@@ -1,0 +1,407 @@
+diff --git a/BUILD_WINDOWS.md b/BUILD_WINDOWS.md
+index 57e8a9b..0801065 100644
+--- a/BUILD_WINDOWS.md
++++ b/BUILD_WINDOWS.md
+@@ -89,7 +89,7 @@ Recommended quick checks:
+ The repository contains:
+ 
+ ```text
+-BUILD_TGC_2K25_LOCAL_OSM_DEM.bat
++BUILD_TGC_2K25_BETA3.bat
+ ```
+ 
+ It installs/verifies Rasterio, runs syntax checks, and executes PyInstaller.
+@@ -97,7 +97,7 @@ It installs/verifies Rasterio, runs syntax checks, and executes PyInstaller.
+ Run:
+ 
+ ```bat
+-BUILD_TGC_2K25_LOCAL_OSM_DEM.bat
++BUILD_TGC_2K25_BETA3.bat
+ ```
+ 
+ Or use the equivalent PyInstaller command directly:
+@@ -117,7 +117,7 @@ python -m PyInstaller ^
+ Expected output:
+ 
+ ```text
+-C:\TGC-Designer-Tools\dist\tgc_gui_2k25_beta2.exe
++C:\TGC-Designer-Tools\dist\tgc_gui_2k25_beta3.exe
+ ```
+ 
+ ## Why Rasterio has custom PyInstaller files
+@@ -155,7 +155,7 @@ Before publishing a binary:
+ Create a checksum for the release EXE:
+ 
+ ```bat
+-powershell -NoProfile -Command "(Get-FileHash 'dist\tgc_gui_2k25_beta2.exe' -Algorithm SHA256).Hash | Out-File 'dist\tgc_gui_2k25_beta2.exe.sha256.txt' -Encoding ascii"
++powershell -NoProfile -Command "(Get-FileHash 'dist\tgc_gui_2k25_beta3.exe' -Algorithm SHA256).Hash | Out-File 'dist\tgc_gui_2k25_beta3.exe.sha256.txt' -Encoding ascii"
+ ```
+ 
+ ## Suggested release package
+@@ -164,7 +164,7 @@ Create:
+ 
+ ```text
+ TGC-Designer-Tools-2K25-v0.5.0-2k25-beta2-Windows-x64\
+-    tgc_gui_2k25_beta2.exe
++    tgc_gui_2k25_beta3.exe
+     LICENSE
+     README.md
+     CHANGELOG.md
+@@ -195,3 +195,8 @@ git log --oneline main..upstream/main
+ ```
+ 
+ Because this fork modifies several central terrain-processing files, review upstream changes before merging them.
++
++
++## Beta 3 native LiDAR helper
++
++`BUILD_TGC_2K25_BETA3.bat` attempts to compile `lidar_fast_native.c` with MinGW-w64 clang/gcc. The tested compiler path is `D:\llvm-mingw\bin\x86_64-w64-mingw32-clang.exe`. Set `TGC_CC` to override it. If no compiler is available, the executable still builds and uses the exact Python rasterizer fallback.
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index 9b10e75..c61cb1e 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -5,6 +5,31 @@ All notable fork-specific changes to `malifica/TGC-Designer-Tools` are documente
+ The fork is based on work from `HiCamino/TGC-Designer-Tools`.
+ 
+ 
++## [0.5.0-2k25-beta3] - CFS alignment, automatic masking, and performance
++
++### Added
++
++- CFS projected-master-grid georeference helpers shared by terrain and OSM.
++- OSM alignment viewer for terrain/feature verification before generation.
++- Auto Red Mask with a 5 m golf/cart-path preservation buffer.
++- OSM multipolygon-aware mask rasterization with stitched outer/inner rings.
++- Green preview fill for compound fairway/rough relations and pure-blue multipolygon water.
++- Optional native C exact-order LiDAR ground rasterizer with Python fallback.
++
++### Changed
++
++- Heavy DEM and LiDAR preparation now runs off the Tk main thread.
++- Arbitrary-ratio DEM reduction is vectorized/chunked while retaining the established 40th-percentile behavior.
++- LiDAR crop/classification, tile assembly, CRS transforms, preview raster generation, tree maxima, and interpolation setup use vectorized paths.
++- Main TGCTool remains focused on course creation; cart-path and native-water finishing remain downstream operations.
++
++### Fixed
++
++- Automatic masking no longer paints compound OSM polygons incorrectly because relation outer/inner topology is now reconstructed before buffering.
++- Open multipolygon fragments are no longer implicitly fill-closed as false areas.
++- Compound water relations remain preserved/blue in the mask.
++- Auto Red Mask crop rectangle remains visible over the red background.
++
+ ## [0.5.0-2k25-beta2] - Terrain, CRS, OSM, and workflow beta
+ 
+ ### Added
+diff --git a/OSMTGC.py b/OSMTGC.py
+index 07b087a..d7aeaed 100644
+--- a/OSMTGC.py
++++ b/OSMTGC.py
+@@ -24,6 +24,345 @@ def shapeCenter(nds):
+     bb = nodeBoundingBox(nds)
+     return ((bb[0] + bb[2])/2.0, (bb[1]+bb[3])/2.0)
+ 
++# -------------------------------------------------------------------------
++# OSM SPLINE POINT OPTIMIZER
++#
++# Conservative feature-aware Douglas-Peucker simplification in TGC X/Z.
++# This runs BEFORE normal newSpline shrink/handle generation.
++#
++# Lollipop fairway/bunker rings explicitly disable this after their neck
++# geometry has been created so the protected neck points cannot be removed.
++# -------------------------------------------------------------------------
++
++spline_optimization_enabled = False
++spline_optimization_stats = {}
++
++_SPLINE_OPTIMIZATION_TOLERANCE_M = {
++    "bunker": 0.15,
++    "green": 0.15,
++    "teebox": 0.20,
++    "fairway": 0.40,
++    "rough": 0.50,
++    "heavyrough": 0.50,
++    "cartpath": 0.25,
++    "walkingpath": 0.25,
++}
++
++_SPLINE_OPTIMIZATION_MIN_POINTS = {
++    "bunker": 4,
++    "green": 5,
++    "teebox": 4,
++    "fairway": 5,
++    "rough": 5,
++    "heavyrough": 5,
++    "cartpath": 2,
++    "walkingpath": 2,
++}
++
++
++def _point_distance_xz(a, b):
++    return math.hypot(
++        float(a[0]) - float(b[0]),
++        float(a[2]) - float(b[2]),
++    )
++
++
++def _remove_near_duplicate_xz(points, closed=False, threshold=0.02):
++    if not points:
++        return []
++
++    out = [points[0]]
++
++    for p in points[1:]:
++        if _point_distance_xz(out[-1], p) >= threshold:
++            out.append(p)
++
++    if closed and len(out) > 1:
++        if _point_distance_xz(out[0], out[-1]) < threshold:
++            out.pop()
++
++    return out
++
++
++def _signed_area_points_xz(points):
++    if len(points) < 3:
++        return 0.0
++
++    total = 0.0
++    for i, p in enumerate(points):
++        q = points[(i + 1) % len(points)]
++        total += (
++            float(p[0]) * float(q[2]) -
++            float(q[0]) * float(p[2])
++        )
++    return 0.5 * total
++
++
++def _interior_angle_degrees_xz(prev_p, p, next_p):
++    ax = float(prev_p[0]) - float(p[0])
++    az = float(prev_p[2]) - float(p[2])
++    bx = float(next_p[0]) - float(p[0])
++    bz = float(next_p[2]) - float(p[2])
++
++    amag = math.hypot(ax, az)
++    bmag = math.hypot(bx, bz)
++
++    if amag < 1.0e-9 or bmag < 1.0e-9:
++        return 180.0
++
++    dot = (ax * bx + az * bz) / (amag * bmag)
++    dot = min(1.0, max(-1.0, dot))
++    return math.degrees(math.acos(dot))
++
++
++def _nearest_original_index_xz(points, x, z):
++    best_index = 0
++    best_d2 = None
++
++    for i, p in enumerate(points):
++        dx = float(p[0]) - float(x)
++        dz = float(p[2]) - float(z)
++        d2 = dx * dx + dz * dz
++
++        if best_d2 is None or d2 < best_d2:
++            best_d2 = d2
++            best_index = i
++
++    return best_index
++
++
++def _approximate_points_xz(points, epsilon, closed):
++    """
++    OpenCV approxPolyDP gives us Douglas-Peucker geometry while we map every
++    returned point back to the original TGC tuple. This means no new geometry
++    is invented; the optimizer only culls existing OSM/TGC vertices.
++    """
++    if len(points) < (3 if closed else 2):
++        return list(points)
++
++    curve = np.asarray(
++        [[float(p[0]), float(p[2])] for p in points],
++        dtype=np.float32,
++    ).reshape((-1, 1, 2))
++
++    approx = cv2.approxPolyDP(
++        curve,
++        float(epsilon),
++        bool(closed),
++    )
++
++    selected = set()
++
++    for item in approx:
++        x = float(item[0][0])
++        z = float(item[0][1])
++        selected.add(_nearest_original_index_xz(points, x, z))
++
++    # Preserve the endpoints of open paths.
++    if not closed:
++        selected.add(0)
++        selected.add(len(points) - 1)
++
++    # Preserve deliberate/sharp corners even if RDP believes a nearby chord
++    # is within tolerance. Rectangular tees and hard path turns depend on this.
++    if closed:
++        for i in range(len(points)):
++            angle = _interior_angle_degrees_xz(
++                points[i - 1],
++                points[i],
++                points[(i + 1) % len(points)],
++            )
++            if angle <= 115.0:
++                selected.add(i)
++    else:
++        for i in range(1, len(points) - 1):
++            angle = _interior_angle_degrees_xz(
++                points[i - 1],
++                points[i],
++                points[i + 1],
++            )
++            if angle <= 110.0:
++                selected.add(i)
++
++    return [points[i] for i in sorted(selected)]
++
++
++def _optimize_osm_feature_points(
++    points,
++    feature_type,
++    closed=True,
++    enabled=True,
++):
++    """
++    Cull redundant OSM points conservatively.
++
++    Safety rules:
++      - never invent coordinates;
++      - preserve sharp corners;
++      - preserve open-path endpoints;
++      - maintain winding;
++      - maintain polygon area within a conservative guard;
++      - progressively reduce epsilon if the guard is exceeded;
++      - enforce feature-specific minimum point counts.
++    """
++    global spline_optimization_enabled
++    global spline_optimization_stats
++
++    original = list(points)
++
++    if (
++        not spline_optimization_enabled or
++        not enabled or
++        feature_type not in _SPLINE_OPTIMIZATION_TOLERANCE_M
++    ):
++        return original
++
++    if len(original) < 3:
++        return original
++
++    cleaned = _remove_near_duplicate_xz(
++        original,
++        closed=closed,
++        threshold=0.02,
++    )
++
++    minimum = _SPLINE_OPTIMIZATION_MIN_POINTS.get(
++        feature_type,
++        4 if closed else 2,
++    )
++
++    if len(cleaned) <= minimum:
++        optimized = cleaned
++    else:
++        epsilon = float(
++            _SPLINE_OPTIMIZATION_TOLERANCE_M[feature_type]
++        )
++
++        baseline_area = _signed_area_points_xz(cleaned) if closed else 0.0
++        baseline_abs_area = abs(baseline_area)
++
++        optimized = cleaned
++
++        for _attempt in range(5):
++            candidate = _approximate_points_xz(
++                cleaned,
++                epsilon,
++                closed,
++            )
++
++            if len(candidate) < minimum:
++                epsilon *= 0.5
++                continue
++
++            if closed:
++                candidate_area = _signed_area_points_xz(candidate)
++
++                # Winding must never reverse.
++                if (
++                    baseline_area != 0.0 and
++                    candidate_area != 0.0 and
++                    ((baseline_area > 0.0) != (candidate_area > 0.0))
++                ):
++                    epsilon *= 0.5
++                    continue
++
++                area_delta = abs(abs(candidate_area) - baseline_abs_area)
++
++                # Small features get a strict absolute guard. Large features
++                # get a 1.5% guard.
++                allowed_area_delta = max(
++                    0.50,
++                    baseline_abs_area * 0.015,
++                )
++
++                if area_delta > allowed_area_delta:
++                    epsilon *= 0.5
++                    continue
++
++            optimized = candidate
++            break
++
++    before_count = len(original)
++    after_count = len(optimized)
++
++    stats = spline_optimization_stats.setdefault(
++        feature_type,
++        {
++            "features": 0,
++            "before": 0,
++            "after": 0,
++        },
++    )
++
++    stats["features"] += 1
++    stats["before"] += before_count
++    stats["after"] += after_count
++
++    return optimized
++
++
++def _print_spline_optimization_summary(printf=print):
++    if not spline_optimization_enabled:
++        return
++
++    total_before = 0
++    total_after = 0
++
++    printf("OSM spline optimization summary:")
++
++    display_order = [
++        "fairway",
++        "green",
++        "teebox",
++        "rough",
++        "heavyrough",
++        "bunker",
++        "cartpath",
++        "walkingpath",
++    ]
++
++    for feature_type in display_order:
++        stats = spline_optimization_stats.get(feature_type)
++        if not stats:
++            continue
++
++        before = int(stats["before"])
++        after = int(stats["after"])
++
