@@ -1,5 +1,8 @@
 {
   "actual_material_application_cases": 50,
+  "additional_historical_source_not_in_supplied_build": [
+    "VERIFY_BETA5_SOURCE.py"
+  ],
   "all_catalog_bytes_identical": true,
   "all_material_application_results_identical": true,
   "consumer_evidence": {
@@ -360,10 +363,6 @@
     "VERIFY_BETA5_DEV_SOURCE.py": {
       "bytes": 18917,
       "sha256": "2eb7c14158e92c42ac098a4022ce38383130649595263e6e5dd94031b5a6ba89"
-    },
-    "VERIFY_BETA5_SOURCE.py": {
-      "bytes": 19838,
-      "sha256": "6c3e5940c7ba385df7b0c009f25a4ec7c0c4326f5fa21248dce88ae764721625"
     },
     "VERIFY_BETA6_CFS_ASYNC_MASK_REBUILD_V3.py": {
       "bytes": 6413,
@@ -1129,8 +1128,9 @@
   "scan_term_count": 52,
   "scan_values_omitted": true,
   "schema": "tgc-public-theme-metadata-sanitization/1",
-  "source_input_bytes": 4535874,
-  "source_input_files": 207,
+  "source_input_basis": "Exact supplied Windows build receipt and uploaded existing-build archive.",
+  "source_input_bytes": 4516036,
+  "source_input_files": 206,
   "source_input_manifest": {
     "BUILD_TGC_2K25_BETA7.py": {
       "bytes": 14035,
@@ -1199,10 +1199,6 @@
     "VERIFY_BETA5_DEV_SOURCE.py": {
       "bytes": 18917,
       "sha256": "2eb7c14158e92c42ac098a4022ce38383130649595263e6e5dd94031b5a6ba89"
-    },
-    "VERIFY_BETA5_SOURCE.py": {
-      "bytes": 19838,
-      "sha256": "6c3e5940c7ba385df7b0c009f25a4ec7c0c4326f5fa21248dce88ae764721625"
     },
     "VERIFY_BETA6_CFS_ASYNC_MASK_REBUILD_V3.py": {
       "bytes": 6413,
@@ -1963,5 +1959,5 @@
   },
   "status": "PASS",
   "theme_profiles": 27,
-  "unchanged_file_count": 190
+  "unchanged_file_count": 189
 }

@@ -2,21 +2,21 @@
 
 Build PGA TOUR 2K25 courses from **LiDAR, GeoTIFF DEMs, OpenStreetMap, and Unity RAW/SVG data**. Import real-world terrain and course features, align the layout visually, choose regional vegetation, and export a `.course` file for Designer.
 
-## Beta 8.5 source preparation
+**Release: v0.5.0-2k25-beta8.5** · **Windows x64** · Maintained by **malifica**
 
-This branch contains the cumulative Beta 8.5 source. The Windows release is pending collection and verification of the existing Beta 8.5 executable and its matching build receipt. [Beta 8.5 highlights](BETA8_5_PUBLICATION_NOTES.md) cover the new hillshade, course-boundary filtering, separate terrain stamp spacing, AUTO scale confirmation, 25 themes, nature-only Filter Ready, and portable theme resources.
+[Download Beta 8.5](https://github.com/malifica/TGC-Designer-Tools/releases/tag/v0.5.0-2k25-beta8.5) · [Release notes](BETA8_5_PUBLICATION_NOTES.md) · [Change history](CHANGELOG.md)
 
-To collect an existing checked build without rebuilding it, run this in Windows CMD:
+## Beta 8.5 highlights
 
-```bat
-"C:\TGC-Designer-Tools\.venv_local_osm\Scripts\python.exe" "C:\TGC-Designer-Tools\COLLECT_BETA8_5_FOR_PUBLICATION.py" --output-dir "%USERPROFILE%\Downloads"
-```
+- **New default Hillshade 1.** A terrain view with clearer small depressions and raised features is now the default in CFS and the bunker/tee alignment workspace. The previous shading remains available as **Hillshade 2**.
+- **Match Course Name.** Filter an OSM file containing multiple courses by a partial, case-insensitive course name. Golf holes and playing features must lie within the matching OSM golf-course boundary. Surrounding water, trees, buildings, roads and paths remain eligible under their normal import controls, including features crossing or outside that boundary. Leave the field blank to include all courses.
+- **Separate heightmap resolution and terrain stamp spacing.** Keep a fine heightmap for LiDAR tree detection and OSM alignment, then use wider terrain stamp spacing for course creation—for example, a **1 m heightmap with 2 m stamp spacing**. Native and whole-number-ratio samples retain their original elevations; fractional sample positions use bilinear interpolation with valid source data. Source coordinates, boundary samples and NoData edges are preserved. Brush coverage is checked against the selected spacing.
+- **AUTO map scale with confirmation.** AUTO is the default. After source selection and inspection, a confirmation window shows the recommended and selected heightmap scale before processing starts. Accept the recommendation or enter a manual value. DEM recommendations use source pixel spacing; LiDAR recommendations use classified ground coverage. The confirmation is integrated with local LiDAR/DEM and AWS EPT workflows.
+- **25 regional themes.** Choose coordinated regional tree palettes, playing surfaces and terrain materials using generic geographic theme names.
+- **Nature-only Filter Ready.** The toggle beside theme selection prepares the Designer's Planted filter by adding one sample of each missing nature asset in a remote corner. Existing planted assets are reused. Samples include trees, shrubs, grass, plants and rocks; buildings, furniture, equipment and other props are excluded.
+- **Portable theme resources.** Regional profiles and their nature catalogs are bundled with the executable so the full theme selection remains available when the EXE is moved to another folder.
 
-The collector verifies the executable, checksum, build receipt, and matching main-tool inputs. It archives only those inputs and leaves the installation unchanged. The public release will use the supplied executable unchanged.
-
-**Latest published release: v0.5.0-2k25-beta8.4** · **Windows x64** · Maintained by **malifica**
-
-[Download Beta 8.4](https://github.com/malifica/TGC-Designer-Tools/releases/tag/v0.5.0-2k25-beta8.4) · [Release notes](RELEASE_NOTES_v0.5.0-2k25-beta8.4.md) · [Change history](CHANGELOG.md)
+Beta 8.5 retains Graduated Background and the earlier rough/water island handling, local OSM alignment, terrain imports and LiDAR tree controls.
 
 ## Beta 8.4 highlights
 
@@ -152,17 +152,13 @@ Regional profiles provide weighted tree palettes and coordinated playing-surface
 
 ## Windows downloads and source build
 
-The [Beta 8.4 Windows x64 ZIP](https://github.com/malifica/TGC-Designer-Tools/releases/download/v0.5.0-2k25-beta8.4/TGC-Designer-Tools-2K25-v0.5.0-2k25-beta8.4-Windows-x64.zip) contains the executable, editable profiles, spline configuration, and documentation. The [standalone EXE](https://github.com/malifica/TGC-Designer-Tools/releases/download/v0.5.0-2k25-beta8.4/tgc_gui_2k25_beta8_4.exe) is the same executable and displays **TGC Designer Tools 2K25 - Beta 8.4**. Checksums: [Windows ZIP](https://github.com/malifica/TGC-Designer-Tools/releases/download/v0.5.0-2k25-beta8.4/TGC-Designer-Tools-2K25-v0.5.0-2k25-beta8.4-Windows-x64.zip.sha256.txt) · [EXE](https://github.com/malifica/TGC-Designer-Tools/releases/download/v0.5.0-2k25-beta8.4/tgc_gui_2k25_beta8_4.exe.sha256.txt).
+The [Beta 8.5 Windows x64 ZIP](https://github.com/malifica/TGC-Designer-Tools/releases/download/v0.5.0-2k25-beta8.5/TGC-Designer-Tools-2K25-v0.5.0-2k25-beta8.5-Windows-x64.zip) contains the existing checked executable, 25 regional profiles and their nature catalogs, spline configuration, licenses and release documentation. The [standalone EXE](https://github.com/malifica/TGC-Designer-Tools/releases/download/v0.5.0-2k25-beta8.5/tgc_gui_2k25_beta8_5.exe) is the same unchanged executable and includes the factory theme resources for use without adjacent profile files.
 
-See the [build/source manifest](BETA8_4_BUILD_SOURCE_MANIFEST.json) for the supplied build and the [publication verification](BETA8_4_PUBLICATION_VERIFICATION.json) for the measured public downloads.
+Checksums: [Windows ZIP](https://github.com/malifica/TGC-Designer-Tools/releases/download/v0.5.0-2k25-beta8.5/TGC-Designer-Tools-2K25-v0.5.0-2k25-beta8.5-Windows-x64.zip.sha256.txt) · [EXE](https://github.com/malifica/TGC-Designer-Tools/releases/download/v0.5.0-2k25-beta8.5/tgc_gui_2k25_beta8_5.exe.sha256.txt).
 
-For a Beta 8.4 source checkout with its dependencies installed, run:
+See the [supplied build validation](BETA8_5_BUILD_VALIDATION.json) and [build/source manifest](BETA8_5_BUILD_SOURCE_MANIFEST.json). Public theme descriptions omit identifying authoring metadata; operational palettes, native asset IDs and material settings are preserved. The supplied Windows executable was not rebuilt for publication.
 
-```bat
-BUILD_TGC_2K25_BETA8_4.bat
-```
-
-The Beta 8.4 build writes `dist\tgc_gui_2k25_beta8_4.exe` and keeps earlier versioned executables. For the source-update ZIP, Windows CMD commands, and collection steps, see [BUILD_WINDOWS.md](BUILD_WINDOWS.md).
+For a separate development build from this source checkout, run `BUILD_TGC_2K25_BETA8_5.bat` in the established Python environment. It stages and verifies the executable before installing `dist\tgc_gui_2k25_beta8_5.exe`. See the [Windows build guide](BUILD_WINDOWS.md).
 
 ## Credits and license
 

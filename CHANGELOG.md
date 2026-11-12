@@ -1,6 +1,6 @@
 # Changelog
 
-## v0.5.0-2k25-beta8.5 — source prepared; Windows release pending
+## [v0.5.0-2k25-beta8.5](https://github.com/malifica/TGC-Designer-Tools/releases/tag/v0.5.0-2k25-beta8.5)
 
 - New default Hillshade 1 in CFS and local tee/bunker alignment; original style retained as Hillshade 2.
 - Partial, case-insensitive course-name filtering for OSM golf holes and playing features within matching course boundaries.
@@ -8,7 +8,7 @@
 - AUTO source-scale recommendations and a confirmation/manual-override step before heightmap processing.
 - 25 regional themes, nature-only Filter Ready samples, and embedded theme resources for portable executable use.
 
-See [Beta 8.5 highlights](BETA8_5_PUBLICATION_NOTES.md). The existing Windows executable and matching build receipt must be verified before publishing the release.
+See [Beta 8.5 highlights](BETA8_5_PUBLICATION_NOTES.md). The release uses the supplied, checked Windows executable unchanged.
 
 
 ## [v0.5.0-2k25-beta8.4](https://github.com/malifica/TGC-Designer-Tools/releases/tag/v0.5.0-2k25-beta8.4)

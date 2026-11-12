@@ -1,5 +1,34 @@
 # Windows Build Guide
 
+## Beta 8.5
+
+[Download Beta 8.5 for Windows x64](https://github.com/malifica/TGC-Designer-Tools/releases/tag/v0.5.0-2k25-beta8.5) as the standalone EXE or portable ZIP. Both contain the same existing executable. Each download has a SHA-256 checksum file. The EXE embeds all 25 regional profiles and nature catalogs; the ZIP also includes editable public profile copies.
+
+The release was packaged from the supplied existing build without compiling or modifying it. [Build validation](BETA8_5_BUILD_VALIDATION.json) records the executable, source receipt, native Windows file header and embedded-resource checks. [Build/source provenance](BETA8_5_BUILD_SOURCE_MANIFEST.json) distinguishes the original checked source from the metadata-only changes to public theme descriptions.
+
+### Build from source for development
+
+Use the established Windows x64 Python 3.11 environment at `C:\TGC-Designer-Tools\.venv_local_osm`, with `requirements.txt` installed. From the Beta 8.5 source checkout:
+
+```bat
+call "C:\TGC-Designer-Tools\BUILD_TGC_2K25_BETA8_5.bat"
+```
+
+The builder stages and verifies `tgc_gui_2k25_beta8_5.exe` before placing it in `dist`. It includes the hillshade, course-filter, terrain-spacing, AUTO-scale and nature-catalog checks, and verifies copied-executable theme portability. Earlier versioned EXEs are retained.
+
+### Collect an existing checked build
+
+Run the installed collector against the same source that produced the executable:
+
+```bat
+"C:\TGC-Designer-Tools\.venv_local_osm\Scripts\python.exe" "C:\TGC-Designer-Tools\COLLECT_BETA8_5_FOR_PUBLICATION.py" --output-dir "%USERPROFILE%\Downloads"
+```
+
+It writes `TGC_BETA8_5_EXISTING_BUILD_AND_SOURCE_<timestamp>.zip` after checking the EXE, checksum, Windows build receipt and all recorded source/support files. It does not rebuild or change the installation. If source has been edited after that build, the collector reports the mismatch rather than claiming the existing executable matches the edited source.
+
+## Historical guides
+
+
 ## Beta 8.4 Windows build
 
 [Download Beta 8.4 for Windows x64](https://github.com/malifica/TGC-Designer-Tools/releases/tag/v0.5.0-2k25-beta8.4) as a standalone EXE or a portable ZIP. Each has a SHA-256 checksum file. See the [build and source manifest](BETA8_4_BUILD_SOURCE_MANIFEST.json) for the existing executable and matching source.

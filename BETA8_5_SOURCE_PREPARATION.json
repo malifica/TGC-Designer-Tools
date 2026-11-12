@@ -4,8 +4,7 @@
   "repository": "malifica/TGC-Designer-Tools",
   "branch": "release/beta8.5-publication",
   "reviewed_main_sha": "d9671c14a7666249bbbb0f1b15c4e46e2da9e646",
-  "state": "source_prepared_awaiting_existing_windows_build",
-  "release_published": false,
+  "state": "existing_windows_build_received_and_verified",
   "existing_executable_required": "dist/tgc_gui_2k25_beta8_5.exe",
   "existing_receipt_required": "dist/tgc_gui_2k25_beta8_5.exe.build.json",
   "existing_checksum_required": "dist/tgc_gui_2k25_beta8_5.exe.sha256.txt",
@@ -17,5 +16,8 @@
   "nature_catalogs": 25,
   "public_theme_policy": "Geographic descriptions; identifying authoring metadata removed while functional theme and asset data remain unchanged.",
   "publication_method": "Established on-push GitHub Actions workflow with Node24-compatible actions; supplied executable transferred byte-for-byte, checked against receipt, uploaded with portable ZIP and SHA-256 files, then public downloads verified.",
-  "publication_workflow_enabled": false
+  "publication_workflow_enabled": false,
+  "source_build_receipt_inputs": 206,
+  "supplied_build_validation": "BETA8_5_BUILD_VALIDATION.json",
+  "publication_workflow_note": "Publication controls are added only on the separate control-branch commit after this application source is fixed."
 }
