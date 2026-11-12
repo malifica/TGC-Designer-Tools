@@ -2,7 +2,7 @@
 
 Build PGA TOUR 2K25 courses from **LiDAR, GeoTIFF DEMs, OpenStreetMap, and Unity RAW/SVG data**. Import real-world terrain and course features, align the layout visually, choose regional vegetation, and export a `.course` file for Designer.
 
-**Release: v0.5.0-2k25-beta8.5** · **Windows x64** · Maintained by **malifica**
+**Latest published release: v0.5.0-2k25-beta8.5** · **Windows x64** · Maintained by **malifica**
 
 [Download Beta 8.5](https://github.com/malifica/TGC-Designer-Tools/releases/tag/v0.5.0-2k25-beta8.5) · [Release notes](BETA8_5_PUBLICATION_NOTES.md) · [Change history](CHANGELOG.md)
 
@@ -156,7 +156,7 @@ The [Beta 8.5 Windows x64 ZIP](https://github.com/malifica/TGC-Designer-Tools/re
 
 Checksums: [Windows ZIP](https://github.com/malifica/TGC-Designer-Tools/releases/download/v0.5.0-2k25-beta8.5/TGC-Designer-Tools-2K25-v0.5.0-2k25-beta8.5-Windows-x64.zip.sha256.txt) · [EXE](https://github.com/malifica/TGC-Designer-Tools/releases/download/v0.5.0-2k25-beta8.5/tgc_gui_2k25_beta8_5.exe.sha256.txt).
 
-See the [supplied build validation](BETA8_5_BUILD_VALIDATION.json) and [build/source manifest](BETA8_5_BUILD_SOURCE_MANIFEST.json). Public theme descriptions omit identifying authoring metadata; operational palettes, native asset IDs and material settings are preserved. The supplied Windows executable was not rebuilt for publication.
+See the [public download verification](BETA8_5_PUBLICATION_VERIFICATION.json), [supplied build validation](BETA8_5_BUILD_VALIDATION.json), and [build/source manifest](BETA8_5_BUILD_SOURCE_MANIFEST.json). Public theme descriptions omit identifying authoring metadata; operational palettes, native asset IDs and material settings are preserved. The supplied Windows executable was not rebuilt for publication.
 
 For a separate development build from this source checkout, run `BUILD_TGC_2K25_BETA8_5.bat` in the established Python environment. It stages and verifies the executable before installing `dist\tgc_gui_2k25_beta8_5.exe`. See the [Windows build guide](BUILD_WINDOWS.md).
 
