@@ -39,6 +39,7 @@ import osm_alignment_viewer as viewer_module
 import osm_mask_alignment as mask_module
 import tgc_local_alignment as engine
 from tgc_cfs_display import importer_transformer
+from tgc_terrain_sampling import resolve_stamp_spacing, resolve_brush_scale
 
 ROOT = Path(__file__).resolve().parent
 
@@ -108,6 +109,9 @@ def main_harness(folder, source, nudge, root=None):
         generated.append({"heightmap": path, **kwargs})
         return course
     environment = dict(root=root, Path=Path, np=np, math=math,
+        # The real callback is compiled without tgc_gui's module imports.
+        # Supply its actual spacing validators, including the Source fallback.
+        resolve_stamp_spacing=resolve_stamp_spacing, resolve_brush_scale=resolve_brush_scale,
         AUTO_RED_MASK_BUFFER_DEFAULT_M=5., AUTO_RED_MASK_BUFFER_MIN_M=5.,
         AUTO_RED_MASK_BUFFER_MAX_M=30., last_alignment_heightmap_dir=None,
         tk=types.SimpleNamespace(filedialog=types.SimpleNamespace(askdirectory=lambda **_: str(folder))),
@@ -222,9 +226,18 @@ class IntegrationTests(unittest.TestCase):
         env["generateCourseFromLidar"](options, lambda *_: None)
         self.assertEqual(len(generated), 1)
         self.assertEqual(generated[0]["options_dict"]["local_osm_file"], str(self.corrected))
+        self.assertEqual(generated[0]["options_dict"]["brush_scale"], "2")
+        # Independent stamp spacing must reach generation through the same
+        # corrected-OSM/mask gate, with a sufficiently large brush footprint.
+        options["terrain_stamp_spacing"] = Value("3")
+        env["generateCourseFromLidar"](options, lambda *_: None)
+        self.assertEqual(len(generated), 2)
+        self.assertEqual(generated[1]["options_dict"]["terrain_stamp_spacing"], "3")
+        self.assertEqual(generated[1]["options_dict"]["brush_scale"], "3")
+        self.assertEqual(generated[1]["options_dict"]["local_osm_file"], str(self.corrected))
         options["local_osm_file"].set(str(self.source))
         env["generateCourseFromLidar"](options, lambda *_: None)
-        self.assertEqual(len(generated), 1, "Stale original geometry must not pass the import gate")
+        self.assertEqual(len(generated), 2, "Stale original geometry must not pass the import gate")
 
     def test_06_selection_snapshot_blocks_project_setting_changes(self):
         env, options, captured, _, _ = main_harness(self.folder, self.source, self.nudge)
@@ -323,6 +336,7 @@ def gui_check(screenshot=None):
         env, options, opened, statuses, _ = main_harness(folder, source, (0., 0.), root=root)
         view = viewer_module.AlignmentViewer(*opened["args"], **opened["kwargs"])
         pump_until(lambda: view.ready)
+        pump_until(lambda: "Hillshade 1" in view.backgrounds)
         view._nudge(*nudge)
         assert float(options["adjust_ew"].get()) == 0. and float(options["adjust_ns"].get()) == 0.
         entered, release = threading.Event(), threading.Event()

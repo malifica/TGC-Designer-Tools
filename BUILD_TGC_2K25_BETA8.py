@@ -48,6 +48,7 @@ def build_arguments(py, root, stage, exe_name=EXE_NAME):
           '--runtime-hook',root/'PyInstaller/rthook_rasterio.py',
           '--add-data',str(root/'tree_profiles')+';tree_profiles',
           '--hidden-import','tgc_cfs_display','--hidden-import','lidar_tree_topology',
+          '--hidden-import','tgc_hillshade2',  # TGC_HILLSHADE2_PATCH_V1
           '--hidden-import','tgc_tree_filter_controls',
           '--hidden-import','tgc_project_paths',
           '--hidden-import','uk_lidar_ui','--hidden-import','uk_lidar_downloader',
@@ -87,7 +88,7 @@ def build_arguments(py, root, stage, exe_name=EXE_NAME):
     return args
 
 
-def main(*, app_title=APP_TITLE, version=VERSION, exe_name=EXE_NAME, parking_release=False, open_island_release=False, graduated_release=False):
+def main(*, app_title=APP_TITLE, version=VERSION, exe_name=EXE_NAME, parking_release=False, open_island_release=False, graduated_release=False, hillshade_release=False):
     if os.name!='nt':raise RuntimeError('Run the batch on Windows in your existing TGC Python environment.')
     root=Path(sys.argv[1] if len(sys.argv)>1 else Path(__file__).resolve().parent).resolve()
     py=Path(sys.executable)
@@ -100,8 +101,13 @@ def main(*, app_title=APP_TITLE, version=VERSION, exe_name=EXE_NAME, parking_rel
         raise RuntimeError('This launcher does not match the checkout version: '+str(gui_identity.get('TGC_GUI_VERSION')))
     if graduated_release and not (open_island_release and parking_release):
         raise RuntimeError('Beta 8.4 requires the previous parking and open-island checks.')
+    # TGC_BETA8_5_HILLSHADE_DEFAULTS_V1: retain every earlier release gate.
+    if hillshade_release and not (graduated_release and open_island_release and parking_release):
+        raise RuntimeError('Beta 8.5 requires the parking, open-island and graduated-background checks.')
     if parking_release:
-        if graduated_release:
+        if hillshade_release:
+            from COLLECT_BETA8_5_FOR_PUBLICATION import source_snapshot, write_build_receipt
+        elif graduated_release:
             from COLLECT_BETA8_4_FOR_PUBLICATION import source_snapshot, write_build_receipt
         elif open_island_release:
             from COLLECT_BETA8_3_FOR_PUBLICATION import source_snapshot, write_build_receipt
@@ -120,6 +126,29 @@ def main(*, app_title=APP_TITLE, version=VERSION, exe_name=EXE_NAME, parking_rel
         raise RuntimeError('Local alignment requires Shapely 2. Run this environment\'s python -m pip install "shapely>=2.0,<3".') from exc
     for name in ('tgc_gui.py','laszip/laszip-cli.exe','PyInstaller/rthook_rasterio.py','tree_profiles','tgc_beta8_entry.py'):
         if not (root/name).exists():raise RuntimeError('Required existing source/build asset is missing: '+str(root/name))
+    if hillshade_release:
+        for name in ('tgc_hillshade2.py','osm_alignment_viewer.py','tgc_local_alignment_ui.py',
+                     'tgc_theme_filter_ready.py','VERIFY_BETA8_5_FILTER_READY.py',
+                     'VERIFY_BETA8_5_THEME_PORTABILITY.py',
+                     'VERIFY_BETA8_5_FILTER_READY_GUI.py','VERIFY_BETA8_5_FILTER_READY_EXPORT.py',
+                     'tgc_source_scale.py','tgc_source_scale_ui.py','tgc_unity_import_ui.py',
+                     'VERIFY_BETA8_5_SOURCE_SCALE.py','VERIFY_BETA8_5_DEM_SOURCE_SCALE.py',
+                     'VERIFY_BETA8_5_LIDAR_SCALE_PREFLIGHT.py','VERIFY_BETA8_5_SCALE_CONFIRMATION_PIPELINE.py',
+                     'VERIFY_BETA8_5_SCALE_DIALOG.py',
+                     'tgc_terrain_sampling.py','tgc_tools.py','VERIFY_BETA8_5_TERRAIN_SAMPLING.py',
+                     'VERIFY_BETA8_5_TERRAIN_SPACING_PIPELINE.py',
+                     'osm_course_filter.py','VERIFY_BETA8_5_COURSE_FILTER.py',
+                     'VERIFY_BETA8_5_COURSE_FILTER_PIPELINE.py',
+                     'VERIFY_BETA8_5_HILLSHADE.py','BUILD_TGC_2K25_BETA8_5.py',
+                     'BUILD_TGC_2K25_BETA8_5.bat','COLLECT_BETA8_5_FOR_PUBLICATION.py',
+                     'RELEASE_NOTES_v0.5.0-2k25-beta8.5.md'):
+            if not (root/name).is_file():
+                raise RuntimeError('Required Beta 8.5 source/build input is missing: '+name)
+    # TGC_BETA8_5_FACTORY_THEME_PORTABILITY_V1: freeze data before building.
+    portable_theme_inventory = None
+    if hillshade_release:
+        from VERIFY_BETA8_5_THEME_PORTABILITY import capture_source_inventory, verify_theme_portability
+        portable_theme_inventory = capture_source_inventory(root)
     print('=== Build '+app_title+' ===',flush=True)
     print('EXE: '+exe_name+'.exe | Window: '+app_title)
     for name in CORE_VERIFIERS:
@@ -173,12 +202,43 @@ def main(*, app_title=APP_TITLE, version=VERSION, exe_name=EXE_NAME, parking_rel
     if graduated_release:
         run(py,root/'VERIFY_BETA8_4_GRADUATED_BACKGROUND.py')
         run(py,root/'VERIFY_BETA7_BACKGROUND_GEOREF_V1.py')
+    if hillshade_release:
+        run(py,root/'VERIFY_BETA8_5_HILLSHADE.py')
+        run(py,root/'VERIFY_BETA8_5_COURSE_FILTER.py')
+        run(py,root/'VERIFY_BETA8_5_COURSE_FILTER_PIPELINE.py')
+        run(py,root/'VERIFY_BETA8_5_TERRAIN_SAMPLING.py')
+        run(py,root/'VERIFY_BETA8_5_TERRAIN_SPACING_PIPELINE.py')
+        run(py,root/'VERIFY_BETA8_5_SOURCE_SCALE.py')
+        run(py,root/'VERIFY_BETA8_5_DEM_SOURCE_SCALE.py')
+        run(py,root/'VERIFY_BETA8_5_LIDAR_SCALE_PREFLIGHT.py')
+        run(py,root/'VERIFY_BETA8_5_SCALE_CONFIRMATION_PIPELINE.py')
+        run(py,root/'VERIFY_BETA8_5_SCALE_DIALOG.py')
+        run(py,root/'VERIFY_BETA8_5_FILTER_READY.py')
+        run(py,root/'VERIFY_BETA8_5_FILTER_READY_GUI.py')
+        run(py,root/'VERIFY_BETA8_5_FILTER_READY_EXPORT.py')
     args = build_arguments(py,root,stage,exe_name)
     if open_island_release:
         args[-1:-1] = ['--hidden-import', 'osm_open_surface_islands']
     if graduated_release:
         args[-1:-1] = ['--hidden-import', 'tgc_transitional_background',
                        '--hidden-import', 'VERIFY_BETA8_4_GRADUATED_BACKGROUND']
+    if hillshade_release:
+        args[-1:-1] = ['--hidden-import', 'VERIFY_BETA8_5_HILLSHADE',
+                       '--hidden-import', 'tgc_theme_filter_ready',
+                       '--hidden-import', 'VERIFY_BETA8_5_FILTER_READY',
+                       '--hidden-import', 'tgc_source_scale',
+                       '--hidden-import', 'tgc_source_scale_ui',
+                       '--hidden-import', 'VERIFY_BETA8_5_SOURCE_SCALE',
+                       '--hidden-import', 'VERIFY_BETA8_5_DEM_SOURCE_SCALE',
+                       '--hidden-import', 'VERIFY_BETA8_5_LIDAR_SCALE_PREFLIGHT',
+                       '--hidden-import', 'VERIFY_BETA8_5_SCALE_CONFIRMATION_PIPELINE',
+                       '--hidden-import', 'VERIFY_BETA8_5_SCALE_DIALOG',
+                       '--hidden-import', 'osm_course_filter',
+                       '--hidden-import', 'VERIFY_BETA8_5_COURSE_FILTER',
+                       '--hidden-import', 'VERIFY_BETA8_5_COURSE_FILTER_PIPELINE',
+                       '--hidden-import', 'tgc_terrain_sampling',
+                       '--hidden-import', 'VERIFY_BETA8_5_TERRAIN_SAMPLING',
+                       '--hidden-import', 'VERIFY_BETA8_5_TERRAIN_SPACING_PIPELINE']
     run(*args)
     built=stage/'dist'/(exe_name+'.exe')
     if not built.is_file():raise RuntimeError('The expected staged Windows executable was not created: '+built.name)
@@ -191,6 +251,8 @@ def main(*, app_title=APP_TITLE, version=VERSION, exe_name=EXE_NAME, parking_rel
     run(built,'--verify-local-alignment')
     if graduated_release:
         run(built,'--verify-graduated-background')
+    if hillshade_release:
+        run(built,'--verify-filter-ready')
     from PyInstaller.archive.readers import CArchiveReader
     frozen_exe = CArchiveReader(str(built))
     pyz = [n for n in frozen_exe.toc if n.lower().endswith('.pyz')]
@@ -199,6 +261,7 @@ def main(*, app_title=APP_TITLE, version=VERSION, exe_name=EXE_NAME, parking_rel
     archive = frozen_exe.open_embedded_archive(pyz[0])
     required={'tgc_cfs_display','osm_alignment_viewer','osm_mask_alignment','GeoPointCloud','tgc_gui',
               'lidar_tree_topology','tgc_tree_filter_controls','tgc_project_paths','osm_preview_relations','osm_water_mulch_lock','tree_profile_manager'}
+    required.add('tgc_hillshade2')  # TGC_HILLSHADE2_PATCH_V1
     required.update({'uk_lidar_ui','uk_lidar_downloader'})
     required.update({'scotland_s3','exus_lidar_sources','exus_raster'})
     required.update({'exus_additional_countries','exus_resolution_policy'})
@@ -213,15 +276,40 @@ def main(*, app_title=APP_TITLE, version=VERSION, exe_name=EXE_NAME, parking_rel
         required.update({'OSMTGC', 'auto_red_mask', 'osm_open_surface_islands'})
     if graduated_release:
         required.update({'tgc_transitional_background', 'VERIFY_BETA8_4_GRADUATED_BACKGROUND'})
+    if hillshade_release:
+        required.update({'tgc_hillshade2','osm_alignment_viewer','tgc_local_alignment_ui',
+                         'tgc_theme_filter_ready','VERIFY_BETA8_5_FILTER_READY',
+                         'tgc_source_scale','tgc_source_scale_ui','tgc_unity_import_ui',
+                         'VERIFY_BETA8_5_SOURCE_SCALE','VERIFY_BETA8_5_DEM_SOURCE_SCALE',
+                         'VERIFY_BETA8_5_LIDAR_SCALE_PREFLIGHT','VERIFY_BETA8_5_SCALE_CONFIRMATION_PIPELINE',
+                         'VERIFY_BETA8_5_SCALE_DIALOG',
+                         'tgc_terrain_sampling','tgc_tools','VERIFY_BETA8_5_TERRAIN_SAMPLING',
+                         'VERIFY_BETA8_5_TERRAIN_SPACING_PIPELINE',
+                         'VERIFY_BETA8_5_HILLSHADE','osm_course_filter',
+                         'VERIFY_BETA8_5_COURSE_FILTER','VERIFY_BETA8_5_COURSE_FILTER_PIPELINE',
+                         'OSMTGC','tgc_image_terrain','osm_mask_alignment',
+                         'lidar_map_api','dem_map_api','tgc_local_alignment','tgc_local_alignment_export'})
     if not required.issubset(archive.toc):raise RuntimeError('Missing frozen modules: '+repr(required-set(archive.toc)))
     bundled_names = [str(name).lower() for name in frozen_exe.toc]
+    if hillshade_release:
+        # Bind the shipped Filter Ready data to the same source snapshot as code.
+        catalog_inputs = sorted((root/'tree_profiles'/'filter_ready').glob('*.json'))
+        if not catalog_inputs:
+            raise RuntimeError('No Filter Ready asset catalogs were supplied for this build.')
+        frozen_data = {str(name).replace('\\', '/'): name for name in frozen_exe.toc}
+        for catalog_path in catalog_inputs:
+            relative = catalog_path.relative_to(root).as_posix()
+            member = frozen_data.get(relative)
+            if member is None or frozen_exe.extract(member) != catalog_path.read_bytes():
+                raise RuntimeError('Frozen Filter Ready catalog differs from installed data: '+relative)
     if not any('geos_c' in name and name.endswith('.dll') for name in bundled_names):
         raise RuntimeError('Frozen local alignment is missing the Shapely GEOS runtime')
     def constants(code):
         result=[]
-        for c in code.co_consts:
+        for c in code.co_consts if hasattr(code,'co_consts') else code:
             if isinstance(c,str):result.append(c)
             elif hasattr(c,'co_consts'):result.extend(constants(c))
+            elif isinstance(c,(tuple,frozenset)):result.extend(constants(c))
         return result
     if 'TGC_BETA7_SCOTLAND_DIRECT_S3_V1' not in constants(archive.extract('scotland_s3')):
         raise RuntimeError('Frozen EXE is missing direct Scottish AWS discovery')
@@ -273,11 +361,61 @@ def main(*, app_title=APP_TITLE, version=VERSION, exe_name=EXE_NAME, parking_rel
             if not isinstance(code,types.CodeType) or not any(
                     code_signature(code)==code_signature(compile(source,name+'.py','exec',dont_inherit=True,optimize=n))
                     for n in (0,1,2)):
-                raise RuntimeError('Frozen Beta 8.4 code differs from installed source: '+name)
+                raise RuntimeError('Frozen release code differs from installed source: '+name)
         if not {'Graduated Background','graduated_background'}.issubset(set(identity)):
             raise RuntimeError('Frozen executable is missing the Graduated Background control.')
         if 'graduated_background' not in constants(archive.extract('tgc_image_terrain')):
             raise RuntimeError('Frozen terrain importer is missing the Graduated Background option.')
+    if hillshade_release:
+        # The retained graduated gate defines code_signature. Exact comparison
+        # binds default selection and local-window behavior to verified source.
+        for name in ('tgc_hillshade2','osm_alignment_viewer','tgc_local_alignment_ui',
+                     'tgc_theme_filter_ready','VERIFY_BETA8_5_FILTER_READY',
+                     'tgc_source_scale','tgc_source_scale_ui','tgc_unity_import_ui',
+                     'VERIFY_BETA8_5_SOURCE_SCALE','VERIFY_BETA8_5_DEM_SOURCE_SCALE',
+                     'VERIFY_BETA8_5_LIDAR_SCALE_PREFLIGHT','VERIFY_BETA8_5_SCALE_CONFIRMATION_PIPELINE',
+                     'VERIFY_BETA8_5_SCALE_DIALOG',
+                     'tgc_terrain_sampling','tgc_tools','VERIFY_BETA8_5_TERRAIN_SAMPLING',
+                     'VERIFY_BETA8_5_TERRAIN_SPACING_PIPELINE',
+                     'VERIFY_BETA8_5_HILLSHADE','osm_course_filter',
+                     'OSMTGC','tgc_image_terrain','osm_mask_alignment',
+                     'lidar_map_api','dem_map_api','tgc_local_alignment','tgc_local_alignment_export',
+                     'VERIFY_BETA8_5_COURSE_FILTER','VERIFY_BETA8_5_COURSE_FILTER_PIPELINE'):
+            code = archive.extract(name)
+            source = (root/(name+'.py')).read_bytes()
+            if not isinstance(code,types.CodeType) or not any(
+                    code_signature(code)==code_signature(compile(source,name+'.py','exec',dont_inherit=True,optimize=n))
+                    for n in (0,1,2)):
+                raise RuntimeError('Frozen Beta 8.5 feature code differs from installed source: '+name)
+        if not {'course_name_filter','Match Course Name'}.issubset(set(constants(archive.extract('tgc_gui')))):
+            raise RuntimeError('Frozen GUI is missing the Course Name boundary filter.')
+        if not {'terrain_stamp_spacing','Terrain Stamp Spacing (m)'}.issubset(set(constants(archive.extract('tgc_gui')))):
+            raise RuntimeError('Frozen GUI is missing independent terrain stamp spacing.')
+        if not {'Heightmap Scale', 'Auto'}.issubset(set(constants(archive.extract('tgc_gui')))):
+            raise RuntimeError('Frozen GUI is missing the automatic heightmap scale control.')
+        if 'TGC_BETA8_5_AUTO_SOURCE_SCALE_UI_V1' not in constants(archive.extract('tgc_source_scale_ui')):
+            raise RuntimeError('Frozen GUI is missing source scale confirmation.')
+        if not {'theme_filter_ready', 'Filter Ready'}.issubset(set(constants(archive.extract('tgc_gui')))):
+            raise RuntimeError('Frozen GUI is missing the Filter Ready control.')
+        viewer_code = archive.extract('osm_alignment_viewer')
+        if not {'Hillshade 1','Hillshade 2'}.issubset(set(constants(viewer_code))):
+            raise RuntimeError('Frozen viewer is missing the Beta 8.5 hillshade labels.')
+        def find_code(code, name):
+            if isinstance(code,types.CodeType):
+                if code.co_name == name:
+                    return code
+                for child in code.co_consts:
+                    found = find_code(child,name)
+                    if found is not None:
+                        return found
+            return None
+        build_ui = find_code(viewer_code,'_build_ui')
+        if build_ui is None or 'Hillshade 1' not in build_ui.co_consts:
+            raise RuntimeError('Frozen CFS viewer is missing the Hillshade 1 default.')
+        if 'Hillshade 1' not in constants(archive.extract('tgc_local_alignment_ui')):
+            raise RuntimeError('Frozen local tee/bunker window is missing Hillshade 1.')
+        if 'TGC_HILLSHADE2_PATCH_V1' not in constants(archive.extract('tgc_hillshade2')):
+            raise RuntimeError('Frozen executable is missing the detailed terrain renderer.')
     option_keys={'filter_lidar_trees_surfaces','exclude_lidar_trees_red_mask','custom_theme_weighted_planting'}
     if not option_keys.issubset(set(identity)):
         raise RuntimeError('Frozen GUI is missing the new tree controls')
@@ -287,6 +425,9 @@ def main(*, app_title=APP_TITLE, version=VERSION, exe_name=EXE_NAME, parking_rel
         raise RuntimeError('Frozen EXE is missing the resolved-shape policy')
     if 'TGC_BETA7_CURRENT_PROJECT_CFS_V1' not in constants(archive.extract('tgc_project_paths')):
         raise RuntimeError('Frozen EXE is missing current-project CFS selection')
+    if hillshade_release:
+        # Finish EXE-only checks before creating a new receipt or publishing dist.
+        verify_theme_portability(root, built, stage, portable_theme_inventory, frozen_exe=frozen_exe)
     if before!={p.name:digest(p) for p in tracked}:raise RuntimeError('Source changed during build; no EXE replaced.')
     checksum=digest(built)
     out=root/'dist';out.mkdir(exist_ok=True);target=out/built.name
@@ -317,6 +458,9 @@ def main(*, app_title=APP_TITLE, version=VERSION, exe_name=EXE_NAME, parking_rel
     print('CFS: Local Tee/Bunker Alignment previews residual moves; only accepted proposals create a corrected OSM copy. Apply + Rebuild Mask afterward.')
     print('OSM/surface filtering defaults OFF; red-mask and 50 m controls remain independent. Reuse the heightmap and regenerate the course. CFS starts from the current working project.')
     print('Unity RAW + SVG importer and dry-mulch support included; no bundled course preset; frozen import smoke test passed.')
+    if hillshade_release:
+        print('Hillshade 1 is the detailed default in CFS and Local Tee/Bunker Alignment. Hillshade 2 retains the original style.')
+        print('Filter Ready adds source-theme asset samples only to exported courses when enabled.')
 
 
 if __name__=='__main__':

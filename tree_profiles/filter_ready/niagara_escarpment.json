@@ -1,0 +1,3645 @@
+{
+  "schema_version": 1,
+  "profile_id": "niagara_escarpment",
+  "complete": true,
+  "counts": {
+    "assets": 151,
+    "categories": {
+      "grass": 16,
+      "plant": 2,
+      "rock": 40,
+      "shrub": 1,
+      "tree": 92
+    },
+    "placements": {
+      "item": 151
+    }
+  },
+  "assets": [
+    {
+      "key": {
+        "path": "Assets/CourseGen/Detail/Grass/DetailGrassClusterBPrefab"
+      },
+      "category": "grass",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/CourseGen/Detail/Rocks/PV_Rocks/PV_BouldersShared_AGPrefab"
+      },
+      "category": "rock",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/CourseGen/Detail/Rocks/PV_Rocks/PV_BouldersShared_AHPrefab"
+      },
+      "category": "rock",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/CourseGen/Detail/Rocks/PV_Rocks/PV_BouldersShared_AIPrefab"
+      },
+      "category": "rock",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/CourseGen/Detail/Rocks/PV_Rocks/PV_BouldersShared_AJPrefab"
+      },
+      "category": "rock",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/CourseGen/Detail/Rocks/PV_Rocks/PV_BouldersShared_ALPrefab"
+      },
+      "category": "rock",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/CourseGen/Detail/Rocks/PV_Rocks/PV_BouldersShared_AMPrefab"
+      },
+      "category": "rock",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/CourseGen/Detail/Rocks/PV_Rocks/PV_BouldersShared_BBPrefab"
+      },
+      "category": "rock",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/CourseGen/Detail/Rocks/PV_Rocks/PV_BouldersShared_BHPrefab"
+      },
+      "category": "rock",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/CourseGen/Detail/Rocks/PV_Rocks/PV_BouldersShared_BJPrefab"
+      },
+      "category": "rock",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/CourseGen/Detail/Rocks/PV_Rocks/PV_BouldersShared_BLPrefab"
+      },
+      "category": "rock",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/CourseGen/Detail/Rocks/PV_Rocks/PV_BouldersShared_BMPrefab"
+      },
+      "category": "rock",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/CourseGen/Detail/Rocks/PV_Rocks/PV_BouldersShared_BNPrefab"
+      },
+      "category": "rock",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/CourseGen/Detail/Rocks/Port_Rocks/Port_WhiteRocks_AC"
+      },
+      "category": "rock",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/CourseGen/Detail/Rocks/Port_Rocks/Port_WhiteRocks_AH"
+      },
+      "category": "rock",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/CourseGen/Detail/Rocks/Port_Rocks/Port_WhiteRocks_AI"
+      },
+      "category": "rock",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/CourseGen/Detail/Rocks/RP_Rocks/RP_Rock04Prefab"
+      },
+      "category": "rock",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/CourseGen/Detail/Rocks/RP_Rocks/RP_Rock10BPrefab"
+      },
+      "category": "rock",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/CourseGen/Detail/Rocks/RP_Rocks/RP_Rock12APrefab"
+      },
+      "category": "rock",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/CourseGen/Detail/Rocks/RP_Rocks/RP_Rock13Prefab"
+      },
+      "category": "rock",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/CourseGen/Detail/Rocks/RP_Rocks/RP_Rock17APrefab"
+      },
+      "category": "rock",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/CourseGen/Detail/Rocks/RP_Rocks/RP_Rock20BPrefab"
+      },
+      "category": "rock",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/CourseGen/Detail/Rocks/Rock1AAlpinePrefab"
+      },
+      "category": "rock",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/CourseGen/Detail/Rocks/Rock1AWinterPrefab"
+      },
+      "category": "rock",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/CourseGen/Detail/Rocks/Rock1BAlpinePrefab"
+      },
+      "category": "rock",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/CourseGen/Detail/Rocks/Rock1BPrefab"
+      },
+      "category": "rock",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/CourseGen/Detail/Rocks/Rock2AAlpinePrefab"
+      },
+      "category": "rock",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/CourseGen/Detail/Rocks/Rock2AWinterPrefab"
+      },
+      "category": "rock",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/CourseGen/Detail/Rocks/Rock3AAlpinePrefab"
+      },
+      "category": "rock",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/CourseGen/Detail/Rocks/Rock3APrefab"
+      },
+      "category": "rock",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/CourseGen/Detail/Rocks/Rock3BAlpinePrefab"
+      },
+      "category": "rock",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/CourseGen/Detail/Rocks/Rock3BAutumnPrefab"
+      },
+      "category": "rock",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/CourseGen/Detail/Rocks/Rock3BPrefab"
+      },
+      "category": "rock",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/CourseGen/Detail/Rocks/Rock3CAlpinePrefab"
+      },
+      "category": "rock",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/CourseGen/Detail/Rocks/Rock3DAlpinePrefab"
+      },
+      "category": "rock",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/CourseGen/Detail/Rocks/Rock3DPrefab"
+      },
+      "category": "rock",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/CourseGen/Detail/Rocks/Rock3DWinterPrefab"
+      },
+      "category": "rock",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/CourseGen/Detail/Rocks/Stone02AutumnPrefab"
+      },
+      "category": "rock",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/CourseGen/Detail/Rocks/Stone03AutumnPrefab"
+      },
+      "category": "rock",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/CourseGen/Detail/Rocks/Sum_Rocks/Sum_Rock_06Prefab"
+      },
+      "category": "rock",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/CourseGen/Detail/Rocks/TPC_SanAntonio/TPC_SanAntonio_LargeRock02Prefab"
+      },
+      "category": "rock",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Plants/Cattail/Prefabs/Cattail_Desktop_Bare"
+      },
+      "category": "plant",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Trees/Afghan/Prefabs/AfghanTree8A"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Trees/Afghan/Prefabs/AfghanTree8B"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Trees/Afghan/Prefabs/AfghanTree8E"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Trees/American_Elm/Prefabs/American_Elm_Desktop02"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Trees/American_Elm/Prefabs/American_Elm_Desktop03"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Trees/American_Elm/Prefabs/American_Elm_Desktop08_Eastlake_hole5"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Trees/American_Elm/Prefabs/American_Elm_Desktop_FallA01"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Trees/American_Elm/Prefabs/American_Elm_Desktop_FallA02"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Trees/American_Elm/Prefabs/American_Elm_Desktop_FallB01"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Trees/American_Sycamore/Prefabs/American_Sycamore_Desktop09_RiverHignlands_Tee16"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Trees/California_Sycamore/Prefabs/California_Sycamore_Desktop02_Bare"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Trees/California_Sycamore/Prefabs/California_Sycamore_Desktop03"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Trees/California_Sycamore/Prefabs/California_Sycamore_Desktop04"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Trees/California_Sycamore/Prefabs/California_Sycamore_Desktop05_Riviera01_Generic"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Trees/Douglas_Fir/Prefabs/DouglasFir_Desktop02"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Trees/Douglas_Fir/Prefabs/DouglasFir_Desktop03"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Trees/Eastern_White_Pine/Prefabs/Eastern_White_Pine_Desktop02"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Trees/Eastern_White_Pine/Prefabs/Eastern_White_Pine_Desktop03"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Trees/European_Aspen/Prefabs/European_Aspen_Desktop_FallA02"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Trees/European_Aspen/Prefabs/European_Aspen_Desktop_FallB01"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Trees/European_White_Birch/Prefabs/European_White_Birch_Desktop05"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Trees/European_White_Birch/Prefabs/European_White_Birch_Desktop_FallA01"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Trees/European_White_Birch/Prefabs/European_White_Birch_Desktop_FallA02"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Trees/European_White_Birch/Prefabs/European_White_Birch_Desktop_FallB01"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Trees/Generic_Conifer/Prefabs/Generic_Conifer_Desktop01"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Trees/Generic_Conifer/Prefabs/Generic_Conifer_Desktop02"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Trees/Generic_Conifer/Prefabs/Generic_Conifer_Desktop03"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Trees/Generic_Conifer/Prefabs/Generic_Conifer_Desktop04"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Trees/Generic_Conifer/Prefabs/Generic_Conifer_Desktop08"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Trees/Generic_Conifer/Prefabs/Generic_Conifer_Desktop09"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Trees/Green_Ash/Prefabs/Green_Ash_Desktop_114_EastLake_Hole9"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Trees/Lombardy_Poplar/Prefabs/Lombardy_Poplar_Desktop_Fall02"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Trees/Lombardy_Poplar/Prefabs/Lombardy_Popular_Desktop01"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Trees/London_Plane/Prefabs/London_Plane_Desktop_Fall01"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Trees/London_Plane/Prefabs/London_Plane_Desktop_Fall02"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Trees/Red_Maple/Prefabs/Red_Maple_Desktop01"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Trees/Red_Maple/Prefabs/Red_Maple_DesktopA_01"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Trees/Red_Maple/Prefabs/Red_Maple_Desktop_Fall01"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Trees/Red_Maple/Prefabs/Red_Maple_Desktop_Young"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Trees/Red_Maple/Prefabs/Silver_Maple_Desktop01"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Trees/Red_Maple/Prefabs/Silver_Maple_Desktop02"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Trees/Red_Maple/Prefabs/Silver_Maple_Desktop03"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Trees/Red_Maple/Prefabs/Silver_Maple_Desktop04"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Trees/River_Birch/Prefabs/River_Birch_Desktop_03"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Trees/River_Birch/Prefabs/River_Birch_Desktop_04"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Trees/River_Birch/Prefabs/River_Birch_Desktop_07"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Trees/Scots_Pine/Prefabs/ScotsPine_Desktop11"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Trees/Scots_Pine/Prefabs/ScotsPine_Desktop13"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Trees/Scots_Pine/Prefabs/ScotsPine_Desktop14"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Trees/Scots_Pine/Prefabs/SlashPine_Desktop_AtlanticBeach_Tee10"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Trees/White_Oak/Prefabs/White_Oak_Desktop02"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Bushes/Gorse_Bushes/Prefabs/Gorse_Common_025"
+      },
+      "category": "shrub",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Grass/Fescue_01/Prefabs/Fescue_01_001"
+      },
+      "category": "grass",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Grass/Fescue_01/Prefabs/Fescue_01_002"
+      },
+      "category": "grass",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Grass/Fescue_01/Prefabs/Fescue_01_007"
+      },
+      "category": "grass",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Grass/Fescue_01/Prefabs/Fescue_01_008"
+      },
+      "category": "grass",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Grass/Fescue_03/Prefabs/Fescue_03_001"
+      },
+      "category": "grass",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Grass/Fescue_03/Prefabs/Fescue_03_002"
+      },
+      "category": "grass",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Grass/Fescue_03/Prefabs/Fescue_03_003"
+      },
+      "category": "grass",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Grass/Fescue_03/Prefabs/Fescue_03_004"
+      },
+      "category": "grass",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Grass/Fescue_03/Prefabs/Fescue_03_005_Cutout"
+      },
+      "category": "grass",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Grass/Fescue_03/Prefabs/Fescue_03_006"
+      },
+      "category": "grass",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Grass/Fescue_03/Prefabs/Fescue_03_007_Cutout"
+      },
+      "category": "grass",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Grass/Fescue_03/Prefabs/Fescue_03_008_Cutout"
+      },
+      "category": "grass",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Grass/Fescue_03/Prefabs/Fescue_03_010_Cutout"
+      },
+      "category": "grass",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Grass/Fescue_04/Prefabs/Fescue_04_004"
+      },
+      "category": "grass",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Grass/Fescue_05/Prefabs/Fescue_05_001"
+      },
+      "category": "grass",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Plants/Rose/Prefabs/Rose_Red_003"
+      },
+      "category": "plant",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Trees/AfghanTree_C/Prefabs/AfghanTree_C_003"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Trees/AfghanTree_C/Prefabs/AfghanTree_C_004"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Trees/AfghanTree_C/Prefabs/AfghanTree_C_006"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Trees/AfghanTree_C/Prefabs/AfghanTree_C_007"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Trees/Ash_Green_FA/Prefabs/Ash_Green_FA_008"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Trees/Beech_American/Prefabs/Beech_American_001"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Trees/Beech_American/Prefabs/Beech_American_003"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Trees/Beech_American/Prefabs/Beech_American_005"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Trees/Beech_American/Prefabs/Beech_American_010"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Trees/Birch_Downy/Prefabs/Birch_Downy_001"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Trees/Birch_Downy/Prefabs/Birch_Downy_003"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Trees/Birch_River/Prefabs/Birch_River_001"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Trees/Birch_River/Prefabs/Birch_River_005"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Trees/Elm_American_FA/Prefabs/Elm_American_FA_009"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Trees/Elm_American_FB/Prefabs/Elm_American_FB_008"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Trees/Elm_American_FB/Prefabs/Elm_American_FB_028"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Trees/Maple_Norway/Prefabs/Maple_Norway_002"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Trees/Maple_Norway/Prefabs/Maple_Norway_003"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Trees/Maple_Red/Prefabs/Maple_Red_011"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Trees/Maple_Red_FA/Prefabs/Maple_Red_FA_006"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Trees/Maple_Red_FA/Prefabs/Maple_Red_FA_009"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Trees/Maple_Red_FB/Prefabs/Maple_Red_FB_002"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Trees/Maple_Red_FB/Prefabs/Maple_Red_FB_005"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Trees/Maple_Red_FB/Prefabs/Maple_Red_FB_007"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Trees/Maple_Red_FB/Prefabs/Maple_Red_FB_008"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Trees/Maple_Silver/Prefabs/Maple_Silver_008"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Trees/Maple_Silver/Prefabs/Maple_Silver_013"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Trees/Maple_Silver/Prefabs/Maple_Silver_014"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Trees/Oak_White_FA/Prefabs/Oak_White_FA_012"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Trees/Plane_London_FA/Prefabs/Plane_London_FA_001"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Trees/Plane_London_FA/Prefabs/Plane_London_FA_002"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Trees/Poplar_Lombardy_FA/Prefabs/Poplar_Lombardy_FA_004"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Trees/Spruce_Norway/Prefabs/Spruce_Norway_001"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Trees/Spruce_Norway/Prefabs/Spruce_Norway_002"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Trees/Spruce_Norway/Prefabs/Spruce_Norway_003"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Trees/Spruce_Norway/Prefabs/Spruce_Norway_004"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Trees/Spruce_Norway/Prefabs/Spruce_Norway_005"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Trees/Spruce_Norway/Prefabs/Spruce_Norway_006"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Trees/Spruce_Norway/Prefabs/Spruce_Norway_007"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Trees/Spruce_Norway/Prefabs/Spruce_Norway_008"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Trees/Sycamore_English/Prefabs/Sycamore_English_005"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    }
+  ],
+  "asset_scope": "nature_only"
+}

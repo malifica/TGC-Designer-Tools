@@ -228,6 +228,7 @@ class TkChecks:
         view = self.view
         view.window.geometry("1320x700+20+20")
         self.pump_until(lambda: view.ready)
+        self.pump_until(lambda: "Hillshade 1" in view.backgrounds)
 
         def cfs_buttons():
             buttons = [w for w in descendants(view.window) if w.winfo_class() in ("Button", "TButton")]
@@ -249,6 +250,7 @@ class TkChecks:
         # No Apply or mask rebuild occurs before local analysis.
         view.ew_var.set(str(self.nudge[0])); view.ns_var.set(str(self.nudge[1]))
         view.local_alignment_button.invoke()
+        self.pump_until(lambda: view.local_review is not None)
         self.dialog = view.local_review
         dialog = self.dialog
         dialog.window.geometry("1320x700+20+20")
@@ -696,6 +698,7 @@ class TkChecks:
             before_path = Path(view.osm_file)
             before_raw = before_path.read_bytes()
             view.local_alignment_button.invoke()
+            self.pump_until(lambda: view.local_review is not None)
             self.dialog = view.local_review
             dialog = self.dialog
             dialog.window.geometry("1320x700+20+20")

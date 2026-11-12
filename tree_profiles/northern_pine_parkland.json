@@ -1,0 +1,346 @@
+{
+  "id": "northern_pine_parkland",
+  "display_name": "Northern Pine Parkland",
+  "enabled": true,
+  "tree_generation": "profile",
+  "description": "Northern parkland palette of Scots pine, white pine and red maple with coordinated turf, rock and shrub options.",
+  "assets": [
+    {
+      "path": "Assets/Foliage/SpeedTree8/Trees/Maple_Red/Prefabs/Maple_Red_901",
+      "shape": "normal",
+      "weight": 765
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Scots_Pine/Prefabs/ScotsPine_Desktop33",
+      "shape": "skinny",
+      "weight": 676
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Scots_Pine/Prefabs/ScotsPine_Desktop07",
+      "shape": "skinny",
+      "weight": 550
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Scots_Pine/Prefabs/ScotsPine_Desktop01",
+      "shape": "skinny",
+      "weight": 490
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Scots_Pine/Prefabs/ScotsPine_Desktop21",
+      "shape": "normal",
+      "weight": 490
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Scots_Pine/Prefabs/ScotsPine_Desktop08",
+      "shape": "skinny",
+      "weight": 317
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Scots_Pine/Prefabs/ScotsPine_Desktop03",
+      "shape": "skinny",
+      "weight": 269
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree8/Trees/Pine_White/Prefabs/Pine_White_006",
+      "shape": "skinny",
+      "weight": 265
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Scots_Pine/Prefabs/ScotsPine_Desktop04",
+      "shape": "skinny",
+      "weight": 247
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Eastern_White_Pine/Prefabs/Eastern_White_Pine_Desktop01",
+      "shape": "skinny",
+      "weight": 226
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree8/Trees/Pine_White/Prefabs/Pine_White_005",
+      "shape": "skinny",
+      "weight": 210
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Scots_Pine/Prefabs/ScotsPine_Desktop05",
+      "shape": "skinny",
+      "weight": 209
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Scots_Pine/Prefabs/ScotsPine_Desktop54",
+      "shape": "skinny",
+      "weight": 204
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Eastern_White_Pine/Prefabs/Eastern_White_Pine_Desktop",
+      "shape": "skinny",
+      "weight": 184
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree8/Trees/Pine_White/Prefabs/Pine_White_007",
+      "shape": "skinny",
+      "weight": 145
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Scots_Pine/Prefabs/ScotsPine_Desktop02",
+      "shape": "skinny",
+      "weight": 79
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Eastern_White_Pine/Prefabs/Eastern_White_Pine_Desktop03",
+      "shape": "skinny",
+      "weight": 78
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree8/Trees/Pine_White/Prefabs/Pine_White_011",
+      "shape": "skinny",
+      "weight": 56
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Scots_Pine/Prefabs/ScotsPine_Desktop37",
+      "shape": "skinny",
+      "weight": 21
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree8/Trees/Pine_White/Prefabs/Pine_White_004",
+      "shape": "skinny",
+      "weight": 21
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree8/Trees/Pine_White/Prefabs/Pine_White_009",
+      "shape": "skinny",
+      "weight": 17
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/American_Elm/Prefabs/American_Elm_Desktop19",
+      "shape": "normal",
+      "weight": 14
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Scots_Pine/Prefabs/ScotsPine_Desktop11",
+      "shape": "skinny",
+      "weight": 11
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Scots_Pine/Prefabs/ScotsPine_Desktop15",
+      "shape": "skinny",
+      "weight": 8
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Southern_Live_Oak/Prefabs/SouthernLiveOak_Desktop22",
+      "shape": "normal",
+      "weight": 8
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Green_Ash/Prefabs/Green_Ash_Desktop_139_TwinCities_Hole7_01",
+      "shape": "normal",
+      "weight": 7
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Scots_Pine/Prefabs/ScotsPine_Desktop38_EastLake_Hole3",
+      "shape": "skinny",
+      "weight": 7
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree8/Trees/Pine_White/Prefabs/Pine_White_003",
+      "shape": "skinny",
+      "weight": 7
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/American_Elm/Prefabs/American_Elm_Desktop18",
+      "shape": "normal",
+      "weight": 6
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Douglas_Fir/Prefabs/DouglasFir_Desktop_Pyramid",
+      "shape": "skinny",
+      "weight": 4
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Eastern_White_Pine/Prefabs/Eastern_White_Pine_Desktop02",
+      "shape": "skinny",
+      "weight": 4
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Generic_Conifer/Prefabs/Generic_Conifer_Desktop01",
+      "shape": "skinny",
+      "weight": 4
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Green_Ash/Prefabs/Green_Ash_Desktop_142",
+      "shape": "normal",
+      "weight": 3
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree8/Trees/Maple_Silver/Prefabs/Maple_Silver_010",
+      "shape": "normal",
+      "weight": 3
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree8/Trees/Maple_Silver/Prefabs/Maple_Silver_012",
+      "shape": "normal",
+      "weight": 3
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Green_Ash/Prefabs/Green_Ash_Desktop_129",
+      "shape": "normal",
+      "weight": 2
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Southern_Live_Oak/Prefabs/SouthernLiveOak_Desktop00",
+      "shape": "normal",
+      "weight": 2
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree8/Trees/Ash_Green/Prefabs/Ash_Green_056",
+      "shape": "normal",
+      "weight": 2
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Green_Ash/Prefabs/Green_Ash_Desktop_127",
+      "shape": "normal",
+      "weight": 1
+    }
+  ],
+  "scale_defaults": {},
+  "visual_material_preset": {
+    "theme": 5,
+    "surfaces2": [
+      {
+        "name": "Sand10",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "Cobbles05",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "Mulch06",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "Green10",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "Fringe10",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "Fairway18_AtlanticBeachCC",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "LightRough19_TPC_Boston",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "HeavyRough41_PebbleBeach",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "Splat0_Tropical",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "Splat1_Swiss",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "Splat2_Countryside",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "Splat3_Swiss",
+        "blend": 0.2,
+        "maskWater": true
+      }
+    ],
+    "secondarySurfaces": [
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      }
+    ],
+    "cartPathTexture": 0,
+    "teeTexture": 16
+  }
+}

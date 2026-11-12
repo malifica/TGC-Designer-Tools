@@ -1,0 +1,1605 @@
+{
+  "schema_version": 1,
+  "profile_id": "southern_pine_highlands",
+  "complete": true,
+  "asset_scope": "nature_only",
+  "counts": {
+    "assets": 66,
+    "categories": {
+      "grass": 26,
+      "plant": 9,
+      "rock": 5,
+      "shrub": 7,
+      "tree": 19
+    },
+    "placements": {
+      "item": 66
+    }
+  },
+  "assets": [
+    {
+      "key": {
+        "path": "Assets/CourseGen/Detail/Grass/DetailGrassEPrefab"
+      },
+      "category": "grass",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/CourseGen/Detail/Grass/DetailGrassFPrefab"
+      },
+      "category": "grass",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/CourseGen/Detail/Grass/DetailGrassKPrefab"
+      },
+      "category": "grass",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/CourseGen/Detail/Grass/DetailGrassNPrefab"
+      },
+      "category": "grass",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/CourseGen/Detail/Grass/DetailGrassOPrefab"
+      },
+      "category": "grass",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/CourseGen/Detail/Grass/DetailGrassPPrefab"
+      },
+      "category": "grass",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/CourseGen/Detail/Grass/DetailGrassQPrefab"
+      },
+      "category": "grass",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/CourseGen/Detail/Grass/DetailGrassRPrefab"
+      },
+      "category": "grass",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/CourseGen/Detail/Grass/DetailGrassSPrefab"
+      },
+      "category": "grass",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/CourseGen/Detail/Grass/DetailGrassUPrefab"
+      },
+      "category": "grass",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/CourseGen/Detail/Grass/DetailGrassVPrefab"
+      },
+      "category": "grass",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/CourseGen/Detail/Grass/TallGrassGA"
+      },
+      "category": "grass",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/CourseGen/Detail/Grass/TallGrassKA"
+      },
+      "category": "grass",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/CourseGen/Detail/Plants/DetailWeedIPrefab"
+      },
+      "category": "plant",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/CourseGen/Detail/Rocks/Asia_Pack/Asia_Rock1APrefab"
+      },
+      "category": "rock",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/CourseGen/Detail/Rocks/Asia_Pack/Asia_Rock1BPrefab"
+      },
+      "category": "rock",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/CourseGen/Detail/Rocks/Asia_Pack/Asia_Rock2APrefab"
+      },
+      "category": "rock",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/CourseGen/Detail/Rocks/Asia_Pack/Asia_Rock3BPrefab"
+      },
+      "category": "rock",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/CourseGen/Detail/Rocks/Asia_Pack/Asia_Rock3DPrefab"
+      },
+      "category": "rock",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/CourseGen/Detail/Trees/FallenTreeAPrefab"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/CourseGen/Detail/Trees/FallenTreeCPrefab"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Bushes/AutumnBushes/Prefabs/AutumnBush9E"
+      },
+      "category": "shrub",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Bushes/GenericBushes/Prefabs/GenericBush4A"
+      },
+      "category": "shrub",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Grass/Rough_Grass/Prefabs/Rough_Grass_Desktop_Bush"
+      },
+      "category": "grass",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Plants/Aloe_Vera/Prefabs/Aloe_Vera_Desktop_2"
+      },
+      "category": "plant",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Plants/Cattail/Prefabs/Cattail_Desktop_Bare"
+      },
+      "category": "plant",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Plants/Coleus/Prefabs/Coleus_Red_Cluster_DesktopPrefab"
+      },
+      "category": "plant",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Plants/Croton/Prefabs/Croton_Cluster_DesktopPrefab"
+      },
+      "category": "plant",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Trees/Eastern_White_Pine/Prefabs/Eastern_White_Pine_Desktop01"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Trees/Scots_Pine/Prefabs/ScotsPine_Desktop04"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Trees/Scots_Pine/Prefabs/ScotsPine_Desktop05"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Trees/Scots_Pine/Prefabs/ScotsPine_Desktop06"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Trees/Scots_Pine/Prefabs/ScotsPine_Desktop24"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Trees/Scots_Pine/Prefabs/ScotsPine_Desktop34"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Trees/Scots_Pine/Prefabs/ScotsPine_Desktop35"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Trees/Scots_Pine/Prefabs/ScotsPine_Desktop36"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Bushes/GenericBush/Prefabs/GenericBush_A_004"
+      },
+      "category": "shrub",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Bushes/GenericBush/Prefabs/GenericBush_G_002"
+      },
+      "category": "shrub",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Bushes/Gorse_Bushes/Prefabs/Gorse_Common_013"
+      },
+      "category": "shrub",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Bushes/Gorse_Bushes/Prefabs/Gorse_Common_017"
+      },
+      "category": "shrub",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Bushes/Gorse_Bushes/Prefabs/Gorse_Common_026"
+      },
+      "category": "shrub",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Grass/Fescue_01/Prefabs/Fescue_01_004"
+      },
+      "category": "grass",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Grass/Fescue_01/Prefabs/Fescue_01_005"
+      },
+      "category": "grass",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Grass/Fescue_02/Prefabs/Fescue_02_001"
+      },
+      "category": "grass",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Grass/Fescue_02/Prefabs/Fescue_02_002"
+      },
+      "category": "grass",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Grass/Fescue_02/Prefabs/Fescue_02_003"
+      },
+      "category": "grass",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Grass/Fescue_02/Prefabs/Fescue_02_004"
+      },
+      "category": "grass",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Grass/Fescue_03/Prefabs/Fescue_03_005_Cutout"
+      },
+      "category": "grass",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Grass/Fescue_03/Prefabs/Fescue_03_007_Cutout"
+      },
+      "category": "grass",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Grass/Fescue_03/Prefabs/Fescue_03_011_Cutout"
+      },
+      "category": "grass",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Grass/Fescue_04/Prefabs/Fescue_04_001"
+      },
+      "category": "grass",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Grass/Fescue_04/Prefabs/Fescue_04_004"
+      },
+      "category": "grass",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Grass/Fescue_05/Prefabs/Fescue_05_001"
+      },
+      "category": "grass",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Plants/Aloe/Aloe_Vera/Prefabs/Aloe_Vera_003"
+      },
+      "category": "plant",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Plants/Cactus_TeddyBear_Cholla/Prefabs/Cactus_TeddyBear_Cholla_002"
+      },
+      "category": "plant",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Plants/Dasylirion_Wheeleri/Prefabs/Dasylirion_Wheeleri_001"
+      },
+      "category": "plant",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Plants/Dasylirion_Wheeleri/Prefabs/Dasylirion_Wheeleri_002"
+      },
+      "category": "plant",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Trees/Acacia_Senegal/Prefabs/Acacia_Senegal_002"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Trees/Maple_Red/Prefabs/Maple_Red_905"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Trees/Oak_White/Prefabs/Oak_White_904"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Trees/Oak_White_FB/Prefabs/Oak_White_FB_901"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Trees/Pine_Scots/Prefabs/Pine_Scots_057"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Trees/Pine_White/Prefabs/Pine_White_003"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Trees/Pine_White/Prefabs/Pine_White_005"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Trees/Spruce_Norway/Prefabs/Spruce_Norway_001"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Trees/Spruce_Norway/Prefabs/Spruce_Norway_003"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0.0,
+          "y": "-Infinity",
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    }
+  ]
+}

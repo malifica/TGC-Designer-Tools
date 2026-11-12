@@ -52,7 +52,7 @@ class Tests(unittest.TestCase):
         tree=ast.parse((ROOT/'tgc_gui.py').read_text(encoding='utf-8-sig'))
         values={t.id:ast.literal_eval(n.value) for n in tree.body if isinstance(n,ast.Assign)
                 for t in n.targets if isinstance(t,ast.Name) and t.id in ('TGC_APP_TITLE','TGC_GUI_VERSION')}
-        self.assertEqual(values,{'TGC_APP_TITLE':'TGC Designer Tools 2K25 - Beta 8.4','TGC_GUI_VERSION':'v0.5.0-2k25-beta8.4'})
+        self.assertEqual(values,{'TGC_APP_TITLE':'TGC Designer Tools 2K25 - Beta 8.5','TGC_GUI_VERSION':'v0.5.0-2k25-beta8.5'})
     def test_02_neutral_tone(self):self.assertEqual(d.tone_lut(),list(range(256)))
     def test_03_brighter(self):self.assertGreater(d.tone_lut(1.3,1.)[100],100)
     def test_04_darker(self):self.assertLess(d.tone_lut(.6,1.)[100],100)
@@ -153,7 +153,7 @@ class Tests(unittest.TestCase):
             with self.assertRaises(ValueError):d.viewport_tile(Image.new('RGB',(2,2)),z,0,0,20,20)
     def test_26_hillshade_default_and_bounded_render(self):
         source=(ROOT/'osm_alignment_viewer.py').read_text(encoding='utf-8-sig')
-        self.assertIn('value="Hillshade"',source);self.assertIn('viewport_tile',source)
+        self.assertIn('value="Hillshade 1"',source);self.assertIn('viewport_tile',source)
         self.assertNotIn('pil.resize(size',source)
     def test_27_shared_ui_and_mask_transformer(self):
         self.assertIn('importer_transformer(projection)',(ROOT/'osm_alignment_viewer.py').read_text())
@@ -189,9 +189,9 @@ def gui_check(screenshot=None):
             end=time.monotonic()+seconds
             while time.monotonic()<end:root.update();time.sleep(.005)
         deadline=time.monotonic()+20
-        while not a.ready and time.monotonic()<deadline:pump(.04)
-        assert a.ready, logs
-        assert a.view_var.get()=='Hillshade'
+        while (not a.ready or 'Hillshade 1' not in a.backgrounds) and time.monotonic()<deadline:pump(.04)
+        assert a.ready and 'Hillshade 1' in a.backgrounds, logs
+        assert a.view_var.get()=='Hillshade 1'
         saved=a.heightmap.copy();features=copy.deepcopy(a.features);shifts=(a.shift_ew,a.shift_ns)
         a.brightness_var.set(1.3);a.contrast_var.set(.75);d.tone_changed(a);pump(.15)
         assert a.brightness_text.get()=='130%' and a.contrast_text.get()=='75%'
@@ -204,7 +204,7 @@ def gui_check(screenshot=None):
         a.canvas.xview_moveto(.5);a.canvas.yview_moveto(.4);pump(.2)
         assert tuple(a.canvas.coords(a.image_item))!=(0.,0.)
         a._view_changed();pump(.1)
-        for view in ['Visual','Blend','Hillshade']:
+        for view in ['Visual','Blend','Hillshade 1','Hillshade 2']:
             a.view_var.set(view);a._view_changed();pump(.05)
         assert np.array_equal(a.heightmap,saved) and a.features==features
         assert shifts==(a.shift_ew,a.shift_ns)

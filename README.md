@@ -2,6 +2,18 @@
 
 Build PGA TOUR 2K25 courses from **LiDAR, GeoTIFF DEMs, OpenStreetMap, and Unity RAW/SVG data**. Import real-world terrain and course features, align the layout visually, choose regional vegetation, and export a `.course` file for Designer.
 
+## Beta 8.5 source preparation
+
+This branch contains the cumulative Beta 8.5 source. The Windows release is pending collection and verification of the existing Beta 8.5 executable and its matching build receipt. [Beta 8.5 highlights](BETA8_5_PUBLICATION_NOTES.md) cover the new hillshade, course-boundary filtering, separate terrain stamp spacing, AUTO scale confirmation, 25 themes, nature-only Filter Ready, and portable theme resources.
+
+To collect an existing checked build without rebuilding it, run this in Windows CMD:
+
+```bat
+"C:\TGC-Designer-Tools\.venv_local_osm\Scripts\python.exe" "C:\TGC-Designer-Tools\COLLECT_BETA8_5_FOR_PUBLICATION.py" --output-dir "%USERPROFILE%\Downloads"
+```
+
+The collector verifies the executable, checksum, build receipt, and matching main-tool inputs. It archives only those inputs and leaves the installation unchanged. The public release will use the supplied executable unchanged.
+
 **Latest published release: v0.5.0-2k25-beta8.4** · **Windows x64** · Maintained by **malifica**
 
 [Download Beta 8.4](https://github.com/malifica/TGC-Designer-Tools/releases/tag/v0.5.0-2k25-beta8.4) · [Release notes](RELEASE_NOTES_v0.5.0-2k25-beta8.4.md) · [Change history](CHANGELOG.md)

@@ -13,7 +13,7 @@ class Value:
     def get(self):return self.value
 
 class UnityImportDialog(tk.Toplevel):
-    def __init__(self,parent,project,map_scale=2.,printf=print,on_ready=None,on_close=None):
+    def __init__(self,parent,project,map_scale='Auto',printf=print,on_ready=None,on_close=None):
         super().__init__(parent)
         from tgc_ui_style import install as install_shared_ui
         install_shared_ui(self)
@@ -31,7 +31,7 @@ class UnityImportDialog(tk.Toplevel):
         controls=ttk.Frame(self,padding=(8,0));controls.grid(row=1,column=0,sticky='ew')
         defaults={'width_m':'','length_m':'','height_m':'','base_elevation_m':'0','rows':'','cols':'','bits':'16','byte_order':'little','orientation':'as_stored','output_spacing_m':str(map_scale)}
         self.v={k:tk.StringVar(value=v) for k,v in defaults.items()}
-        fields=[('Width (m)','width_m'),('Length (m)','length_m'),('Height scale (m)','height_m'),('Base Z (m)','base_elevation_m'),('Output step (m)','output_spacing_m'),('Rows','rows'),('Columns','cols'),('Bits','bits'),('Byte order','byte_order'),('RAW orientation','orientation')]
+        fields=[('Width (m)','width_m'),('Length (m)','length_m'),('Height scale (m)','height_m'),('Base Z (m)','base_elevation_m'),('Output step (Auto/m)','output_spacing_m'),('Rows','rows'),('Columns','cols'),('Bits','bits'),('Byte order','byte_order'),('RAW orientation','orientation')]
         for i,(label,key) in enumerate(fields):
             rr=(i//5)*2;cc=i%5
             ttk.Label(controls,text=label).grid(row=rr,column=cc,sticky='w',padx=5)
@@ -81,9 +81,30 @@ class UnityImportDialog(tk.Toplevel):
         except queue.Empty:pass
         if not self.closed:self._pump_job = self.after(80,self.pump)
     def settings(self):
-        s={k:(int(v.get()) if k in ('rows','cols','bits') else v.get() if k in ('byte_order','orientation') else float(v.get())) for k,v in self.v.items()}
+        # TGC_BETA8_5_AUTO_SOURCE_SCALE_V1: RAW spacing comes from dimensions,
+        # sample counts and the selected orientation, before loading elevations.
+        from tgc_source_scale import normalize_scale_request, resolve_source_scale
+        s={k:(int(v.get()) if k in ('rows','cols','bits') else v.get() if k in ('byte_order','orientation') else float(v.get())) for k,v in self.v.items() if k != 'output_spacing_m'}
+        assessment=self.scale_assessment(s)
+        request=normalize_scale_request(self.v['output_spacing_m'].get())
+        s['output_spacing_m']=resolve_source_scale(request,assessment)
         s.update({'mapping':dict(self.mapping),'output_prefix':Path(self.svg.get()).stem,'epsg':32631,'center_e':500000.,'center_n':5000000.,'normalization_divisor':2**s['bits'],'curve_tolerance_m':.15,'max_segment_m':8.})
         return s
+    @staticmethod
+    def scale_assessment(s):
+        rows,cols=int(s['rows']),int(s['cols'])
+        if s.get('orientation') in ('rotate_90','rotate_270','transpose','anti_transpose'):
+            rows,cols=cols,rows
+        if rows<2 or cols<2:raise ValueError('Inspect the RAW rows and columns before choosing a map scale.')
+        width,length=float(s['width_m']),float(s['length_m'])
+        if not all(math.isfinite(v) and v>0 for v in (width,length)):
+            raise ValueError('Terrain width and length must be finite positive metres.')
+        sx,sy=width/(cols-1),length/(rows-1)
+        native=max(sx,sy)
+        return {'source_type':'Unity RAW','recommended_scale':native,'minimum_scale':native,
+                'confidence':'declared dimensions','summary':'Unity RAW: %d columns x %d rows; source spacing %g x %g m.'%(cols,rows,sx,sy),
+                'reason':'Use the native spacing calculated from the declared terrain dimensions and RAW sample counts.',
+                'notes':['Confirm the terrain dimensions and RAW orientation in the import window before continuing.']}
     def load_settings(self):
         p=filedialog.askopenfilename(parent=self,initialdir=self.project,filetypes=[('Unity import settings','*.json')])
         if not p:return
@@ -171,8 +192,12 @@ class UnityImportDialog(tk.Toplevel):
         try:s=self.settings()
         except Exception as exc:messagebox.showerror('Parameters',str(exc),parent=self);return
         raw=self.raw.get();svg=self.svg.get()
-        notice='This exports a synthetic, matched DEM/OSM pair and starts normal DEM processing. Confirm the preview and feature mapping first. No hole routing/par is inferred; if absent, the result is surfaces only. Existing project heightmap/mask may be replaced after you accept the normal DEM crop. Continue?'
-        if not messagebox.askyesno('Convert + process',notice,parent=self):return
+        from tgc_source_scale_ui import confirm_source_scale
+        decision=confirm_source_scale(self,self.scale_assessment(s),self.v['output_spacing_m'].get(),
+                                      source_label='Unity RAW: '+str(raw))
+        if decision is None:return
+        s['output_spacing_m']=decision['selected_scale']
+        s['source_scale_decision']=decision
         folder=self.project/('Unity_Import_'+datetime.datetime.now().strftime('%Y%m%d_%H%M%S_%f'))
         def work():return core.create_pair(raw,svg,folder,s,printf=lambda text:None)[0]
         def done(report):

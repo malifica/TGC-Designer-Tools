@@ -389,7 +389,7 @@ class RealDialogTests(unittest.TestCase):
         self.nudge=(1.5,-.5)
         self.report=analytical_review(self.data,self.source,self.nudge,{'101':(3.,-2.5)})
         viewer=SimpleNamespace(window=self.root,osm_file=str(self.source),data=self.data,grid=self.grid,
-            resolution=2.,rows=128,cols=128,backgrounds={'Hillshade':np.full((128,128,3),145,dtype=np.uint8)},
+            resolution=2.,rows=128,cols=128,backgrounds={'Hillshade 1':np.full((128,128,3),145,dtype=np.uint8)},
             features=[],shift_ew=self.nudge[0],shift_ns=self.nudge[1],
             brightness_var=tk.DoubleVar(self.root,value=1.),contrast_var=tk.DoubleVar(self.root,value=1.),
             ready=True,busy=False,closed=False,_set_controls_enabled=lambda enabled:None)

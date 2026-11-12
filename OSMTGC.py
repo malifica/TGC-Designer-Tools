@@ -2275,6 +2275,11 @@ def addOSMToTGC(course_json, geopointcloud, osm_result, x_offset=0.0, y_offset=0
     global spline_optimization_stats
     global last_imported_road_spline_indices
     global last_imported_water_splines
+    # TGC_BETA8_5_COURSE_BOUNDARY_FILTER_V1: validate selection before clearing
+    # any existing course features; scenery is retained by the shared filter.
+    from osm_course_filter import filter_osm_course
+    osm_result = filter_osm_course(
+        osm_result, options_dict.get('course_name_filter', ''), printf=printf)
     last_imported_water_splines = []
     course_json.pop('_tgcOsmWaterMulchV1', None)
     # TGC_HBCC_DRY_MULCH_V1: keep dry areas separate from water bookkeeping.

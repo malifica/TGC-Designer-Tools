@@ -1,0 +1,249 @@
+{
+  "id": "boreal_woodlands",
+  "display_name": "Boreal Woodlands",
+  "enabled": true,
+  "tree_generation": "profile",
+  "description": "Cedar-led conifer woodland with fern, fescue and gorse options and a varied turf and terrain palette.",
+  "assets": [
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/CedarTrees/Prefabs/CedarTree2",
+      "shape": "skinny",
+      "weight": 1119
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Generic_Conifer/Prefabs/Generic_Conifer_Desktop06",
+      "shape": "skinny",
+      "weight": 383
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree8/Trees/Cedar_B/Prefabs/Cedar_B_007",
+      "shape": "skinny",
+      "weight": 324
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree8/Trees/Larch_European/Prefabs/Larch_European_002",
+      "shape": "skinny",
+      "weight": 257
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree8/Trees/Spruce_Norway/Prefabs/Spruce_Norway_010",
+      "shape": "skinny",
+      "weight": 135
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Douglas_Fir/Prefabs/DouglasFir_Desktop14_Cone",
+      "shape": "skinny",
+      "weight": 133
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree8/Trees/Pine_White/Prefabs/Pine_White_016",
+      "shape": "skinny",
+      "weight": 119
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Black_Gum/Prefabs/Black_Gum_Desktop01",
+      "shape": "normal",
+      "weight": 107
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree8/Trees/Spruce_Norway/Prefabs/Spruce_Norway_008",
+      "shape": "skinny",
+      "weight": 104
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Douglas_Fir/Prefabs/DouglasFir_Desktop03",
+      "shape": "skinny",
+      "weight": 76
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Douglas_Fir/Prefabs/DouglasFir_Desktop12",
+      "shape": "skinny",
+      "weight": 68
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Eastern_White_Pine/Prefabs/Eastern_White_Pine_Desktop01",
+      "shape": "skinny",
+      "weight": 67
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree8/Trees/Spruce_Norway/Prefabs/Spruce_Norway_005",
+      "shape": "skinny",
+      "weight": 58
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree8/Trees/Spruce_Norway/Prefabs/Spruce_Norway_007",
+      "shape": "skinny",
+      "weight": 24
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Slash_Pine02/Prefabs/SlashPine02_Bare_Desktop00",
+      "shape": "skinny",
+      "weight": 23
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree8/Trees/Gum_Black/Prefabs/Gum_Black_002",
+      "shape": "normal",
+      "weight": 19
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree8/Trees/Spruce_Norway/Prefabs/Spruce_Norway_004",
+      "shape": "skinny",
+      "weight": 17
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree8/Trees/Cedar_B/Prefabs/Cedar_B_006",
+      "shape": "skinny",
+      "weight": 11
+    }
+  ],
+  "scale_defaults": {},
+  "visual_material_preset": {
+    "theme": 5,
+    "surfaces2": [
+      {
+        "name": "Sand06",
+        "blend": 0.8400003,
+        "maskWater": true
+      },
+      {
+        "name": "Asphalt02",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "Concrete01",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "Asphalt01",
+        "blend": 0.500000536,
+        "maskWater": true
+      },
+      {
+        "name": "Cobbles05",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "PineStraw05",
+        "blend": 1.0,
+        "maskWater": true
+      },
+      {
+        "name": "Green19_TPC_Boston",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "Fringe19_TPC_Boston",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "Fairway10",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "LightRough46_Pinehurst",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "HeavyRough19_TPC_Boston",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "Splat0_Bedrock04",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "Splat1_QuailHollow",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "Splat2_StAndrews",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "Splat3_Rustic",
+        "blend": 0.2,
+        "maskWater": true
+      }
+    ],
+    "secondarySurfaces": [
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "Green48",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "Fringe48",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "Fairway48",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "LightRough48",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "HeavyRough48",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      }
+    ],
+    "cartPathTexture": 0,
+    "teeTexture": 16
+  }
+}

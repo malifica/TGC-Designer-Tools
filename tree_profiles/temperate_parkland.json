@@ -1,0 +1,432 @@
+{
+  "id": "temperate_parkland",
+  "display_name": "Temperate Parkland",
+  "enabled": true,
+  "tree_generation": "profile",
+  "description": "Cedar, oak and linden parkland with fescue, shrubs and coordinated turf and terrain materials.",
+  "assets": [
+    {
+      "path": "Assets/Foliage/SpeedTree8/Trees/Oak_White/Prefabs/Oak_White_904",
+      "shape": "normal",
+      "weight": 259
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree8/Trees/Linden_European/Prefabs/Linden_European_002",
+      "shape": "normal",
+      "weight": 225
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/CedarTrees/Prefabs/CedarTree1",
+      "shape": "skinny",
+      "weight": 221
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/CedarTrees/Prefabs/CedarTree3",
+      "shape": "skinny",
+      "weight": 214
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree8/Trees/AfghanTree_E/Prefabs/AfghanTree_E_006",
+      "shape": "normal",
+      "weight": 74
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Honey_Mesquite/Prefabs/Honey_Mesquite_Desktop_Scottsdale_15",
+      "shape": "normal",
+      "weight": 63
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree8/Trees/Oak_White/Prefabs/Oak_White_901",
+      "shape": "normal",
+      "weight": 63
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/CedarTrees/Prefabs/CedarTree2",
+      "shape": "skinny",
+      "weight": 37
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree8/Trees/Oak_White/Prefabs/Oak_White_032",
+      "shape": "normal",
+      "weight": 30
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree8/Trees/Spruce_Norway/Prefabs/Spruce_Norway_010",
+      "shape": "skinny",
+      "weight": 25
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree8/Trees/Spruce_Norway/Prefabs/Spruce_Norway_006",
+      "shape": "skinny",
+      "weight": 21
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree8/Trees/AfghanTree_C/Prefabs/AfghanTree_C_004",
+      "shape": "normal",
+      "weight": 9
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree8/Trees/Spruce_Norway/Prefabs/Spruce_Norway_001",
+      "shape": "skinny",
+      "weight": 9
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Red_Maple/Prefabs/Red_Maple_Desktop06",
+      "shape": "normal",
+      "weight": 8
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree8/Trees/Locust_Black/Prefabs/Locust_Black_002",
+      "shape": "normal",
+      "weight": 8
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Black_Locust/Prefabs/Black_Locust_Young_Desktop01",
+      "shape": "normal",
+      "weight": 7
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree8/Trees/AfghanTree_C/Prefabs/AfghanTree_C_007",
+      "shape": "normal",
+      "weight": 7
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree8/Trees/Beech_American/Prefabs/Beech_American_003",
+      "shape": "normal",
+      "weight": 7
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree8/Trees/Spruce_Norway/Prefabs/Spruce_Norway_009",
+      "shape": "skinny",
+      "weight": 7
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Afghan/Prefabs/AfghanTree8E",
+      "shape": "normal",
+      "weight": 6
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Red_Maple/Prefabs/Red_Maple_Desktop05",
+      "shape": "normal",
+      "weight": 6
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Southern_Live_Oak/Prefabs/SouthernLiveOak_Desktop22",
+      "shape": "normal",
+      "weight": 6
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree8/Trees/AfghanTree_B/Prefabs/AfghanTree_B_010",
+      "shape": "normal",
+      "weight": 6
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree8/Trees/AfghanTree_C/Prefabs/AfghanTree_C_006",
+      "shape": "normal",
+      "weight": 6
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree8/Trees/AfghanTree_E/Prefabs/AfghanTree_E_008",
+      "shape": "normal",
+      "weight": 6
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Black_Gum/Prefabs/Black_Gum_Desktop01",
+      "shape": "normal",
+      "weight": 5
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/California_Sycamore/Prefabs/California_Sycamore_Desktop06_Riviera03_01_Bare",
+      "shape": "normal",
+      "weight": 5
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree8/Trees/Maple_Red/Prefabs/Maple_Red_010",
+      "shape": "normal",
+      "weight": 5
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree8/Trees/Oak_White/Prefabs/Oak_White_052",
+      "shape": "normal",
+      "weight": 5
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/White_Oak/Prefabs/White_Oak_Desktop20",
+      "shape": "normal",
+      "weight": 4
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree8/Trees/Maple_Silver/Prefabs/Maple_Silver_016",
+      "shape": "normal",
+      "weight": 4
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree8/Trees/Pine_Torrey/Prefabs/Pine_Torrey_006",
+      "shape": "skinny",
+      "weight": 4
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree8/Trees/Pine_Torrey/Prefabs/Pine_Torrey_007",
+      "shape": "skinny",
+      "weight": 4
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree8/Trees/Pine_White/Prefabs/Pine_White_004",
+      "shape": "skinny",
+      "weight": 4
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/California_Sycamore/Prefabs/California_Sycamore_Desktop11_Riviera06_04_Bare",
+      "shape": "normal",
+      "weight": 3
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree8/Trees/Cypress_Monterey/Prefabs/Cypress_Monterey_005",
+      "shape": "skinny",
+      "weight": 3
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Red_Maple/Prefabs/Red_Maple_Desktop_Young",
+      "shape": "normal",
+      "weight": 2
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree8/Trees/Acacia_Nilotica/Prefabs/Acacia_Nilotica_002",
+      "shape": "normal",
+      "weight": 2
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree8/Trees/AfghanTree_B/Prefabs/AfghanTree_B_009",
+      "shape": "normal",
+      "weight": 2
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree8/Trees/AfghanTree_B/Prefabs/AfghanTree_B_011",
+      "shape": "normal",
+      "weight": 2
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree8/Trees/AfghanTree_C/Prefabs/AfghanTree_C_002",
+      "shape": "normal",
+      "weight": 2
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree8/Trees/AfghanTree_C/Prefabs/AfghanTree_C_003",
+      "shape": "normal",
+      "weight": 2
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree8/Trees/Maple_Red/Prefabs/Maple_Red_009",
+      "shape": "normal",
+      "weight": 2
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree8/Trees/Pine_White/Prefabs/Pine_White_003",
+      "shape": "skinny",
+      "weight": 2
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Douglas_Fir/Prefabs/DouglasFir_Desktop14_Cone",
+      "shape": "skinny",
+      "weight": 1
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/European_Linden/Prefabs/EuropeanLinden_Desktop_Young",
+      "shape": "normal",
+      "weight": 1
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Red_Maple/Prefabs/Red_Maple_Desktop04",
+      "shape": "normal",
+      "weight": 1
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Southern_Live_Oak/Prefabs/SouthernLiveOak_Desktop02",
+      "shape": "normal",
+      "weight": 1
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Southern_Live_Oak/Prefabs/SouthernLiveOak_Desktop03",
+      "shape": "normal",
+      "weight": 1
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Southern_Live_Oak/Prefabs/SouthernLiveOak_Desktop04",
+      "shape": "normal",
+      "weight": 1
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Southern_Live_Oak/Prefabs/SouthernLiveOak_Desktop05",
+      "shape": "normal",
+      "weight": 1
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Southern_Live_Oak/Prefabs/SouthernLiveOak_Desktop06",
+      "shape": "normal",
+      "weight": 1
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Southern_Live_Oak/Prefabs/SouthernLiveOak_Desktop14_SanAntonio_Tee05",
+      "shape": "normal",
+      "weight": 1
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree8/Trees/Acacia_Nilotica/Prefabs/Acacia_Nilotica_001",
+      "shape": "normal",
+      "weight": 1
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree8/Trees/Pine_White/Prefabs/Pine_White_019",
+      "shape": "skinny",
+      "weight": 1
+    }
+  ],
+  "scale_defaults": {},
+  "visual_material_preset": {
+    "theme": 7,
+    "surfaces2": [
+      {
+        "name": "Sand16",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "Concrete02",
+        "blend": 1.0,
+        "maskWater": true
+      },
+      {
+        "name": "Cobbles01",
+        "blend": 1.0,
+        "maskWater": true
+      },
+      {
+        "name": "HerringBone01",
+        "blend": 0.4000002,
+        "maskWater": true
+      },
+      {
+        "name": "Concrete01",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "Green10",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "Fringe10",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "Fairway08",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "LightRough46_Pinehurst",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "HeavyRough46_Pinehurst",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "Splat0_TPC_RiverHighlands",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "Splat1_Swiss",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "Splat2_RivieraCC",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "Splat3_TPC_Scottsdale",
+        "blend": 0.2,
+        "maskWater": true
+      }
+    ],
+    "secondarySurfaces": [
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "Green48",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "Fringe48",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "Fairway48",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "LightRough48",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      }
+    ],
+    "cartPathTexture": 0,
+    "teeTexture": 16
+  }
+}

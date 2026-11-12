@@ -386,6 +386,7 @@ class AlignmentViewer:
         apply_finished_callback=None,
         custom_unmatched_osm=False,
         osm_file_changed_callback=None,
+        course_name_filter="",
     ):
         # TGC_BETA6_CFS_MASK_ALIGNMENT_WORKFLOW_V1
         # V3 retains the V1 aligned-mask callback contract; only its execution
@@ -400,6 +401,8 @@ class AlignmentViewer:
         self.apply_callback = apply_callback
         self.apply_finished_callback = apply_finished_callback
         self.custom_unmatched_osm = bool(custom_unmatched_osm)
+        from osm_course_filter import course_filter_key
+        self.course_name_filter = course_filter_key(course_name_filter)
         self.osm_file_changed_callback = osm_file_changed_callback
         self.local_review = None
         self._local_original_osm_file = self.osm_file
@@ -429,8 +432,13 @@ class AlignmentViewer:
         self.features = []
         self.visual_rgb = None
         self.relief_rgb = None
+        self.relief2_rgb = None
         self.blend_rgb = None
         self.backgrounds = {}
+        # TGC_BETA8_5_HILLSHADE_DEFAULTS_V1: detailed relief is the default.
+        self._hillshade2_queue = queue.Queue()
+        self._hillshade2_loading = False
+        self._hillshade2_open_review_when_ready = False
 
         self.ready = False
         self.loading = True
@@ -442,7 +450,8 @@ class AlignmentViewer:
         self._interactive_widgets = []
 
         self.window = tk.Toplevel(parent)
-        self.window.title("CFS OSM / Terrain Alignment Viewer")
+        self.window.title("CFS OSM / Terrain Alignment Viewer" +
+                          (" — Course: " + self.course_name_filter if self.course_name_filter else ""))
         self.window.geometry("1280x900")
         self.window.minsize(900, 650)
         self.window.protocol("WM_DELETE_WINDOW", self._request_close)
@@ -485,13 +494,13 @@ class AlignmentViewer:
         top.pack(fill=tk.X, padx=8, pady=(2, 5))
 
         ttk.Label(top, text="View:").pack(side=tk.LEFT)
-        self.view_var = tk.StringVar(master=self.window, value="Hillshade")
+        self.view_var = tk.StringVar(master=self.window, value="Hillshade 1")
         self.view_combo = self._register(ttk.Combobox(
             top,
-            width=10,
+            width=12,
             state="readonly",
             textvariable=self.view_var,
-            values=("Blend", "Visual", "Hillshade"),
+            values=("Hillshade 1", "Hillshade 2", "Blend", "Visual"),
         ))
         self.view_combo.pack(side=tk.LEFT, padx=4)
         self.view_combo.bind("<<ComboboxSelected>>", self._view_changed)
@@ -735,6 +744,9 @@ class AlignmentViewer:
 
             progress(20, "Parsing the Local OSM file...")
             osm_result = _parse_osm(self.osm_file)
+            if getattr(self, "course_name_filter", ""):
+                from osm_course_filter import filter_osm_course
+                osm_result = filter_osm_course(osm_result, self.course_name_filter, printf=log)
 
             progress(28, "Projecting OSM geometry into the terrain grid...")
             features = _collect_overlay_features(
@@ -816,7 +828,7 @@ class AlignmentViewer:
                 self.cols = int(self.heightmap.shape[1])
                 self.backgrounds = {
                     "Visual": np.flipud(self.visual_rgb),
-                    "Hillshade": np.flipud(self.relief_rgb),
+                    "Hillshade 2": np.flipud(self.relief_rgb),
                     "Blend": np.flipud(self.blend_rgb),
                 }
                 self.loading = False
@@ -826,6 +838,8 @@ class AlignmentViewer:
                 self._set_controls_enabled(True)
                 self._set_progress(100, "CFS alignment viewer ready.")
                 self.canvas.focus_set()
+                # A default StringVar does not emit ComboboxSelected.
+                self._start_hillshade2()
                 finished = True
 
         if not finished and not self.closed:
@@ -859,6 +873,12 @@ class AlignmentViewer:
                 "Local terrain matching requires georeferenced OSM. Turn off Custom / Unmatched OSM and reopen CFS for this feature.",
                 parent=self.window,
             )
+            return
+        # Local feature review always uses the new detailed Hillshade 1,
+        # independently of the main viewer's selected display mode.
+        if "Hillshade 1" not in self.backgrounds:
+            self._hillshade2_open_review_when_ready = True
+            self._start_hillshade2()
             return
         try:
             ew, ns = float(self.ew_var.get()), float(self.ns_var.get())
@@ -921,9 +941,76 @@ class AlignmentViewer:
 
     def _view_changed(self, event=None):
         if self._can_interact():
+            if self.view_var.get() == "Hillshade 1":
+                self._start_hillshade2()
             self._redraw_background()
             self.canvas.focus_set()
         return "break"
+
+    def _start_hillshade2(self):
+        """Prepare the default detailed layer on a background worker."""
+        if (not self.ready or self.closed or self._hillshade2_loading
+                or "Hillshade 1" in self.backgrounds):
+            return
+        self._hillshade2_loading = True
+        if not self.busy:
+            self._set_progress(70, "Generating Hillshade 1 terrain detail...")
+        heightmap, resolution = self.heightmap, self.resolution
+        result_queue = self._hillshade2_queue
+
+        def render():
+            try:
+                from tgc_hillshade2 import terrain_relief2
+                result_queue.put(("done", terrain_relief2(heightmap, resolution)))
+            except Exception:
+                result_queue.put(("error", traceback.format_exc()))
+
+        threading.Thread(target=render, name="TGC-CFS-Hillshade1", daemon=True).start()
+        self.window.after(60, self._pump_hillshade2_queue)
+
+    def _pump_hillshade2_queue(self):
+        """Accept worker results on the Tk thread; keep geometry untouched."""
+        if self.closed:
+            return
+        try:
+            kind, payload = self._hillshade2_queue.get_nowait()
+        except queue.Empty:
+            self.window.after(60, self._pump_hillshade2_queue)
+            return
+        self._hillshade2_loading = False
+        if kind == "done" and (not isinstance(payload, np.ndarray)
+                or payload.shape != (self.rows, self.cols, 3)
+                or payload.dtype != np.uint8):
+            kind, payload = "error", "Hillshade 1 returned an invalid display image."
+        active = self.view_var.get() == "Hillshade 1"
+        open_review = self._hillshade2_open_review_when_ready
+        self._hillshade2_open_review_when_ready = False
+        if kind == "error":
+            try:
+                self.printf("Hillshade 1 could not be generated:\n" + str(payload))
+            except Exception:
+                pass
+            if active:
+                self.view_var.set("Hillshade 2")
+                self._redraw_background()
+            if not self.busy:
+                self._set_progress(100, "Hillshade 2 is ready; Hillshade 1 could not be generated.")
+            if active or open_review:
+                messagebox.showerror(
+                    "Hillshade 1", "Could not generate Hillshade 1. Hillshade 2 is available.\n\n" + str(payload),
+                    parent=self.window,
+                )
+            return
+        self.relief2_rgb = payload
+        self.backgrounds["Hillshade 1"] = np.flipud(self.relief2_rgb)
+        self._cfs_background_cache.pop("Hillshade 1", None)
+        self._cfs_last_tile_key = None
+        if active:
+            self._redraw_background()
+        if not self.busy:
+            self._set_progress(100, "Hillshade 1 ready.")
+        if open_review and self._can_interact():
+            self._open_local_alignment()
 
 
     def _key_nudge(self, event, dew, dns):
@@ -938,6 +1025,10 @@ class AlignmentViewer:
         return "break"
 
     def _current_background(self):
+        if self.view_var.get() == "Hillshade 1":
+            # The existing background is already north-up. Use it while the
+            # default layer is pending, without changing coordinate mapping.
+            return self.backgrounds.get("Hillshade 1", self.backgrounds["Hillshade 2"])
         return self.backgrounds.get(self.view_var.get(), self.blend_rgb)
 
 
@@ -1257,6 +1348,7 @@ def open_alignment_viewer(
     apply_finished_callback=None,
     custom_unmatched_osm=False,
     osm_file_changed_callback=None,
+    course_name_filter="",
 ):
     heightmap_path = Path(heightmap_dir) / "heightmap.npy"
 
@@ -1296,6 +1388,7 @@ def open_alignment_viewer(
             apply_finished_callback=apply_finished_callback,
             custom_unmatched_osm=custom_unmatched_osm,
             osm_file_changed_callback=osm_file_changed_callback,
+            course_name_filter=course_name_filter,
         )
 
     except Exception as exc:

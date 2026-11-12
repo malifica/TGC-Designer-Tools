@@ -306,6 +306,83 @@ def _inventory(raw, grid, projection, kinds, cancel_event=None):
     return features, {"nodes": len(nodes), "ways": len(ways), "relations": len(relations)}
 
 
+def _filter_course_inventory(raw, inventory, grid, projection, course_name_filter=""):
+    """Select review rows without removing any original XML/topology evidence.
+
+    The full inventory is built first so shared-node and relation ownership stay
+    available to the exporter. A mixed golf/environment object outside the
+    chosen course remains available under its environmental meaning only.
+    """
+    from osm_course_filter import course_filter_key, filter_osm_course
+
+    key = course_filter_key(course_name_filter)
+    if not key:
+        return inventory, {}
+    import overpy
+    from tgc_local_alignment_topology import (
+        ROUGH_KINDS, SURFACE_NAMES, _projector, _surface_geometry, surface_kind,
+    )
+
+    result = filter_osm_course(overpy.Overpass().parse_xml(raw), key, printf=lambda _message: None)
+    selection = dict(getattr(result, "_tgc_course_filter_report", {}))
+    if selection.get("key") != key:
+        raise AlignmentError("The Course Name selection could not be verified; analyze again.")
+    excluded = {
+        "way": set(selection.get("excluded_golf_way_ids", [])),
+        "relation": set(selection.get("excluded_golf_relation_ids", [])),
+    }
+    suppressed = {
+        "way": set(selection.get("suppressed_golf_way_ids", [])),
+        "relation": set(selection.get("suppressed_golf_relation_ids", [])),
+    }
+    retained = {
+        "way": {int(obj.id): obj for obj in result.ways},
+        "relation": {int(obj.id): obj for obj in result.relations},
+    }
+    coordinates = None
+    source_ways = None
+    selected = []
+    for original in inventory:
+        owner_kind = "relation" if "relation_id" in original else "way"
+        owner_id = int(original[owner_kind + "_id"])
+        if owner_id not in retained[owner_kind]:
+            continue
+        feature = dict(original)
+        if owner_id in excluded[owner_kind]:
+            if owner_id not in suppressed[owner_kind]:
+                continue
+            tags = dict(retained[owner_kind][owner_id].tags)
+            kind = surface_kind(tags)
+            if not kind:
+                continue
+            # Reclassification affects review metadata, never source XML tags.
+            rough = kind in ROUGH_KINDS
+            role = feature.get("boundary_role", "")
+            feature.update(tags=tags, kind="rough" if rough else kind,
+                           surface_kind=kind, manual_only=True,
+                           target_type=("rough" if rough else "surface") +
+                                       ("_ring" if owner_kind == "relation" else "_way"),
+                           label=SURFACE_NAMES[kind] +
+                                 (" hole" if role == "inner" else " outer" if role == "outer" else ""))
+            if coordinates is None:
+                root = ET.fromstring(raw)
+                coordinates = _projector(_index(root, "node"), grid, projection)
+                source_ways = _index(root, "way")
+            if owner_kind == "way":
+                refs = [nd.get("ref") for nd in source_ways[str(owner_id)].findall("nd")]
+            else:
+                refs = [str(nid) for nid in feature.get("node_ids", [])]
+            _surface_geometry(feature, refs, coordinates)
+        selected.append(feature)
+    # Hidden golf owners still exist in the source and remain stationary during
+    # export. They must not become implicit UI selections through linked rows.
+    visible_ids = {str(f["selection_id"]) for f in selected}
+    for feature in selected:
+        for name in ("linked_ids", "related_ids"):
+            feature[name] = [sid for sid in feature.get(name, []) if str(sid) in visible_ids]
+    return selected, selection
+
+
 def _manual_eligibility(feature):
     # TGC_BETA7_ALL_FEATURES_V6: explicit whole-boundary edits, not auto-fit guesses.
     from tgc_local_alignment_topology import manual_eligibility
@@ -392,7 +469,7 @@ def validate_manual_offsets(report, overrides):
 
 def analyze(data, osm_file, shift_ew=0, shift_ns=0, search_radius_m=4,
             kinds=SUPPORTED_KINDS, progress_callback=None, cancel_event=None,
-            *, custom_unmatched_osm=False):
+            *, custom_unmatched_osm=False, course_name_filter=""):
     """Return explicit review proposals; never modify OSM, terrain, or masks."""
     from tgc_local_alignment_detector import CONFIG, Terrain, analyse_feature
 
@@ -418,6 +495,8 @@ def analyze(data, osm_file, shift_ew=0, shift_ns=0, search_radius_m=4,
     signature = terrain_signature(data)
     signature.update(input_osm_sha256=source_hash, global_nudge_m=nudge)
     inventory, source_counts = _inventory(raw, grid, projection, kinds, cancel_event)
+    inventory, course_selection = _filter_course_inventory(
+        raw, inventory, grid, projection, course_name_filter)
     _cancel(cancel_event)
     _progress(progress_callback, 10, "Preparing terrain evidence for tees and bunkers...")
     terrain = Terrain(z, grid["resolution"])
@@ -490,6 +569,8 @@ def analyze(data, osm_file, shift_ew=0, shift_ns=0, search_radius_m=4,
         "original_source_osm_sha256": lineage["original_input_osm_sha256"],
         "lineage": lineage, "signature": signature, "grid": grid,
         "global_nudge_m": nudge, "config": config, "kinds": list(kinds),
+        "course_name_filter": course_selection.get("key", ""),
+        "course_filter_report": course_selection,
         "inventory": inventory, "features": features,
         "summary": {"counts": dict(Counter(f["status"] for f in features)),
                     "features_evaluated": sum(f["kind"] in SUPPORTED_KINDS for f in features),
@@ -510,11 +591,13 @@ analyse = analyze
 
 
 def apply_reviewed(report, accepted_ids, output_path, current_data=None,
-                   current_nudge=None, current_osm_file=None, *, manual_overrides=None):
+                   current_nudge=None, current_osm_file=None, *, manual_overrides=None,
+                   current_course_name_filter=""):
     from tgc_local_alignment_export import apply_reviewed as export
     return export(report, accepted_ids, output_path, current_data=current_data,
                   current_nudge=current_nudge, current_osm_file=current_osm_file,
-                  manual_overrides=manual_overrides)
+                  manual_overrides=manual_overrides,
+                  current_course_name_filter=current_course_name_filter)
 
 
 def self_check():

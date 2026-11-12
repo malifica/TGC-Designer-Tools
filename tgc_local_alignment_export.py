@@ -187,16 +187,19 @@ def _publish_no_replace(temporary, destination):
 
 
 def apply_reviewed(report, accepted_ids, output_path, current_data=None,
-                   current_nudge=None, current_osm_file=None, *, manual_overrides=None):
+                   current_nudge=None, current_osm_file=None, *, manual_overrides=None,
+                   current_course_name_filter=""):
     """Publish selected residuals, with separately explicit manual overrides.
 
     Manual offsets replace automatic proposals and may exceed the search radius.
     Only accepted IDs are written. The unchanged global CFS nudge is retained once.
     """
     from tgc_local_alignment import (FEATURE_VERSION, REPORT_SCHEMA_VERSION, _data_contract,
-                                     _digest, _inventory, _lineage, _manual_eligibility, _manual_shift, _report_digest,
+                                     _digest, _filter_course_inventory, _inventory, _lineage,
+                                     _manual_eligibility, _manual_shift, _report_digest,
                                      manifest_path, terrain_signature)
     from tgc_local_alignment_topology import render_translations
+    from osm_course_filter import course_filter_key
 
     accepted = _ids(accepted_ids)
     if manual_overrides is not None and not isinstance(manual_overrides, dict):
@@ -218,6 +221,9 @@ def apply_reviewed(report, accepted_ids, output_path, current_data=None,
         raise CorrectionError("This local-alignment report belongs to a different engine version.")
     if report.get("report_sha256") != _report_digest(report):
         raise CorrectionError("The analyzed report changed; analyze the current source again.")
+    course_key = course_filter_key(current_course_name_filter)
+    if course_key != course_filter_key(report.get("course_name_filter", "")):
+        raise CorrectionError("The Course Name filter changed after analysis; analyze the selected course again.")
     if not isinstance(current_nudge, (tuple, list)) or len(current_nudge) != 2:
         raise CorrectionError("The current CFS nudge must contain E/W and N/S values.")
     nudge = [_finite(v, "Current CFS nudge") for v in current_nudge]
@@ -256,6 +262,7 @@ def apply_reviewed(report, accepted_ids, output_path, current_data=None,
             raise CorrectionError("A feature appears more than once in the report.")
         by_target[sid] = feature
     fresh_inventory, _ = _inventory(raw, grid, projection, tuple(report.get("kinds", ("tee", "bunker"))))
+    fresh_inventory, _ = _filter_course_inventory(raw, fresh_inventory, grid, projection, course_key)
     fresh = {feature["selection_id"]: feature for feature in fresh_inventory}
     applied = set(lineage["applied_way_ids"])
     moves, selected = {}, []
@@ -299,6 +306,8 @@ def apply_reviewed(report, accepted_ids, output_path, current_data=None,
         "source_unchanged": True, "feature_version": FEATURE_VERSION,
         "input_osm_sha256": source_hash, "output_osm_sha256": output_hash,
         "global_nudge_m": nudge, "accepted_features": selected, **topology,
+        "course_name_filter": course_key,
+        "course_filter_report": report.get("course_filter_report", {}),
         "counts": {name: len(root.findall(name)) for name in ("node", "way", "relation")},
         "original_source_osm_path": lineage["original_source_osm_path"],
         "original_source_path": lineage["original_source_osm_path"],

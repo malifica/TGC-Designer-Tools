@@ -1,0 +1,158 @@
+{
+  "id": "prairie_sandhills",
+  "display_name": "Prairie Sandhills",
+  "enabled": true,
+  "tree_generation": "none",
+  "description": "Open fescue and turf palette with plant options. This theme does not generate trees.",
+  "assets": [],
+  "scale_defaults": {},
+  "visual_material_preset": {
+    "theme": 15,
+    "surfaces2": [
+      {
+        "name": "Sand22_TPC_Southwind",
+        "blend": 1.0,
+        "maskWater": true
+      },
+      {
+        "name": "Concrete01",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "Asphalt01",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "Cobbles05",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "Concrete02",
+        "blend": 1.0,
+        "maskWater": true
+      },
+      {
+        "name": "PineStraw05",
+        "blend": 1.0,
+        "maskWater": true
+      },
+      {
+        "name": "Green46_Pinehurst",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "Fringe46_Pinehurst",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "Fairway46_Pinehurst",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "LightRough46_Pinehurst",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "HeavyRough19_TPC_Boston",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "Splat0_TorreyPines",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "Splat1_QuailHollow",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "Splat2_AtlanticBeachCC",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "Splat3_TPC_Summerlin",
+        "blend": 0.2,
+        "maskWater": true
+      }
+    ],
+    "secondarySurfaces": [
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "Green48",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "Fringe48",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "Fairway48",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "LightRough48",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "HeavyRough53",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      }
+    ],
+    "cartPathTexture": 0,
+    "teeTexture": 8
+  }
+}

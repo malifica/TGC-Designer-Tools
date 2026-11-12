@@ -55,6 +55,8 @@ class LocalAlignmentDialog:
         self.viewer = viewer
         self.engine = engine
         self.source_file = str(viewer.osm_file)
+        from osm_course_filter import course_filter_key
+        self.course_name_filter = course_filter_key(getattr(viewer, "course_name_filter", ""))
         self.shift = (float(viewer.shift_ew), float(viewer.shift_ns))
         self.data = viewer.data
         self.grid = dict(viewer.grid)
@@ -87,7 +89,8 @@ class LocalAlignmentDialog:
         self._scroll_region = None
         self.photo = None
         self.image_item = None
-        self.background = Image.fromarray(viewer.backgrounds["Hillshade"], "RGB")
+        # TGC_BETA8_5_HILLSHADE_DEFAULTS_V1: feature review uses detailed relief.
+        self.background = Image.fromarray(viewer.backgrounds["Hillshade 1"], "RGB")
         self.brightness = float(viewer.brightness_var.get())
         self.contrast = float(viewer.contrast_var.get())
         self.context_features = list(viewer.features)
@@ -572,8 +575,11 @@ class LocalAlignmentDialog:
         self._commit_manual_group({wid: {"east_m": 0., "north_m": 0.} for wid in targets}, allow_pending=targets)
 
     def _validate_active_context(self):
+        from osm_course_filter import course_filter_key
         if self.viewer.closed or str(self.viewer.osm_file) != self.source_file:
             raise ValueError("The CFS OSM selection changed. Close this review and reopen it for the current file.")
+        if course_filter_key(getattr(self.viewer, "course_name_filter", "")) != course_filter_key(getattr(self, "course_name_filter", "")):
+            raise ValueError("The Course Name filter changed. Close this review and reopen it for the selected course.")
         if (float(self.viewer.shift_ew), float(self.viewer.shift_ns)) != self.shift:
             raise ValueError("The global alignment changed. Analyze again from a new review.")
         self._selection_callback(self.source_file, expected_state=self.main_state)
@@ -643,7 +649,8 @@ class LocalAlignmentDialog:
             return self._backend().analyze(
                 data, source, shift_ew=shift[0], shift_ns=shift[1], search_radius_m=radius, kinds=kinds,
                 progress_callback=lambda percent, message: self.events.put(("progress", (percent, message))),
-                cancel_event=self.cancel_event)
+                cancel_event=self.cancel_event,
+                course_name_filter=getattr(self, "course_name_filter", ""))
 
         self._begin("analyze", work)
 
@@ -657,6 +664,9 @@ class LocalAlignmentDialog:
         # Parser/projection work runs in the worker; none of these functions use Tk.
         from osm_alignment_viewer import _parse_osm, _collect_overlay_features
         parsed = _parse_osm(path)
+        if getattr(self, "course_name_filter", ""):
+            from osm_course_filter import filter_osm_course
+            parsed = filter_osm_course(parsed, self.course_name_filter, printf=lambda _message: None)
         features = _collect_overlay_features(parsed, self.data["projection"], self.grid, printf=lambda _message: None)
         return parsed, features
 
@@ -697,7 +707,8 @@ class LocalAlignmentDialog:
         def work():
             result = self._backend().apply_reviewed(report, accepted, destination, current_data=data,
                                                     current_nudge=shift, current_osm_file=source,
-                                                    manual_overrides=manual_overrides)
+                                                    manual_overrides=manual_overrides,
+                                                    current_course_name_filter=getattr(self, "course_name_filter", ""))
             try:
                 parsed, features = self._prepare_overlay(result["output"])
             except Exception as exc:

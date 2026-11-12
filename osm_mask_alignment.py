@@ -47,6 +47,7 @@ SCHEMA_VERSION = 1
 ALIGNMENT_TOLERANCE_M = 0.0051
 MASK_FEATURE_POLICY = "native-wood-excluded-v1"
 OPEN_ISLAND_POLICY = "same-surface-open-islands-v1"
+COURSE_FILTER_POLICY = "golf-course-full-geometry-v1"
 
 
 
@@ -270,7 +271,10 @@ def _signature(
     auto_red_mask_buffer_m: float,
     include_vehicle_roads: bool = False,
     custom_unmatched_osm: bool = False,
+    course_name_filter: str = "",
 ) -> Dict[str, Any]:
+    from osm_course_filter import course_filter_key
+
     osm_path = Path(osm_file)
     if not osm_path.is_file():
         raise FileNotFoundError("Local OSM file was not found: " + str(osm_path))
@@ -303,6 +307,8 @@ def _signature(
         "master_grid_fingerprint": _grid_fingerprint(data, heightmap, grid),
         "osm_file": str(osm_path.resolve()),
         "osm_sha256": _sha256_file(osm_path),
+        "course_name_filter": course_filter_key(course_name_filter),
+        "course_filter_policy": COURSE_FILTER_POLICY if course_filter_key(course_name_filter) else "",
         "adjust_ew_m": ew,
         "adjust_ns_m": ns,
         "auto_red_mask_enabled": enabled,
@@ -344,6 +350,8 @@ def _alignment_close(a: Any, b: Any) -> bool:
 
 
 def _signatures_match(recorded: Dict[str, Any], expected: Dict[str, Any]) -> Tuple[bool, str]:
+    from osm_course_filter import course_filter_key
+
     if recorded.get("_invalid"):
         return False, "The alignment sidecar is unreadable."
     if recorded.get("invalidated"):
@@ -361,6 +369,12 @@ def _signatures_match(recorded: Dict[str, Any], expected: Dict[str, Any]) -> Tup
         return False, "The heightmap/master grid changed after the mask was recorded."
     if recorded.get("osm_sha256") != expected.get("osm_sha256"):
         return False, "The selected Local OSM file changed after the mask was recorded."
+    recorded_filter = course_filter_key(recorded.get("course_name_filter", ""))
+    expected_filter = course_filter_key(expected.get("course_name_filter", ""))
+    if recorded_filter != expected_filter:
+        return False, "The Course Name filter changed; use Apply + Rebuild Mask."
+    if expected_filter and recorded.get("course_filter_policy") != expected.get("course_filter_policy"):
+        return False, "The Course Name boundary filtering changed; use Apply + Rebuild Mask."
     if not _alignment_close(recorded.get("adjust_ew_m"), expected.get("adjust_ew_m")):
         return False, "The CFS E/W alignment changed after the mask was recorded."
     if not _alignment_close(recorded.get("adjust_ns_m"), expected.get("adjust_ns_m")):
@@ -418,6 +432,7 @@ def get_alignment_status(
     auto_red_mask_buffer_m: float,
     include_vehicle_roads: bool = False,
     custom_unmatched_osm: bool = False,
+    course_name_filter: str = "",
 ) -> Dict[str, Any]:
     """Return a non-destructive status for the current alignment/mask pair."""
     try:
@@ -460,6 +475,7 @@ def get_alignment_status(
             auto_red_mask_buffer_m,
             include_vehicle_roads=include_vehicle_roads,
             custom_unmatched_osm=custom_unmatched_osm,
+            course_name_filter=course_name_filter,
         )
     except Exception as exc:
         return {
@@ -470,6 +486,16 @@ def get_alignment_status(
 
     recorded = _load_sidecar(folder)
     if recorded is None:
+        if expected.get("course_name_filter"):
+            return {
+                "state": "stale",
+                "ok_for_import": False,
+                "message": (
+                    "The Course Name filter requires a mask rebuilt from the selected "
+                    "course boundary. Use Apply + Rebuild Mask."
+                ),
+                "expected": expected,
+            }
         # A local correction can change geometry even with a zero global nudge.
         # Do not offer the legacy-mask adoption shortcut for a corrected copy.
         local_record = Path(str(osm_file) + ".local_alignment.json")
@@ -660,6 +686,7 @@ def rebuild_aligned_mask(
     backup_existing: bool = True,
     printf=print,
     progress_callback=None,
+    course_name_filter: str = "",
 ) -> Dict[str, Any]:
     """Rebuild mask.png from the final CFS alignment on the master grid."""
     _report_progress(progress_callback, 3, "Loading heightmap and master-grid data...")
@@ -677,12 +704,16 @@ def rebuild_aligned_mask(
         auto_red_mask_buffer_m,
         include_vehicle_roads=include_vehicle_roads,
         custom_unmatched_osm=custom_unmatched_osm,
+        course_name_filter=course_name_filter,
     )
 
     _report_progress(progress_callback, 16, "Validating the terrain projection...")
     cfs_georef.validate_projection(data.get("projection"), printf=printf)
     _report_progress(progress_callback, 22, "Parsing and validating the Local OSM file...")
     osm_result = _load_complete_osm(osm_file)
+    if expected["course_name_filter"]:
+        from osm_course_filter import filter_osm_course
+        osm_result = filter_osm_course(osm_result, expected["course_name_filter"], printf=printf)
 
     resolution = float(grid["resolution"])
     custom_placement = None
@@ -828,8 +859,14 @@ def adopt_existing_zero_shift_mask(
     include_vehicle_roads: bool = False,
     custom_unmatched_osm: bool = False,
     printf=print,
+    course_name_filter: str = "",
 ) -> Dict[str, Any]:
     """Record a legacy zero-shift mask without changing any painted pixels."""
+    from osm_course_filter import course_filter_key
+    if course_filter_key(course_name_filter):
+        raise RuntimeError(
+            "A Course Name filter cannot adopt an untracked mask; use Apply + Rebuild Mask."
+        )
     local_record = Path(str(osm_file) + ".local_alignment.json")
     if local_record.exists() or local_record.is_symlink():
         raise RuntimeError(
@@ -868,6 +905,7 @@ def adopt_existing_zero_shift_mask(
         auto_red_mask_buffer_m,
         include_vehicle_roads=include_vehicle_roads,
         custom_unmatched_osm=custom_unmatched_osm,
+        course_name_filter=course_name_filter,
     )
 
     original_master_osm = data.get("osm_master_file")

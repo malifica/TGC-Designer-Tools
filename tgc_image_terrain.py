@@ -19,6 +19,7 @@ import osm_custom_layout
 import tgc_definitions
 import tgc_tools
 import tree_profile_manager
+from tgc_terrain_sampling import resolve_stamp_spacing, resolve_brush_scale, sample_terrain_stamps
 
 # TGC_BETA6_CUSTOM_UNMATCHED_OSM_V5
 
@@ -972,19 +973,16 @@ def generate_course(course_json, heightmap_dir_path, options_dict={}, printf=pri
         print(course_version)
         return None
 
-    # Regional theme preset: donor Designer theme plus bunker/turf/terrain textures.
-    course_json = tree_profile_manager.apply_visual_material_preset(
-        course_json,
-        options_dict.get('tree_profile'),
-        printf=printf,
-    )
-
-    if course_version == 25:
-        layer_json = course_json
-    elif course_version == 23:
-        layer_json = course_json["userLayers2"]
-    else:
-        layer_json = course_json["userLayers"]
+    # TGC_BETA8_5_COURSE_BOUNDARY_FILTER_V1: check a local selection before
+    # changing materials or terrain, and reuse it for placement and tree rules.
+    from osm_course_filter import filter_osm_course
+    selected_local_osm = None
+    course_name_filter = str(options_dict.get('course_name_filter', '') or '').strip()
+    selection_file = str(options_dict.get('local_osm_file', '') or '').strip()
+    if options_dict.get('use_osm', True) and course_name_filter and selection_file:
+        selected_local_osm = filter_osm_course(
+            OSMTGC.parseOSMData(Path(selection_file).read_text(encoding='utf-8-sig'), printf=printf),
+            course_name_filter, printf=printf)
 
     obj_tag = tgc_definitions.version_tags[course_version]['objects']
     spline_tag = tgc_definitions.version_tags[course_version]['splines']
@@ -1004,6 +1002,14 @@ def generate_course(course_json, heightmap_dir_path, options_dict={}, printf=pri
         printf("Filling holes in heightmap")
         image_scale = read_dictionary['image_scale']
         printf("Map scale is: " + str(image_scale) + " meters")
+        # TGC_BETA8_5_TERRAIN_SPACING_V1: validate before changing the course.
+        # Processing, masks, tree candidates and the master grid stay at image_scale.
+        terrain_stamp_spacing = resolve_stamp_spacing(
+            options_dict.get('terrain_stamp_spacing', 'Source'), image_scale)
+        requested_brush_scale = resolve_brush_scale(
+            options_dict.get('brush_scale', image_scale), image_scale, terrain_stamp_spacing)
+        printf("Terrain stamp spacing: %.6g m; brush footprint: %.6g m" % (
+            terrain_stamp_spacing, requested_brush_scale))
         background_ratio = None
         use_graduated_background = bool(options_dict.get('add_background', False)
                                            and options_dict.get('graduated_background',
@@ -1020,6 +1026,19 @@ def generate_course(course_json, heightmap_dir_path, options_dict={}, printf=pri
     except FileNotFoundError:
         printf("Could not find heightmap or mask at: " + heightmap_dir_path)
         return course_json
+
+    # Regional theme preset: donor Designer theme plus bunker/turf/terrain textures.
+    course_json = tree_profile_manager.apply_visual_material_preset(
+        course_json,
+        options_dict.get('tree_profile'),
+        printf=printf,
+    )
+    if course_version == 25:
+        layer_json = course_json
+    elif course_version == 23:
+        layer_json = course_json["userLayers2"]
+    else:
+        layer_json = course_json["userLayers"]
 
     # Clear existing terrain
     course_json = set_constants(course_json, options_dict.get('flatten_fairways', False), options_dict.get('flatten_greens', False), read_dictionary['origin'][0], printf=printf)
@@ -1099,12 +1118,38 @@ def generate_course(course_json, heightmap_dir_path, options_dict={}, printf=pri
     #
     # Integrated Adaptive generation has been retired.
     #
-    # The heightmap.npy path now always uses the proven Dense / Original
-    # source-lattice conversion. The standalone finished-course Adaptive
-    # converter remains a separate workflow and is not changed by this patch.
-    printf("Generating terrain with Dense / Original stamping")
+    # Source spacing retains the proven Dense / Original conversion exactly.
+    # A different spacing samples only the output stamps; pc remains the full
+    # source model used by OSM, trees, cartpaths and background registration.
+    terrain_points = pc.points()
+    changed_stamp_spacing = not math.isclose(
+        terrain_stamp_spacing, float(image_scale), rel_tol=1e-9, abs_tol=1e-9)
+    if changed_stamp_spacing:
+        source_arr = np.asarray(heightmap)
+        if source_arr.ndim == 3 and source_arr.shape[2] == 1:
+            source_arr = source_arr[:, :, 0]
+        _outside_landscape_raster_frame(source_arr, pc, image_scale, master_grid)
+        samples, sampling_report = sample_terrain_stamps(
+            heightmap, image_scale, terrain_stamp_spacing)
+        valid = np.isfinite(source_arr)
+        first_row = int(np.flatnonzero(np.any(valid, axis=1))[0])
+        first_col = int(np.flatnonzero(np.any(valid, axis=0))[0])
+        terrain_points = np.empty_like(samples)
+        # Use the same cell-center arithmetic and native bias as addFromImage.
+        # Coarse-grid half-cell offsets must never rebase the authoritative pc.
+        terrain_points[:, 0] = ((samples[:, 1] + 0.5) * image_scale
+                                - (first_col + 0.5) * image_scale)
+        terrain_points[:, 1] = ((samples[:, 0] + 0.5) * image_scale
+                                - (first_row + 0.5) * image_scale)
+        terrain_points[:, 2] = samples[:, 2]
+        printf("Terrain stamps: %d from %d native samples (%s sampling; %d mask-edge samples retained)." % (
+            sampling_report['total_count'], sampling_report['source_finite_count'],
+            sampling_report['mode'], sampling_report['edge_retained_count']))
+        del samples, valid
+    else:
+        printf("Generating terrain with Dense / Original stamping")
 
-    num_points = len(pc.points())
+    num_points = len(terrain_points)
     last_print_time = time.time()
 
     try:
@@ -1130,44 +1175,6 @@ def generate_course(course_json, heightmap_dir_path, options_dict={}, printf=pri
         )
         terrain_brush_type = 72
 
-    configured_sizes = [
-        1.0,
-        2.0,
-        3.0,
-        4.0,
-        6.0,
-    ]
-
-    try:
-        requested_brush_scale = float(
-            options_dict.get(
-                'brush_scale',
-                image_scale,
-            )
-        )
-    except Exception:
-        requested_brush_scale = image_scale
-
-    valid_sizes = [
-        value
-        for value in configured_sizes
-        if value + 1e-6 >= image_scale
-    ]
-
-    if not valid_sizes:
-        printf(
-            "ERROR: Lidar/DEM sample spacing "
-            + str(image_scale)
-            + " m exceeds the maximum configured 6 m brush footprint."
-        )
-        return course_json
-
-    if (
-        requested_brush_scale not in configured_sizes
-        or requested_brush_scale + 1e-6 < image_scale
-    ):
-        requested_brush_scale = valid_sizes[0]
-
     if use_graduated_background:
         from tgc_transitional_background import append_transitional_background
         source_frame = _outside_landscape_raster_frame(
@@ -1176,9 +1183,8 @@ def generate_course(course_json, heightmap_dir_path, options_dict={}, printf=pri
             layer_json["height"], im, heightmap, mask, source_frame, pc,
             requested_brush_scale, get_pixel, printf=printf)
 
-    for n, point in enumerate(
-        pc.points()
-    ):
+    detail_stamp_start = len(layer_json["height"])
+    for n, point in enumerate(terrain_points):
         if (
             time.time()
             > last_print_time
@@ -1213,6 +1219,7 @@ def generate_course(course_json, heightmap_dir_path, options_dict={}, printf=pri
                 brush_type=terrain_brush_type,
             )
         )
+    detail_stamp_stop = len(layer_json["height"])
 
     # Optional QOL: after blue-mask terrain has been purged, lay a sparse,
     # a rounded bank instead of an abrupt vertical/no-terrain edge.
@@ -1284,8 +1291,11 @@ def generate_course(course_json, heightmap_dir_path, options_dict={}, printf=pri
         if local_osm_mode:
             printf("Local OSM mode: " + local_osm_file)
             try:
-                with open(local_osm_file, 'r', encoding='utf-8-sig') as osm_input:
-                    result = OSMTGC.parseOSMData(osm_input.read(), printf=printf)
+                if selected_local_osm is not None:
+                    result = selected_local_osm
+                else:
+                    with open(local_osm_file, 'r', encoding='utf-8-sig') as osm_input:
+                        result = OSMTGC.parseOSMData(osm_input.read(), printf=printf)
             except OSError as exc:
                 printf("Could not open local OpenStreetMap file: " + str(exc))
         else:
@@ -1295,6 +1305,7 @@ def generate_course(course_json, heightmap_dir_path, options_dict={}, printf=pri
             lower_right_latlon = pc.enuToLatLon(*lower_right_enu)
             result = OSMTGC.getOSMData(lower_right_latlon[0], upper_left_latlon[1], upper_left_latlon[0], lower_right_latlon[1], printf=printf)
 
+        result = filter_osm_course(result, course_name_filter, printf=printf)
         if result is None:
             printf("No OpenStreetMap data available; skipping OSM feature import.")
             osm_trees = []
@@ -1538,13 +1549,30 @@ def generate_course(course_json, heightmap_dir_path, options_dict={}, printf=pri
 
     # Automatically adjust course elevation
     printf("Moving course to lowest valid elevation")
-    course_json = tgc_tools.elevate_terrain(course_json, None, printf=printf, course_version=course_version)
+    if changed_stamp_spacing:
+        # Keep the old dense elevation distribution, including all unchanged
+        # background/cartpath stamps, so thinning cannot change the vertical datum.
+        auxiliary_stamps = itertools.chain(
+            layer_json["height"][:detail_stamp_start],
+            layer_json["height"][detail_stamp_stop:], layer_json["terrainHeight"])
+        elevation_reference = np.fromiter(itertools.chain(
+            pc.points()[:, 2], (stamp['value'] for stamp in auxiliary_stamps)), dtype=np.float64)
+        course_json = tgc_tools.elevate_terrain(
+            course_json, None, printf=printf, course_version=course_version,
+            elevation_reference=elevation_reference)
+    else:
+        course_json = tgc_tools.elevate_terrain(course_json, None, printf=printf, course_version=course_version)
 
     printf("Course Description Complete")
 
     return course_json
 
 def generate_flat_course(course_json, xml_data, options_dict={}, printf=print, course_version=-1):
+    # Validate selection before any theme/material changes to the loaded course.
+    if str(options_dict.get('course_name_filter', '') or '').strip():
+        from osm_course_filter import filter_osm_course
+        filter_osm_course(OSMTGC.parseOSMData(xml_data, printf=printf),
+                          options_dict['course_name_filter'], printf=printf)
     course_json = tree_profile_manager.apply_visual_material_preset(
         course_json,
         options_dict.get('tree_profile'),

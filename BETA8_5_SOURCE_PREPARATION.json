@@ -1,0 +1,21 @@
+{
+  "schema": "tgc-source-publication-preparation/1",
+  "release": "v0.5.0-2k25-beta8.5",
+  "repository": "malifica/TGC-Designer-Tools",
+  "branch": "release/beta8.5-publication",
+  "reviewed_main_sha": "d9671c14a7666249bbbb0f1b15c4e46e2da9e646",
+  "state": "source_prepared_awaiting_existing_windows_build",
+  "release_published": false,
+  "existing_executable_required": "dist/tgc_gui_2k25_beta8_5.exe",
+  "existing_receipt_required": "dist/tgc_gui_2k25_beta8_5.exe.build.json",
+  "existing_checksum_required": "dist/tgc_gui_2k25_beta8_5.exe.sha256.txt",
+  "collector": "COLLECT_BETA8_5_FOR_PUBLICATION.py",
+  "rebuild_authorized": false,
+  "executable_modification_authorized": false,
+  "scope": "Main TGC Designer Tools only",
+  "regional_themes": 25,
+  "nature_catalogs": 25,
+  "public_theme_policy": "Geographic descriptions; identifying authoring metadata removed while functional theme and asset data remain unchanged.",
+  "publication_method": "Established on-push GitHub Actions workflow with Node24-compatible actions; supplied executable transferred byte-for-byte, checked against receipt, uploaded with portable ZIP and SHA-256 files, then public downloads verified.",
+  "publication_workflow_enabled": false
+}

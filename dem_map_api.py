@@ -1,3 +1,4 @@
+import copy
 import math
 import os
 import time
@@ -529,9 +530,49 @@ def _get_dem_epsg_info(crs):
     return source_epsg, horizontal_epsg
 
 
-def _load_dem(dem_files, target_sample_scale=None, printf=print):
+def _confirmed_dem_scale(source_scale_decision, target_sample_scale, file_count):
+    """Validate a confirmed scale before allocating or reading raster cells.
+
+    Numeric legacy callers retain their existing behavior.  A GUI-confirmed
+    decision is stricter: its selected metric grid must be the grid produced,
+    rather than being silently changed after the confirmation window closes.
+    """
+    if source_scale_decision is None:
+        return None
+    decision = copy.deepcopy(source_scale_decision)
+    assessment = decision.get("assessment", {})
+    if assessment.get("source_type") != "DEM":
+        raise ValueError("DEM processing requires a DEM source-scale assessment.")
+    if int(assessment.get("source_count", -1)) != int(file_count):
+        raise ValueError("The selected DEM files do not match the confirmed source assessment.")
+    try:
+        selected = float(decision["selected_scale"])
+        native = float(assessment["minimum_scale"])
+        merge_resolution = tuple(float(v) for v in assessment["dem_merge_resolution"])
+    except (KeyError, TypeError, ValueError, OverflowError) as exc:
+        raise ValueError("The confirmed DEM scale is incomplete; select the source again.") from exc
+    if (not math.isfinite(selected) or not math.isfinite(native)
+            or selected <= 0.0 or native <= 0.0 or selected > 6.0
+            or selected + 1e-6 < native):
+        raise ValueError("The confirmed DEM scale must cover its native source spacing and be at most 6 m.")
+    if (len(merge_resolution) != 2
+            or any(not math.isfinite(v) or v <= 0.0 for v in merge_resolution)):
+        raise ValueError("The confirmed DEM mosaic resolution is invalid.")
+    if target_sample_scale is not None:
+        if abs(float(target_sample_scale) - selected) > 1e-8 * max(1.0, selected):
+            raise ValueError("Requested DEM scale differs from the scale confirmed by the user.")
+    decision["selected_scale"] = selected
+    return decision
+
+
+def _load_dem(dem_files, target_sample_scale=None, printf=print, source_scale_decision=None):
     if not dem_files:
         raise RuntimeError("No DEM files selected.")
+
+    decision = _confirmed_dem_scale(source_scale_decision, target_sample_scale, len(dem_files))
+    assessment = decision["assessment"] if decision is not None else None
+    if decision is not None:
+        target_sample_scale = decision["selected_scale"]
 
     datasets = []
     try:
@@ -567,6 +608,32 @@ def _load_dem(dem_files, target_sample_scale=None, printf=print):
                     "DEM V1 requires selected tiles to use the same CRS. "
                     "Mismatched tile: " + str(ds.name)
                 )
+
+        if decision is not None:
+            assessed_crs = assessment.get("source_crs")
+            if assessed_crs and rasterio.crs.CRS.from_user_input(assessed_crs) != src_crs:
+                raise RuntimeError("DEM coordinate system changed after confirmation; select and confirm the files again.")
+            for ds in datasets:
+                transform = ds.transform
+                orientation_tolerance = 1e-12 * max(1.0, abs(float(transform.a)), abs(float(transform.e)))
+                if (abs(float(transform.b)) > orientation_tolerance or abs(float(transform.d)) > orientation_tolerance
+                        or float(transform.a) <= 0.0 or float(transform.e) >= 0.0):
+                    raise RuntimeError(
+                        "DEM grid orientation changed or is unsupported. Use north-up DEM tiles "
+                        "and confirm their scale again before processing."
+                    )
+            merge_resolution = tuple(float(v) for v in assessment["dem_merge_resolution"])
+            actual_merge_resolution = (
+                max(abs(float(ds.transform.a)) for ds in datasets),
+                max(abs(float(ds.transform.e)) for ds in datasets),
+            )
+            if not np.allclose(merge_resolution, actual_merge_resolution, rtol=1e-8, atol=1e-12):
+                raise RuntimeError("DEM source spacing changed after confirmation; select and confirm the files again.")
+            printf(
+                "Confirmed DEM heightmap scale: %g m (%s). Mixed tiles use the coarsest "
+                "source spacing on each axis before the common metric grid is built."
+                % (decision["selected_scale"], decision.get("mode", "manual"))
+            )
 
         # Determine vertical elevation units independently from horizontal CRS.
         # Horizontal reprojection changes X/Y units only; it does NOT scale
@@ -624,8 +691,10 @@ def _load_dem(dem_files, target_sample_scale=None, printf=print):
             union_bottom = min(float(ds.bounds.bottom) for ds in datasets)
             union_right = max(float(ds.bounds.right) for ds in datasets)
             union_top = max(float(ds.bounds.top) for ds in datasets)
-            native_x = abs(float(datasets[0].transform.a))
-            native_y = abs(float(datasets[0].transform.e))
+            native_x = (merge_resolution[0] if decision is not None
+                        else abs(float(datasets[0].transform.a)))
+            native_y = (merge_resolution[1] if decision is not None
+                        else abs(float(datasets[0].transform.e)))
             est_w = int(math.ceil((union_right - union_left) / native_x))
             est_h = int(math.ceil((union_top - union_bottom) / native_y))
             est_mb = (est_w * est_h * 4.0) / (1024.0 * 1024.0)
@@ -641,6 +710,11 @@ def _load_dem(dem_files, target_sample_scale=None, printf=print):
             "Mosaicing " + str(len(datasets)) +
             " DEM tile(s) using memory-bounded Rasterio merge"
         )
+        merge_options = {}
+        if decision is not None:
+            # All tile resolutions were inspected before the GUI confirmation.
+            # Do not let the first selected tile silently choose the mosaic grid.
+            merge_options.update(res=merge_resolution, resampling=Resampling.bilinear)
         mosaic, src_transform = merge(
             datasets,
             indexes=1,
@@ -648,6 +722,7 @@ def _load_dem(dem_files, target_sample_scale=None, printf=print):
             dtype="float32",
             nodata=np.nan,
             mem_limit=merge_mem_mb,
+            **merge_options,
         )
 
         if mosaic.ndim == 3:
@@ -684,8 +759,14 @@ def _load_dem(dem_files, target_sample_scale=None, printf=print):
         if reproject_needed:
             target_crs = _utm_for_bounds(src_crs, src_bounds)
             printf("DEM CRS is not metric projected; reprojecting to " + str(target_crs))
+            warp_options = {}
+            if decision is not None:
+                # The preflight measured original physical cell spacing.  Use
+                # that declared metric base grid so GDAL's automatic estimate
+                # cannot silently change the user's confirmed output scale.
+                warp_options["resolution"] = float(assessment["minimum_scale"])
             dst_transform, dst_w, dst_h = calculate_default_transform(
-                src_crs, target_crs, src_w, src_h, *src_bounds
+                src_crs, target_crs, src_w, src_h, *src_bounds, **warp_options
             )
 
             nodata = -999999.0
@@ -735,8 +816,10 @@ def _load_dem(dem_files, target_sample_scale=None, printf=print):
         sy = abs(float(transform.e))
 
         # Existing TGC path stores one image_scale, so force square pixels.
-        if abs(sx - sy) > max(1e-6, 0.001 * max(sx, sy)):
-            target_res = min(sx, sy)
+        square_tolerance = 1e-9 if decision is not None else max(1e-6, 0.001 * max(sx, sy))
+        if abs(sx - sy) > square_tolerance:
+            target_res = (float(assessment["minimum_scale"]) if decision is not None
+                          else min(sx, sy))
             left, bottom, right, top = _bounds(
                 transform, dem.shape[1], dem.shape[0]
             )
@@ -801,6 +884,11 @@ def _load_dem(dem_files, target_sample_scale=None, printf=print):
                     " m is finer than native DEM spacing " + str(native_scale) +
                     " m; using native spacing instead."
                 )
+                if decision is not None:
+                    raise RuntimeError(
+                        "The DEM's processed native grid is coarser than the confirmed scale. "
+                        "Select and confirm the source again; no heightmap was saved."
+                    )
                 requested_scale = native_scale
 
             if requested_scale > native_scale + 1e-6:
@@ -847,6 +935,12 @@ def _load_dem(dem_files, target_sample_scale=None, printf=print):
                 "spacing " + str(native_scale) + " m."
             )
 
+        if decision is not None:
+            if abs(float(image_scale) - decision["selected_scale"]) > 1e-6:
+                raise RuntimeError("The processed DEM grid differs from the confirmed map scale; no heightmap was saved.")
+            # Record the actual numeric grid used, not an unconverted source unit.
+            decision["resolved_scale"] = float(image_scale)
+
         # Rasterio row 0 is north/top. TGC tool internal image row 0 is south.
         dem_south_up = np.flipud(dem).astype(np.float32)
 
@@ -863,6 +957,8 @@ def _load_dem(dem_files, target_sample_scale=None, printf=print):
         pc.ymax = top - bottom
         pc.width = right - left
         pc.height = top - bottom
+        if decision is not None:
+            pc.source_scale_decision = decision
 
         printf(
             "DEM raster: " + str(dem_south_up.shape[1]) + " x " +
@@ -1235,6 +1331,8 @@ def generate_dem_output(
         "trees": [],
         "source": "DEM",
     }
+    if isinstance(prepared, dict) and prepared.get("source_scale_decision") is not None:
+        output_data["source_scale_decision"] = copy.deepcopy(prepared["source_scale_decision"])
 
     cfs_georef.describe_master_grid(master_grid, printf=printf)
     cfs_georef.write_master_grid_json(output_dir, master_grid)
@@ -1258,6 +1356,8 @@ def prepare_dem_previews(
     auto_red_mask_enabled=False,
     auto_red_mask_buffer_m=5.0,
     printf=print,
+    course_name_filter="",
+    source_scale_decision=None,
 ):
     """Perform DEM loading and lightweight selector-preview work off the Tk thread."""
     printf("Starting DEM / GeoTIFF processing.")
@@ -1267,6 +1367,7 @@ def prepare_dem_previews(
         dem_files,
         target_sample_scale=sample_scale,
         printf=printf,
+        source_scale_decision=source_scale_decision,
     )
 
     osm_result = _get_osm_for_grid(
@@ -1274,6 +1375,10 @@ def prepare_dem_previews(
         local_osm_file=local_osm_file,
         printf=printf,
     )
+
+    # TGC_BETA8_5_COURSE_BOUNDARY_FILTER_V1
+    from osm_course_filter import filter_osm_course
+    osm_result = filter_osm_course(osm_result, course_name_filter, printf=printf)
 
     if local_osm_file and osm_result is None:
         printf(
@@ -1293,7 +1398,7 @@ def prepare_dem_previews(
         )
     )
 
-    return {
+    prepared = {
         "dem": dem,
         "image_scale": image_scale,
         "pc": pc,
@@ -1304,6 +1409,11 @@ def prepare_dem_previews(
         "auto_red_mask_enabled": bool(auto_red_mask_enabled),
         "auto_red_mask_buffer_m": float(auto_red_mask_buffer_m),
     }
+    if source_scale_decision is not None:
+        prepared["source_scale_decision"] = copy.deepcopy(
+            getattr(pc, "source_scale_decision", source_scale_decision)
+        )
+    return prepared
 
 
 def show_prepared_dem_preview(
@@ -1330,6 +1440,7 @@ def generate_dem_previews(
     auto_red_mask_enabled=False,
     auto_red_mask_buffer_m=5.0,
     printf=print,
+    course_name_filter="",
 ):
     """Backward-compatible synchronous DEM entry point."""
     prepared = prepare_dem_previews(
@@ -1339,6 +1450,7 @@ def generate_dem_previews(
         auto_red_mask_enabled=auto_red_mask_enabled,
         auto_red_mask_buffer_m=auto_red_mask_buffer_m,
         printf=printf,
+        course_name_filter=course_name_filter,
     )
 
     crop = show_prepared_dem_preview(

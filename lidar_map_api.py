@@ -272,10 +272,17 @@ def _rasterize_preview_last_write(img_points, image_height, image_width, value_a
     return out
 
 
-def prepare_lidar_previews(lidar_dir_path, sample_scale, output_dir_path, force_epsg=None, force_unit=None, printf=print, local_osm_file=None, auto_red_mask_enabled=False, auto_red_mask_buffer_m=5.0):
-    """Heavy, Tk-free LiDAR preparation suitable for a worker thread."""
-    tgc_tools.create_directory(output_dir_path)
+def inspect_lidar_source(lidar_dir_path, force_epsg=None, force_unit=None,
+                         printf=print, source_metadata=None):
+    """Load and assess raw LiDAR before allocating a heightmap or preview grid.
 
+    The GUI can pause for scale confirmation after this worker returns.  The
+    loaded point cloud is then passed to ``prepare_lidar_previews`` so LAS/LAZ
+    files are read only once.  No project output files are written here.
+    """
+    from tgc_source_scale import inspect_lidar_points
+
+    printf("Inspecting LiDAR source density before heightmap processing")
     pc = load_usgs_directory(
         lidar_dir_path,
         force_epsg=force_epsg,
@@ -285,10 +292,73 @@ def prepare_lidar_previews(lidar_dir_path, sample_scale, output_dir_path, force_
     if pc is None:
         return None
 
+    assessment = inspect_lidar_points(
+        pc, source_metadata=source_metadata, printf=printf,
+    )
+    return {
+        "pc": pc,
+        "scale_assessment": assessment,
+        "lidar_dir_path": str(Path(lidar_dir_path).resolve()),
+        "force_epsg": force_epsg,
+        "force_unit": force_unit,
+        "consumed": False,
+    }
+
+
+def _copy_lidar_scale_decision(scale_decision, sample_scale):
+    """Keep a JSON-safe record tied to the scale actually used for this grid."""
+    if scale_decision is None:
+        return None
+    if not isinstance(scale_decision, dict):
+        raise ValueError("LiDAR scale confirmation must be a decision record")
+    decision = json.loads(json.dumps(scale_decision, allow_nan=False))
+    selected = float(decision.get("selected_scale", float("nan")))
+    if not math.isfinite(selected) or not math.isclose(
+            selected, float(sample_scale), rel_tol=1e-10, abs_tol=1e-10):
+        raise ValueError("Confirmed LiDAR map scale does not match the processing grid")
+    return decision
+
+
+def prepare_lidar_previews(lidar_dir_path, sample_scale, output_dir_path, force_epsg=None, force_unit=None, printf=print, local_osm_file=None, auto_red_mask_enabled=False, auto_red_mask_buffer_m=5.0, course_name_filter="", prepared_source=None, scale_decision=None):
+    """Heavy, Tk-free preparation after the user confirms the processing scale.
+
+    A preflight source is single-use because GeoPointCloud.pointsAsCV2 converts
+    its coordinates in place.  Guarding reuse avoids a second quantization and
+    does not require duplicating the entire raw point cloud in memory.
+    """
+    sample_scale = float(sample_scale)
+    if not math.isfinite(sample_scale) or sample_scale <= 0.0:
+        raise ValueError("LiDAR Map Scale must be a finite positive number")
+    scale_decision = _copy_lidar_scale_decision(scale_decision, sample_scale) if scale_decision is not None else None
+
+    if prepared_source is None:
+        pc = load_usgs_directory(
+            lidar_dir_path,
+            force_epsg=force_epsg,
+            force_unit=force_unit,
+            printf=printf,
+        )
+        if pc is None:
+            return None
+    else:
+        if not isinstance(prepared_source, dict) or prepared_source.get("pc") is None:
+            raise ValueError("LiDAR source inspection did not provide a point cloud")
+        if prepared_source.get("consumed", False):
+            raise ValueError("This LiDAR source has already been prepared; inspect it again before changing the map scale")
+        if str(Path(lidar_dir_path).resolve()) != prepared_source.get("lidar_dir_path"):
+            raise ValueError("Selected LiDAR directory changed after source inspection")
+        if force_epsg != prepared_source.get("force_epsg") or force_unit != prepared_source.get("force_unit"):
+            raise ValueError("LiDAR coordinate overrides changed after source inspection")
+        pc = prepared_source["pc"]
+
+    tgc_tools.create_directory(output_dir_path)
+
     image_width = math.ceil(pc.width / sample_scale) + 1
     image_height = math.ceil(pc.height / sample_scale) + 1
 
     printf("Generating lidar intensity image (vectorized)")
+    if prepared_source is not None:
+        prepared_source["consumed"] = True
     img_points = pc.pointsAsCV2(sample_scale)
     num_points = len(img_points)
     point_density = float(num_points) / (image_width * image_height)
@@ -378,6 +448,9 @@ def prepare_lidar_previews(lidar_dir_path, sample_scale, output_dir_path, force_
             printf=printf,
         )
 
+    # TGC_BETA8_5_COURSE_BOUNDARY_FILTER_V1: one source for overlay and mask.
+    from osm_course_filter import filter_osm_course
+    result = filter_osm_course(result, course_name_filter, printf=printf)
     if result:
         im = OSMTGC.addOSMToImage(
             result,
@@ -434,6 +507,7 @@ def prepare_lidar_previews(lidar_dir_path, sample_scale, output_dir_path, force_
         "osm_result": result,
         "auto_red_mask_enabled": auto_red_mask_enabled,
         "auto_red_mask_buffer_m": auto_red_mask_buffer_m,
+        "scale_decision": scale_decision,
     }
 
 
@@ -518,7 +592,7 @@ def show_prepared_lidar_preview(prepared, printf=print):
     return result["crop"] if result["accepted"] else None
 
 
-def generate_lidar_previews(lidar_dir_path, sample_scale, output_dir_path, force_epsg=None, force_unit=None, printf=print, local_osm_file=None, auto_red_mask_enabled=False, auto_red_mask_buffer_m=5.0):
+def generate_lidar_previews(lidar_dir_path, sample_scale, output_dir_path, force_epsg=None, force_unit=None, printf=print, local_osm_file=None, auto_red_mask_enabled=False, auto_red_mask_buffer_m=5.0, course_name_filter="", prepared_source=None, scale_decision=None):
     """Legacy synchronous wrapper; GUI uses prepare/show worker split."""
     prepared = prepare_lidar_previews(
         lidar_dir_path,
@@ -530,6 +604,9 @@ def generate_lidar_previews(lidar_dir_path, sample_scale, output_dir_path, force
         local_osm_file=local_osm_file,
         auto_red_mask_enabled=auto_red_mask_enabled,
         auto_red_mask_buffer_m=auto_red_mask_buffer_m,
+        course_name_filter=course_name_filter,
+        prepared_source=prepared_source,
+        scale_decision=scale_decision,
     )
     if prepared is None:
         return
@@ -547,10 +624,15 @@ def generate_lidar_previews(lidar_dir_path, sample_scale, output_dir_path, force
         prepared["auto_red_mask_buffer_m"],
         crop_bounds=crop,
         printf=printf,
+        course_name_filter=course_name_filter,
+        scale_decision=prepared.get("scale_decision"),
     )
 
-def generate_lidar_heightmap(pc, img_points, sample_scale, output_dir_path, osm_results=None, auto_red_mask_enabled=False, auto_red_mask_buffer_m=5.0, crop_bounds=None, printf=print, defer_mask_edit_message=False):
+def generate_lidar_heightmap(pc, img_points, sample_scale, output_dir_path, osm_results=None, auto_red_mask_enabled=False, auto_red_mask_buffer_m=5.0, crop_bounds=None, printf=print, defer_mask_edit_message=False, course_name_filter="", scale_decision=None):
     global lower_x, lower_y, upper_x, upper_y
+    from osm_course_filter import filter_osm_course
+    scale_decision = _copy_lidar_scale_decision(scale_decision, sample_scale) if scale_decision is not None else None
+    osm_results = filter_osm_course(osm_results, course_name_filter, printf=printf)
 
     image_width = math.ceil(pc.width / sample_scale) + 1
     image_height = math.ceil(pc.height / sample_scale) + 1
@@ -714,6 +796,8 @@ def generate_lidar_heightmap(pc, img_points, sample_scale, output_dir_path, osm_
     output_data['visual'] = high_res_visual
     output_data['pointcloud'] = output_points
     output_data['image_scale'] = sample_scale
+    if scale_decision is not None:
+        output_data['source_scale_decision'] = scale_decision
 
     master_grid = cfs_georef.make_master_grid_from_crop(
         pc,
@@ -795,6 +879,7 @@ def _write_osm_master_mask(
     auto_red_mask_buffer_m=5.0,
     printf=print,
     output_progress=None,
+    course_name_filter="",
 ):
     """Rebuild mask.png on the current master grid after a grid resize."""
     # TGC_OSM_MASTER_MASK_WRITE_VERIFY_V1
@@ -814,6 +899,8 @@ def _write_osm_master_mask(
     mask_rgb = np.array(base, copy=True)
 
     osm_result = _load_local_osm_result_for_master(osm_file)
+    from osm_course_filter import filter_osm_course
+    osm_result = filter_osm_course(osm_result, course_name_filter, printf=printf)
 
     grid_pc = GeoPointCloud()
     grid_pc.proj = terrain_data["projection"]
@@ -881,6 +968,7 @@ def reframe_heightmap_to_osm_master(
     auto_red_mask_enabled=True,
     auto_red_mask_buffer_m=5.0,
     printf=print,
+    course_name_filter="",
 ):
     """Make Local OSM + buffer the authoritative terrain master extent.
 
@@ -902,6 +990,11 @@ def reframe_heightmap_to_osm_master(
         raise FileNotFoundError(
             "Local OSM file was not found: " + str(osm_path)
         )
+
+    # Reject a mistyped course before resizing or writing the existing terrain.
+    if str(course_name_filter or "").strip():
+        from osm_course_filter import filter_osm_course
+        filter_osm_course(_load_local_osm_result_for_master(osm_file), course_name_filter, printf=printf)
 
     output_progress = tgc_output_progress.OutputProgress(printf, "OSM master-grid output")
     output_progress.stage(5, "Reading the saved LiDAR crop")
@@ -993,6 +1086,7 @@ def reframe_heightmap_to_osm_master(
             auto_red_mask_buffer_m=auto_red_mask_buffer_m,
             printf=printf,
             output_progress=output_progress,
+            course_name_filter=course_name_filter,
         )
         output_progress.finish("Master grid and mask saved and verified")
         printf(
@@ -1090,6 +1184,7 @@ def reframe_heightmap_to_osm_master(
         auto_red_mask_buffer_m=auto_red_mask_buffer_m,
         printf=printf,
         output_progress=output_progress,
+        course_name_filter=course_name_filter,
     )
 
     primary_finite = int(np.count_nonzero(np.isfinite(
@@ -1124,6 +1219,7 @@ def fill_missing_terrain_from_lidar(
     auto_red_mask_enabled=True,
     auto_red_mask_buffer_m=5.0,
     printf=print,
+    course_name_filter="",
 ):
     """Fill only missing cells in an existing terrain from a fallback LiDAR set.
 
@@ -1152,6 +1248,7 @@ def fill_missing_terrain_from_lidar(
             auto_red_mask_enabled=auto_red_mask_enabled,
             auto_red_mask_buffer_m=auto_red_mask_buffer_m,
             printf=printf,
+            course_name_filter=course_name_filter,
         )
 
     primary = np.load(
@@ -1535,6 +1632,9 @@ def attach_lidar_trees_to_existing_dem(
     force_epsg=None,
     source_metadata=None,
     printf=print,
+    course_name_filter="",
+    prepared_source=None,
+    scale_decision=None,
 ):
     """Detect trees from LiDAR and inject them into an existing DEM heightmap.
 
@@ -1543,8 +1643,9 @@ def attach_lidar_trees_to_existing_dem(
     replaced.
     """
     sample_scale = float(sample_scale)
-    if sample_scale <= 0.0:
-        raise ValueError("Tree extraction sample scale must be greater than zero")
+    if not math.isfinite(sample_scale) or sample_scale <= 0.0:
+        raise ValueError("Tree extraction sample scale must be a finite positive number")
+    scale_decision = _copy_lidar_scale_decision(scale_decision, sample_scale) if scale_decision is not None else None
 
     dem_path = Path(dem_heightmap_path)
     if dem_path.is_dir():
@@ -1589,6 +1690,9 @@ def attach_lidar_trees_to_existing_dem(
             local_osm_file=local_osm_file,
             auto_red_mask_enabled=False,
             auto_red_mask_buffer_m=5.0,
+            course_name_filter=course_name_filter,
+            prepared_source=prepared_source,
+            scale_decision=scale_decision,
         )
         if prepared is None:
             raise RuntimeError("LiDAR preparation returned no point cloud")
@@ -1607,6 +1711,8 @@ def attach_lidar_trees_to_existing_dem(
             5.0,
             crop_bounds=(0, 0, image_width, image_height),
             printf=printf,
+            course_name_filter=course_name_filter,
+            scale_decision=prepared.get("scale_decision"),
         )
 
         extracted_path = temp_dir / "heightmap.npy"
@@ -1682,6 +1788,10 @@ def attach_lidar_trees_to_existing_dem(
         dem_data["tree_source_count"] = len(transformed_trees)
         dem_data["tree_source_projection"] = source_crs.to_string()
         dem_data["tree_source_sample_scale"] = float(sample_scale)
+        if scale_decision is not None:
+            dem_data["tree_source_scale_decision"] = scale_decision
+        else:
+            dem_data.pop("tree_source_scale_decision", None)
         dem_data["tree_source_force_epsg"] = (
             int(force_epsg) if force_epsg is not None else None
         )

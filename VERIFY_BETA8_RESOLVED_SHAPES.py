@@ -154,12 +154,33 @@ class Tests(unittest.TestCase):
             root=types.SimpleNamespace(filename='previous')
             env=dict(root=root,Path=Path,tk=types.SimpleNamespace(filedialog=types.SimpleNamespace(askdirectory=lambda **k:td)),
                      drawPlaceholder=lambda:None,tgc_tools=types.SimpleNamespace(get_course_json=lambda _:None),
-                     name_entry=Mock(),last_alignment_heightmap_dir='old-project')
+                     name_entry=Mock(),last_alignment_heightmap_dir='old-project',
+                     lidar_processing_active=False,dem_processing_active=False)
             exec(compile(ast.Module(body=[fn],type_ignores=[]),'gui selection','exec'),env)
             env['getCourseDirectory'](Mock())
             self.assertEqual(root.filename,td);self.assertIsNone(env['last_alignment_heightmap_dir'])
             (Path(td)/'heightmap.npy').touch();env['getCourseDirectory'](Mock())
             self.assertEqual(env['last_alignment_heightmap_dir'],td)
+
+    def test_folder_switch_waits_for_any_active_terrain_import(self):
+        source=ast.parse((ROOT/'tgc_gui.py').read_text(encoding='utf-8-sig'))
+        fn=next(n for n in source.body if isinstance(n,ast.FunctionDef) and n.name=='getCourseDirectory')
+        for active in ('lidar_processing_active','dem_processing_active'):
+            with self.subTest(active=active):
+                root=types.SimpleNamespace(filename='current-project')
+                choose=Mock(return_value='other-project');notice=Mock();output=Mock();draw=Mock()
+                env=dict(root=root,Path=Path,tk=types.SimpleNamespace(filedialog=types.SimpleNamespace(askdirectory=choose)),
+                         drawPlaceholder=draw,alert=notice,course_json={'name':'current'},
+                         last_alignment_heightmap_dir='current-heightmap',
+                         lidar_processing_active=False,dem_processing_active=False)
+                env[active]=True
+                exec(compile(ast.Module(body=[fn],type_ignores=[]),'gui busy selection','exec'),env)
+                env['getCourseDirectory'](output)
+                notice.assert_called_once();choose.assert_not_called();draw.assert_not_called();output.config.assert_not_called()
+                self.assertEqual(root.filename,'current-project')
+                self.assertEqual(env['last_alignment_heightmap_dir'],'current-heightmap')
+                self.assertEqual(env['course_json'],{'name':'current'})
+                self.assertTrue(env[active])
 
     def test_rebuild_defaults_dont_reuse_old_folder(self):
         source=ast.parse((ROOT/'tgc_gui.py').read_text(encoding='utf-8-sig'))
@@ -177,7 +198,7 @@ class Tests(unittest.TestCase):
     def test_beta7_identity(self):
         tree=ast.parse((ROOT/'tgc_gui.py').read_text(encoding='utf-8-sig'))
         values={t.id:n.value.value for n in tree.body if isinstance(n,ast.Assign) and isinstance(n.value,ast.Constant) for t in n.targets if isinstance(t,ast.Name)}
-        self.assertEqual(values['TGC_GUI_VERSION'],'v0.5.0-2k25-beta8.4')
-        self.assertEqual(values['TGC_APP_TITLE'],'TGC Designer Tools 2K25 - Beta 8.4')
+        self.assertEqual(values['TGC_GUI_VERSION'],'v0.5.0-2k25-beta8.5')
+        self.assertEqual(values['TGC_APP_TITLE'],'TGC Designer Tools 2K25 - Beta 8.5')
 
 if __name__=='__main__':unittest.main(verbosity=2)

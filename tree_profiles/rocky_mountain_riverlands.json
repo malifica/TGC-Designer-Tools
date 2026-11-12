@@ -1,0 +1,250 @@
+{
+  "id": "rocky_mountain_riverlands",
+  "display_name": "Rocky Mountain Riverlands",
+  "enabled": true,
+  "tree_generation": "profile",
+  "description": "Mountain riverland palette led by Douglas fir and Scots pine, with ash, cedar, grasses and coordinated terrain materials.",
+  "assets": [
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Douglas_Fir/Prefabs/DouglasFir_Desktop11_Cone",
+      "shape": "skinny",
+      "weight": 622
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Scots_Pine/Prefabs/ScotsPine_Desktop34",
+      "shape": "skinny",
+      "weight": 344
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Douglas_Fir/Prefabs/DouglasFir_Desktop08_Cone",
+      "shape": "skinny",
+      "weight": 256
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Green_Ash/Prefabs/Green_Ash_Desktop_AtlanticBeach_Hole8",
+      "shape": "normal",
+      "weight": 145
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Scots_Pine/Prefabs/ScotsPine_Desktop36",
+      "shape": "skinny",
+      "weight": 77
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Douglas_Fir/Prefabs/DouglasFir_Desktop04_Cone",
+      "shape": "skinny",
+      "weight": 37
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Scots_Pine/Prefabs/ScotsPine_Desktop25",
+      "shape": "normal",
+      "weight": 34
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Generic_Conifer/Prefabs/Generic_Conifer_Desktop04",
+      "shape": "skinny",
+      "weight": 32
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Alaska_Cedar/Prefabs/AlaskaCedar_Desktop07",
+      "shape": "skinny",
+      "weight": 17
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Alaska_Cedar/Prefabs/AlaskaCedar_Desktop08",
+      "shape": "skinny",
+      "weight": 14
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Generic_Conifer/Prefabs/Generic_Conifer_Desktop05",
+      "shape": "skinny",
+      "weight": 6
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Scots_Pine/Prefabs/ScotsPine_Desktop54",
+      "shape": "skinny",
+      "weight": 5
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Scots_Pine/Prefabs/ScotsPine_Desktop04",
+      "shape": "skinny",
+      "weight": 4
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Alaska_Cedar/Prefabs/AlaskaCedar_Desktop06",
+      "shape": "skinny",
+      "weight": 2
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Generic_Conifer/Prefabs/Generic_Conifer_Desktop06",
+      "shape": "skinny",
+      "weight": 2
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Alaska_Cedar/Prefabs/AlaskaCedar_Desktop05",
+      "shape": "skinny",
+      "weight": 1
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Alaska_Cedar/Prefabs/AlaskaCedar_Desktop_Bare02",
+      "shape": "skinny",
+      "weight": 1
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Alaska_Cedar/Prefabs/AlaskaCedar_Desktop_Bare03",
+      "shape": "skinny",
+      "weight": 1
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Alaska_Cedar/Prefabs/AlaskaCedar_Desktop_Bare04",
+      "shape": "skinny",
+      "weight": 1
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Douglas_Fir/Prefabs/DouglasFir_Desktop03",
+      "shape": "skinny",
+      "weight": 1
+    }
+  ],
+  "scale_defaults": {},
+  "visual_material_preset": {
+    "theme": 12,
+    "surfaces2": [
+      {
+        "name": "Sand08",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "Asphalt01B",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "Green10",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "Fringe10",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "Fairway15",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "LightRough06",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "HeavyRough41_PebbleBeach",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "Splat0_NextMakers",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "Splat1_RoyalPortrushGC",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "Splat2_Boreal",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "Splat3_TPC_Sawgrass",
+        "blend": 0.2,
+        "maskWater": true
+      }
+    ],
+    "secondarySurfaces": [
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      }
+    ],
+    "cartPathTexture": 0,
+    "teeTexture": 0
+  }
+}

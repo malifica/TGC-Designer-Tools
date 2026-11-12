@@ -97,7 +97,12 @@ def unpack_course_file(course_directory, course_file=None):
 
     return course_name
 
-def pack_course_file(course_directory, course_name=None, output_file=None, course_json=None, course_version=-1):
+def pack_course_file(course_directory, course_name=None, output_file=None, course_json=None, course_version=-1, export_course_json=None):
+    """Pack the working course, optionally using a separate export description.
+
+    An export-only payload never replaces the editable description on disk.
+    Existing callers retain their original save-and-pack behavior.
+    """
     if course_version not in tgc_definitions.version_tags:
         return
 
@@ -127,6 +132,12 @@ def pack_course_file(course_directory, course_name=None, output_file=None, cours
                 desc_read = desc.read()
                 meta_read = meta.read()
                 thumb_read = thumb.read()
+                # TGC_BETA8_5_FILTER_READY_V1: seeds belong only to the export.
+                if export_course_json is not None:
+                    # Match write_course_json's existing millimeter precision.
+                    # This also preserves the original export when the toggle is off.
+                    desc_read = json.dumps(json.loads(json.dumps(export_course_json),
+                        parse_float=lambda x: round(float(x), 3)), separators=(',', ':'))
                 # Final gate runs AFTER regional-theme metadata sync.
                 from osm_water_mulch_lock import finalize_serialized
                 desc_read, meta_read = finalize_serialized(
@@ -1573,7 +1584,8 @@ def merge_courses(course1_json, course2_json):
     return course1_json
 
 
-def elevate_terrain(course_json, elevate_shift, buffer_height=10.0, clip_lowest_value=-2.0, printf=print, course_version=-1):
+def elevate_terrain(course_json, elevate_shift, buffer_height=10.0, clip_lowest_value=-2.0, printf=print, course_version=-1,
+                    elevation_reference=None):
     if course_version not in tgc_definitions.version_tags:
         print("invalid version")
         print(course_version)
@@ -1588,15 +1600,22 @@ def elevate_terrain(course_json, elevate_shift, buffer_height=10.0, clip_lowest_
             
     # Automatic terrain shift
     if elevate_shift == 0.0 or elevate_shift == None:
-        elevations = []
-        for i in layer_json["height"]:
-            elevations.append(i['value'])
-
-        remaining_terrain = json.loads('[]')
-        for i in layer_json["terrainHeight"]:
-            elevations.append(i['value'])
-
-        elevations = np.array(elevations)
+        # TGC_BETA8_5_TERRAIN_SPACING_V1: optional native-resolution reference
+        # keeps the datum stable when only the emitted terrain spacing changes.
+        if elevation_reference is None:
+            elevations = []
+            for i in layer_json["height"]:
+                elevations.append(i['value'])
+            for i in layer_json["terrainHeight"]:
+                elevations.append(i['value'])
+            elevations = np.array(elevations)
+        else:
+            elevations = np.asarray(elevation_reference, dtype=np.float64)
+            if elevations.ndim != 1 or not np.all(np.isfinite(elevations)):
+                raise ValueError("Terrain elevation reference must contain finite native heights")
+            if elevations.size < 2:
+                printf("Course likely does not need elevation adjustment")
+                return course_json
 
         # Remove lower outliers
         # The idea is to sort the points by elevation

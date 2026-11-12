@@ -1,0 +1,284 @@
+{
+  "id": "alpine_woodlands",
+  "display_name": "Alpine Woodlands",
+  "enabled": true,
+  "tree_generation": "profile",
+  "description": "Mixed broadleaf woodland and conifer accents with coordinated turf, sand and terrain materials.",
+  "assets": [
+    {
+      "path": "Assets/Foliage/SpeedTree8/Trees/Oak_White/Prefabs/Oak_White_904",
+      "shape": "normal",
+      "weight": 1577
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Scots_Pine/Prefabs/ScotsPine_Desktop05",
+      "shape": "skinny",
+      "weight": 409
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Generic_Conifer/Prefabs/Generic_Conifer_Desktop01",
+      "shape": "skinny",
+      "weight": 313
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree8/Trees/Maple_Red/Prefabs/Maple_Red_904",
+      "shape": "normal",
+      "weight": 257
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree8/Trees/Myrtle_Crape/Prefabs/Myrtle_Crape_A_003",
+      "shape": "normal",
+      "weight": 215
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree8/Trees/Pine_Baltic/Prefabs/Pine_Baltic_003",
+      "shape": "skinny",
+      "weight": 211
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Red_Maple/Prefabs/Red_Maple_Desktop01",
+      "shape": "normal",
+      "weight": 195
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Red_Maple/Prefabs/Red_Maple_Desktop02",
+      "shape": "normal",
+      "weight": 185
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Pond_Cypress/Prefabs/PondCypress_Desktop_16_Generic",
+      "shape": "skinny",
+      "weight": 176
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Douglas_Fir/Prefabs/DouglasFir_Desktop14_Cone",
+      "shape": "skinny",
+      "weight": 153
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Generic_Conifer/Prefabs/Generic_Conifer_Desktop02",
+      "shape": "skinny",
+      "weight": 114
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Douglas_Fir/Prefabs/DouglasFir_Desktop01",
+      "shape": "skinny",
+      "weight": 88
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Douglas_Fir/Prefabs/DouglasFir_Desktop13_Riverhighlands_Hole02",
+      "shape": "skinny",
+      "weight": 53
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree8/Trees/Larch_European/Prefabs/Larch_European_003",
+      "shape": "skinny",
+      "weight": 51
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Lombardy_Poplar/Prefabs/Lombardy_Poplar_Desktop03",
+      "shape": "skinny",
+      "weight": 39
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree8/Trees/Sycamore_English/Prefabs/Sycamore_English_005",
+      "shape": "normal",
+      "weight": 9
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree8/Trees/Oak_LiveMoss/Prefabs/Oak_LiveMoss_904",
+      "shape": "normal",
+      "weight": 8
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree8/Trees/Cypress_Monterey/Prefabs/Cypress_Monterey_009",
+      "shape": "skinny",
+      "weight": 6
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree8/Trees/Pine_Black/Prefabs/Pine_Black_001",
+      "shape": "normal",
+      "weight": 6
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree8/Trees/Oak_White/Prefabs/Oak_White_014",
+      "shape": "normal",
+      "weight": 3
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree8/Trees/Ash_Green_FB/Prefabs/Ash_Green_FB_012",
+      "shape": "normal",
+      "weight": 3
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree8/Trees/Arborvitae_Giant/Prefabs/Arborvitae_Giant_001",
+      "shape": "skinny",
+      "weight": 3
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Weeping_Willow/Prefabs/Weeping_Willow_Desktop03",
+      "shape": "normal",
+      "weight": 2
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree8/Trees/Pine_Black/Prefabs/Pine_Black_002",
+      "shape": "normal",
+      "weight": 2
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree/Trees/Pond_Cypress/Prefabs/PondCypress_Desktop_14_Louisiana_hole13",
+      "shape": "skinny",
+      "weight": 1
+    },
+    {
+      "path": "Assets/Foliage/SpeedTree8/Trees/Oak_White/Prefabs/Oak_White_026",
+      "shape": "normal",
+      "weight": 1
+    }
+  ],
+  "scale_defaults": {},
+  "visual_material_preset": {
+    "theme": 12,
+    "surfaces2": [
+      {
+        "blend": 1.0,
+        "maskWater": true
+      },
+      {
+        "name": "Cobbles01",
+        "blend": 1.0,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "Green29_TPC_SanAntonio",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "Fringe29_TPC_SanAntonio",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "Fairway07",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "LightRough07",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "HeavyRough07",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "Splat0_TopGolfVegas",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "Splat1_Nordic",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "Splat2_Steppe",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "Splat3_TPC_Scottsdale",
+        "blend": 0.2,
+        "maskWater": true
+      }
+    ],
+    "secondarySurfaces": [
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "Green48",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "Fringe48",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "Fairway05",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "LightRough48",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "name": "HeavyRough48",
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      },
+      {
+        "blend": 0.2,
+        "maskWater": true
+      }
+    ],
+    "cartPathTexture": 0,
+    "teeTexture": 0
+  }
+}
