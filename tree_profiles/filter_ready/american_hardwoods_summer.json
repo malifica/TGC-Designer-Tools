@@ -1,0 +1,979 @@
+{
+  "schema_version": 1,
+  "profile_id": "american_hardwoods_summer",
+  "complete": true,
+  "counts": {
+    "assets": 40,
+    "categories": {
+      "plant": 4,
+      "tree": 31,
+      "grass": 5
+    },
+    "placements": {
+      "item": 40
+    }
+  },
+  "assets": [
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Plants/California_Poppy/Prefabs/California_Poppy_Desktop_1Prefab"
+      },
+      "category": "plant",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0,
+          "y": "-Infinity",
+          "z": 0
+        },
+        "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Plants/California_Poppy/Prefabs/California_Poppy_Desktop_2Prefab"
+      },
+      "category": "plant",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0,
+          "y": "-Infinity",
+          "z": 0
+        },
+        "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Plants/California_Poppy/Prefabs/California_Poppy_Red_DesktopPrefab"
+      },
+      "category": "plant",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0,
+          "y": "-Infinity",
+          "z": 0
+        },
+        "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Plants/California_Poppy/Prefabs/California_Poppy_White_DesktopPrefab"
+      },
+      "category": "plant",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0,
+          "y": "-Infinity",
+          "z": 0
+        },
+        "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Trees/American_Elm/Prefabs/American_Elm_Desktop03"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0,
+          "y": "-Infinity",
+          "z": 0
+        },
+        "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Trees/American_Elm/Prefabs/American_Elm_Desktop19"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0,
+          "y": "-Infinity",
+          "z": 0
+        },
+        "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Trees/American_Elm/Prefabs/American_Elm_Desktop20"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0,
+          "y": "-Infinity",
+          "z": 0
+        },
+        "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Trees/American_Elm/Prefabs/American_Elm_Desktop32"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0,
+          "y": "-Infinity",
+          "z": 0
+        },
+        "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Trees/Green_Ash/Prefabs/Green_Ash_Desktop_102"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0,
+          "y": "-Infinity",
+          "z": 0
+        },
+        "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Trees/Green_Ash/Prefabs/Green_Ash_Desktop_114_EastLake_Hole9"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0,
+          "y": "-Infinity",
+          "z": 0
+        },
+        "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Trees/Green_Ash/Prefabs/Green_Ash_Desktop_139_TwinCities_Hole7_01"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0,
+          "y": "-Infinity",
+          "z": 0
+        },
+        "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Trees/Green_Ash/Prefabs/Green_Ash_Desktop_144"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0,
+          "y": "-Infinity",
+          "z": 0
+        },
+        "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Trees/Green_Ash/Prefabs/Green_Ash_Desktop_150"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0,
+          "y": "-Infinity",
+          "z": 0
+        },
+        "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Trees/Green_Ash/Prefabs/Green_Ash_Desktop_152"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0,
+          "y": "-Infinity",
+          "z": 0
+        },
+        "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Trees/Green_Ash/Prefabs/Green_Ash_Desktop_154"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0,
+          "y": "-Infinity",
+          "z": 0
+        },
+        "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Trees/Red_Maple/Prefabs/Silver_Maple_Desktop01"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0,
+          "y": "-Infinity",
+          "z": 0
+        },
+        "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Trees/Red_Maple/Prefabs/Silver_Maple_Desktop03"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0,
+          "y": "-Infinity",
+          "z": 0
+        },
+        "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Trees/Red_Maple/Prefabs/Silver_Maple_Desktop04"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0,
+          "y": "-Infinity",
+          "z": 0
+        },
+        "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Trees/Southern_Live_Oak/Prefabs/SouthernLiveOak_Desktop15"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0,
+          "y": "-Infinity",
+          "z": 0
+        },
+        "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Trees/Southern_Live_Oak/Prefabs/SouthernLiveOak_Desktop19"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0,
+          "y": "-Infinity",
+          "z": 0
+        },
+        "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Trees/Southern_Live_Oak/Prefabs/SouthernLiveOak_Desktop22"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0,
+          "y": "-Infinity",
+          "z": 0
+        },
+        "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Trees/White_Oak/Prefabs/White_Oak_Desktop01"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0,
+          "y": "-Infinity",
+          "z": 0
+        },
+        "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Trees/White_Oak/Prefabs/White_Oak_Desktop03"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0,
+          "y": "-Infinity",
+          "z": 0
+        },
+        "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Trees/White_Oak/Prefabs/White_Oak_Desktop12"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0,
+          "y": "-Infinity",
+          "z": 0
+        },
+        "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Trees/White_Oak/Prefabs/White_Oak_Desktop31"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0,
+          "y": "-Infinity",
+          "z": 0
+        },
+        "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree/Trees/White_Oak/Prefabs/White_Oak_Desktop_AtlanticBeach_13_01"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0,
+          "y": "-Infinity",
+          "z": 0
+        },
+        "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Grass/Fescue_01/Prefabs/Fescue_01_001"
+      },
+      "category": "grass",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0,
+          "y": "-Infinity",
+          "z": 0
+        },
+        "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Grass/Fescue_01/Prefabs/Fescue_01_002"
+      },
+      "category": "grass",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0,
+          "y": "-Infinity",
+          "z": 0
+        },
+        "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Grass/Fescue_03/Prefabs/Fescue_03_008_Cutout"
+      },
+      "category": "grass",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0,
+          "y": "-Infinity",
+          "z": 0
+        },
+        "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Grass/Fescue_03/Prefabs/Fescue_03_009_Cutout"
+      },
+      "category": "grass",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0,
+          "y": "-Infinity",
+          "z": 0
+        },
+        "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Grass/Fescue_05/Prefabs/Fescue_05_001"
+      },
+      "category": "grass",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0,
+          "y": "-Infinity",
+          "z": 0
+        },
+        "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Trees/Beech_American/Prefabs/Beech_American_001"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0,
+          "y": "-Infinity",
+          "z": 0
+        },
+        "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Trees/Elm_American/Prefabs/Elm_American_034"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0,
+          "y": "-Infinity",
+          "z": 0
+        },
+        "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Trees/Maple_Silver/Prefabs/Maple_Silver_008"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0,
+          "y": "-Infinity",
+          "z": 0
+        },
+        "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Trees/Maple_Silver/Prefabs/Maple_Silver_009"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0,
+          "y": "-Infinity",
+          "z": 0
+        },
+        "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Trees/Maple_Silver/Prefabs/Maple_Silver_010"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0,
+          "y": "-Infinity",
+          "z": 0
+        },
+        "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Trees/Maple_Silver/Prefabs/Maple_Silver_015"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0,
+          "y": "-Infinity",
+          "z": 0
+        },
+        "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Trees/Oak_White/Prefabs/Oak_White_007"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0,
+          "y": "-Infinity",
+          "z": 0
+        },
+        "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Trees/Oak_White/Prefabs/Oak_White_051"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0,
+          "y": "-Infinity",
+          "z": 0
+        },
+        "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    },
+    {
+      "key": {
+        "path": "Assets/Foliage/SpeedTree8/Trees/Oak_Willow/Prefabs/Oak_Willow_001"
+      },
+      "category": "tree",
+      "placement": "item",
+      "sample": {
+        "position": {
+          "x": 0,
+          "y": "-Infinity",
+          "z": 0
+        },
+        "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 0.05,
+          "y": 0.05,
+          "z": 0.05
+        }
+      }
+    }
+  ],
+  "asset_scope": "nature_only"
+}

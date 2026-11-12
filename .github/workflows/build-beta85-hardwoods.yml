@@ -1,0 +1,106 @@
+name: Build Beta 8.5 American Hardwoods Summer
+
+on:
+  push:
+    branches:
+      - build/beta85-american-hardwoods-summer
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows-build:
+    runs-on: windows-2022
+    timeout-minutes: 60
+    env:
+      PYTHONUTF8: "1"
+      PYTHONIOENCODING: utf-8
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - name: Check out the build source
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Set up Python 3.11 x64
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          architecture: x64
+
+      - name: Install the existing build requirements
+        run: |
+          $PSNativeCommandUseErrorActionPreference = $false
+          New-Item -ItemType Directory -Force diagnostics | Out-Null
+          python -m pip install --upgrade pip 2>&1 | Tee-Object -FilePath diagnostics/DEPENDENCY_INSTALL.log
+          $installExit = $LASTEXITCODE
+          if ($installExit -ne 0) { exit $installExit }
+          python -m pip install -r requirements.txt 2>&1 | Tee-Object -FilePath diagnostics/DEPENDENCY_INSTALL.log -Append
+          $installExit = $LASTEXITCODE
+          if ($installExit -ne 0) { exit $installExit }
+
+      - name: Record the Python environment
+        if: always()
+        run: |
+          $PSNativeCommandUseErrorActionPreference = $false
+          New-Item -ItemType Directory -Force diagnostics | Out-Null
+          python --version 2>&1 | Tee-Object -FilePath diagnostics/PYTHON_VERSION.txt
+          $versionExit = $LASTEXITCODE
+          if ($versionExit -ne 0) { exit $versionExit }
+          python -m pip freeze 2>&1 | Tee-Object -FilePath diagnostics/DEPENDENCIES.txt
+          $freezeExit = $LASTEXITCODE
+          if ($freezeExit -ne 0) { exit $freezeExit }
+
+      - name: Verify the hardwood theme and Filter Ready catalog
+        run: |
+          $PSNativeCommandUseErrorActionPreference = $false
+          python VERIFY_BETA8_5_AMERICAN_HARDWOODS.py 2>&1 | Tee-Object -FilePath diagnostics/AMERICAN_HARDWOODS_VERIFY.log
+          $verifyExit = $LASTEXITCODE
+          if ($verifyExit -ne 0) { exit $verifyExit }
+
+      - name: Build and verify the Windows executable
+        run: |
+          $PSNativeCommandUseErrorActionPreference = $false
+          python BUILD_TGC_2K25_BETA8_5.py . 2>&1 | Tee-Object -FilePath diagnostics/BUILD_HARDWOODS.log
+          $buildExit = $LASTEXITCODE
+          if ($buildExit -ne 0) { exit $buildExit }
+
+      - name: Package the checked executable and optional theme files
+        run: |
+          $PSNativeCommandUseErrorActionPreference = $false
+          python .github/scripts/package-beta85-hardwoods.py 2>&1 | Tee-Object -FilePath diagnostics/PACKAGE_HARDWOODS.log
+          $packageExit = $LASTEXITCODE
+          if ($packageExit -ne 0) { exit $packageExit }
+
+      - name: Upload the successful Windows build
+        uses: actions/upload-artifact@v6
+        with:
+          name: TGC-Beta85-American-Hardwoods-Summer-Windows-x64
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 30
+          path: |
+            dist/tgc_gui_2k25_beta8_5.exe.sha256.txt
+            dist/tgc_gui_2k25_beta8_5.exe.build.json
+            dist/hardwoods_release/TGC_Beta8_5_American_Hardwoods_Summer_Windows_x64.zip
+            dist/hardwoods_release/American_Hardwoods_Summer_Theme.zip
+            dist/hardwoods_release/SHA256SUMS.txt
+            dist/hardwoods_release/AMERICAN_HARDWOODS_BUILD_REPORT.json
+            dist/hardwoods_release/THEME_PORTABILITY_REPORT.json
+
+      - name: Upload build diagnostics
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: TGC-Beta85-American-Hardwoods-Summer-Diagnostics
+          if-no-files-found: warn
+          retention-days: 30
+          path: |
+            diagnostics/*.log
+            diagnostics/*.txt
+            build/**/THEME_PORTABILITY_REPORT.json
+            build/**/theme_portability/*.txt
+            build/**/work/**/warn-*.txt

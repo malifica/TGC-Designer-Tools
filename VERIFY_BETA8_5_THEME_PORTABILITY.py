@@ -19,6 +19,7 @@ import tempfile
 
 PORTABILITY_MARKER = 'TGC_BETA8_5_FACTORY_THEME_PORTABILITY_V1'
 FACTORY_THEMES = {
+    'american_hardwoods_summer': 'American Hardwoods - Summer',
     'alpine_conifer': 'Alpine Conifer',
     'carolina_piedmont_autumn': 'Carolina Piedmont (Autumn)',
     'desert_oasis_sands': 'Desert Oasis - Sands',
