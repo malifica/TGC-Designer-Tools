@@ -1,0 +1,38 @@
+name: Download GWest public LiDAR terrain
+on:
+  push:
+    branches: ['data/gwest-terrain-download-20261117']
+    paths: ['.github/workflows/gwest-terrain-download.yml', 'data_jobs/gwest_download.py']
+permissions:
+  contents: read
+concurrency:
+  group: gwest-public-dtm-download
+  cancel-in-progress: false
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+  PYTHONUNBUFFERED: '1'
+jobs:
+  download:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+          sparse-checkout: data_jobs
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+      - name: Install raster reading dependencies
+        run: python -m pip install requests numpy rasterio
+      - name: Download actual DTM pixels and verify coverage
+        run: python data_jobs/gwest_download.py
+      - name: Retain downloaded terrain and audit
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: GWest-Downloaded-LiDAR-DTM-${{ github.run_id }}
+          path: output/
+          retention-days: 7
+          compression-level: 0
+          if-no-files-found: error
